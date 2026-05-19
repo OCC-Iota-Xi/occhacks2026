@@ -1,151 +1,18 @@
 @import "tailwindcss";
 
-/* ── Design Tokens ── */
 @theme inline {
-  /* Color Palette — Space Pirate */
-  --color-void: #050509;
-  --color-deep-space: #0A0D16;
-  --color-navy-hull: #0D1624;
-  --color-steel-deck: #142337;
-  --color-aged-gold: #C9A84C;
-  --color-aged-gold-dim: #8B7333;
-  --color-bone: #F5F0E8;
-  --color-fog: #A0A8B8;
-  --color-steel-blue: #5B7FA5;
-  --color-ember: #D4553A;
+  --color-background: #050509;
 
   /* Font families */
-  --font-heading: var(--font-bruno-ace-sc), ui-serif, serif;
+  --font-header: var(--font-bruno-ace-sc), ui-serif, serif;
   --font-body: var(--font-space-grotesk), ui-sans-serif, system-ui, sans-serif;
-  --font-mono: var(--font-space-mono), ui-monospace, monospace;
-  --font-ui: var(--font-oxanium), ui-sans-serif, system-ui, sans-serif;
-  --font-pirate: var(--font-pirata-one), cursive;
-}
-
-/* ── Base Resets ── */
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
-html {
-  scroll-behavior: smooth;
-  overflow-x: hidden;
+  --font-accent: var(--font-pirata-one), cursive;
 }
 
 body {
-  background: var(--color-deep-space);
-  color: var(--color-fog);
+  background-color: var(--color-background);
+  color: #ffffff;
   font-family: var(--font-body);
-  overflow-x: hidden;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-::selection {
-  background: var(--color-aged-gold);
-  color: var(--color-void);
-}
-
-/* ── Star Field Background ── */
-.stars-layer {
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  overflow: hidden;
-  pointer-events: none;
-}
-
-.star {
-  position: absolute;
-  border-radius: 50%;
-  background: white;
-  animation: twinkle var(--duration, 3s) ease-in-out infinite alternate;
-  opacity: 0;
-}
-
-@keyframes twinkle {
-  0% { opacity: 0.1; transform: scale(0.8); }
-  100% { opacity: var(--max-opacity, 0.8); transform: scale(1.2); }
-}
-
-/* ── Glow Effects ── */
-.gold-glow {
-  box-shadow:
-    0 0 20px rgba(201, 168, 76, 0.15),
-    0 0 40px rgba(201, 168, 76, 0.05);
-}
-
-.gold-glow-hover:hover {
-  box-shadow:
-    0 0 30px rgba(201, 168, 76, 0.3),
-    0 0 60px rgba(201, 168, 76, 0.1);
-}
-
-/* ── Glass Card ── */
-.glass-card {
-  background: rgba(13, 22, 36, 0.6);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(91, 127, 165, 0.12);
-  border-radius: 16px;
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.glass-card:hover {
-  border-color: rgba(201, 168, 76, 0.25);
-  background: rgba(13, 22, 36, 0.75);
-  transform: translateY(-4px);
-  box-shadow:
-    0 16px 48px rgba(0, 0, 0, 0.3),
-    0 0 24px rgba(201, 168, 76, 0.08);
-}
-
-/* ── Section Spacing ── */
-.section-padding {
-  padding: 6rem 1.5rem;
-}
-
-@media (min-width: 768px) {
-  .section-padding {
-    padding: 8rem 3rem;
-  }
-}
-
-@media (min-width: 1280px) {
-  .section-padding {
-    padding: 10rem 4rem;
-  }
-}
-
-/* ── Scrollbar ── */
-::-webkit-scrollbar {
-  width: 8px;
-}
-
-::-webkit-scrollbar-track {
-  background: var(--color-void);
-}
-
-::-webkit-scrollbar-thumb {
-  background: var(--color-steel-deck);
-  border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: var(--color-steel-blue);
-}
-
-/* ── Canvas Layer ── */
-.canvas-fixed-layer {
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-}
-
-.content-layer {
-  position: relative;
-  z-index: 1;
+  margin: 0;
+  padding: 0;
 }

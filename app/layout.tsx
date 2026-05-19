@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Bruno_Ace_SC, Space_Grotesk, Oxanium, Space_Mono, Pirata_One } from "next/font/google";
 import "./globals.css";
+import Navbar from "@/components/Navbar";
 
 const brunoAceSC = Bruno_Ace_SC({
   weight: "400",
@@ -62,7 +63,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${fontVariables} antialiased`}>
-      <body>{children}</body>
+      <body>
+        {/* <Navbar /> */}
+        {children}
+      </body>
     </html>
   );
 }
