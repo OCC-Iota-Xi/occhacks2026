@@ -25,7 +25,7 @@ export default function Scene1HeroBackground() {
         <Environment preset="city" />
 
         {/* Scene Objects */}
-        <HyperspaceStars count={2000} />
+        <HyperspaceStars count={10000} />
         <Suspense fallback={null}>
           <Ship />
         </Suspense>

@@ -1,64 +1,87 @@
 "use client";
 
 import { useRef } from "react";
-import { useGLTF, Html } from "@react-three/drei";
+import { useGLTF } from "@react-three/drei";
 import { Group } from "three";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
-import { useControls, folder } from "leva";
-import EngineThruster from "./EngineThruster";
 
 gsap.registerPlugin(useGSAP);
 
 export default function Ship() {
   const shipRef = useRef<Group>(null);
+  const primitiveRef = useRef<any>(null);
 
   // Load the model
   const { scene } = useGLTF("/3d_model/d.s.s._harbinger_battle_cruiser.glb");
 
-  // LEVA CONTROLS
-  const { pX, pY, pZ, rX, rY, rZ, sScale } = useControls("Ship Sandbox", {
-    Position: folder({
-      pX: { value: 5, step: 0.1 },
-      pY: { value: 0, step: 0.1 },
-      pZ: { value: 0, step: 0.1 },
-    }),
-    Rotation: folder({
-      rX: { value: 0.15, step: 0.05 },
-      rY: { value: -1.6, step: 0.05 },
-      rZ: { value: -0.15, step: 0.05 },
-    }),
-    Scaling: folder({
-      sScale: { value: 0.05, step: 0.005, min: 0.01, max: 0.2 },
-    })
-  });
-
   useGSAP(() => {
-    // TEMPORARILY DISABLED GSAP so you can use the Leva controls
-    return;
+    if (!shipRef.current || !primitiveRef.current) return;
+
+    // Position 1: Starting position (warp in start)
+    // x: -1.30, y: 1.10, z: -6.90
+    // Group Rotation x: 0.20, y: -1.50, z: 0.20
+    // Object Rotation x: -0.05, y: 0.10, z: -0.10
+    // Scale scale: 0.025
+    gsap.set(shipRef.current.position, { x: -1.30, y: 1.10, z: -6.90 });
+    gsap.set(shipRef.current.rotation, { x: 0.20, y: -1.50, z: 0.20 });
+    gsap.set(primitiveRef.current.rotation, { x: -0.05, y: 0.10, z: -0.10 });
+    gsap.set(primitiveRef.current.scale, { x: 0.025, y: 0.025, z: 0.025 });
+
+    const tl = gsap.timeline();
+
+    // Fly from Pos 1 to Pos 2 (warp)
+    // Position x: 3.20, y: 0.80, z: -5.20
+    // Group Rotation x: 0.15, y: -1.65, z: 0.20
+    // Object Rotation x: 0.20, y: 0.15, z: -0.35
+    // Scale scale: 0.070
+    tl.to(shipRef.current.position, {
+      x: 3.20, y: 0.80, z: -5.20,
+      duration: 1.2,
+      ease: "power2.in",
+    }, 0)
+    .to(shipRef.current.rotation, {
+      x: 0.15, y: -1.65, z: 0.20,
+      duration: 1.2,
+      ease: "power2.in",
+    }, 0)
+    .to(primitiveRef.current.rotation, {
+      x: 0.20, y: 0.15, z: -0.35,
+      duration: 1.2,
+      ease: "power2.in",
+    }, 0)
+    .to(primitiveRef.current.scale, {
+      x: 0.070, y: 0.070, z: 0.070,
+      duration: 1.2,
+      ease: "power2.in",
+    }, 0);
+
+    // Fly from Pos 2 to Pos 3 (settle for hero)
+    // Position x: 5.20, y: 0.40, z: -3.00
+    // Group Rotation x: 0.25, y: -1.55, z: 0.25
+    // Object Rotation x: -0.05, y: -0.05, z: -0.30
+    // Scale scale: 0.070
+    tl.to(shipRef.current.position, {
+      x: 5.20, y: 0.40, z: -3.00,
+      duration: 3,
+      ease: "power3.out",
+    }, ">")
+    .to(shipRef.current.rotation, {
+      x: 0.25, y: -1.55, z: 0.25,
+      duration: 3,
+      ease: "power3.out",
+    }, "<")
+    .to(primitiveRef.current.rotation, {
+      x: -0.05, y: -0.05, z: -0.30,
+      duration: 3,
+      ease: "power3.out",
+    }, "<")
+    // Scale stays the same for pos 3
   }, []);
 
-  // Format the output text for easy copy-pasting
-  const copyText = `// Position\nx: ${pX.toFixed(2)},\ny: ${pY.toFixed(2)},\nz: ${pZ.toFixed(2)},\n\n// Rotation\nx: ${rX.toFixed(2)},\ny: ${rY.toFixed(2)},\nz: ${rZ.toFixed(2)},\n\n// Scale\nscale: ${sScale.toFixed(3)}`;
-
   return (
-    <group
-      ref={shipRef}
-      dispose={null}
-      position={[pX, pY, pZ]}
-      rotation={[rX, rY, rZ]}
-    >
-      <primitive object={scene} scale={sScale} />
-
-      <EngineThruster position={[-6, 0.3, 2.5]} rotation={[0.5, -1.57, 0]} />
-
-      {/* Floating UI to copy coordinates */}
-      <Html position={[0, -3, 0]} center>
-        <div className="bg-black/90 p-4 border border-amber-500 rounded shadow-xl text-amber-500 font-mono text-sm w-48 pointer-events-auto select-all cursor-text flex flex-col">
-          <span className="text-white text-xs mb-2 opacity-50 select-none">Click box to copy all</span>
-          {copyText}
-        </div>
-      </Html>
+    <group ref={shipRef} dispose={null}>
+      <primitive ref={primitiveRef} object={scene} />
     </group>
   );
 }

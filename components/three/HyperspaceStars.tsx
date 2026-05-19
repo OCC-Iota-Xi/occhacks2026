@@ -9,67 +9,105 @@ import { useGSAP } from "@gsap/react";
 gsap.registerPlugin(useGSAP);
 
 export default function HyperspaceStars({ count = 3000 }) {
-  const pointsRef = useRef<THREE.Points>(null);
-  const materialRef = useRef<THREE.PointsMaterial>(null);
-  
-  const speedRef = useRef({ value: 15 }); // Start very fast for hyperspace
+  const linesRef = useRef<THREE.LineSegments>(null);
+
+  // Speed goes from fast (warp) to slow (idle)
+  const speedRef = useRef({ value: 20 });
 
   useGSAP(() => {
-    // Slow down over 3 seconds as the ship arrives
-    gsap.to(speedRef.current, {
-      value: 0.1,
-      duration: 3,
-      ease: "power4.out",
-    });
+    const tl = gsap.timeline();
+    tl.to(speedRef.current, {
+      value: 20,
+      duration: 0.5, // Stay fast during initial warp
+      ease: "none"
+    })
+      .to(speedRef.current, {
+        value: 0.1,
+        duration: 0.5, // Slow down as the ship settles
+        ease: "power3.out",
+      });
   }, []);
 
-  const [positions, speeds] = useMemo(() => {
-    const pos = new Float32Array(count * 3);
+  const [geometry, speeds] = useMemo(() => {
+    // 2 vertices per line (start and end), 3 coordinates per vertex
+    const pos = new Float32Array(count * 2 * 3);
     const spds = new Float32Array(count);
+    
     for (let i = 0; i < count; i++) {
-      pos[i * 3] = (Math.random() - 0.5) * 100; // x
-      pos[i * 3 + 1] = (Math.random() - 0.5) * 100; // y
-      pos[i * 3 + 2] = (Math.random() - 0.5) * 100; // z
+      const x = (Math.random() - 0.5) * 200;
+      const y = (Math.random() - 0.5) * 200;
+      const z = (Math.random() - 0.5) * 200;
+      
+      // Point 1 (head)
+      pos[i * 6] = x;
+      pos[i * 6 + 1] = y;
+      pos[i * 6 + 2] = z;
+      
+      // Point 2 (tail)
+      pos[i * 6 + 3] = x;
+      pos[i * 6 + 4] = y;
+      pos[i * 6 + 5] = z;
+      
       spds[i] = Math.random() * 0.5 + 0.5; // individual variance
     }
-    return [pos, spds];
+
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+
+    return [geo, spds];
   }, [count]);
 
   useFrame((state, delta) => {
-    if (!pointsRef.current) return;
-    const positions = pointsRef.current.geometry.attributes.position.array as Float32Array;
+    if (!linesRef.current) return;
+    const pos = linesRef.current.geometry.attributes.position.array as Float32Array;
+    
+    const speed = speedRef.current.value;
+    // Stretch multiplier. When speed is 0.1, stretch is very tiny (looks like a dot)
+    // When speed is 20, stretch is long (looks like a line)
+    const stretchLength = speed * 2; 
     
     for (let i = 0; i < count; i++) {
-      const i3 = i * 3;
-      // Move stars towards camera (+z)
-      positions[i3 + 2] += speedRef.current.value * speeds[i] * delta * 60;
+      const i6 = i * 6;
       
-      // Reset if they pass the camera
-      if (positions[i3 + 2] > 20) {
-        positions[i3 + 2] = -50;
+      // Move head away from camera (-z)
+      pos[i6 + 2] -= speed * speeds[i] * delta * 60;
+      
+      // Reset if head goes too far back
+      if (pos[i6 + 2] < -150) {
+        pos[i6 + 2] = 50;
       }
+      
+      // Tail follows head but stretched forwards along Z axis (since it's moving backwards, the tail trails behind in the +z direction)
+      pos[i6 + 3] = pos[i6];     // x
+      pos[i6 + 4] = pos[i6 + 1]; // y
+      pos[i6 + 5] = pos[i6 + 2] + stretchLength * speeds[i]; // tail z
     }
-    pointsRef.current.geometry.attributes.position.needsUpdate = true;
+    
+    linesRef.current.geometry.attributes.position.needsUpdate = true;
   });
 
   return (
-    <points ref={pointsRef}>
-      <bufferGeometry>
-        <bufferAttribute
-          attach="attributes-position"
-          count={positions.length / 3}
-          array={positions}
-          itemSize={3}
+    <>
+      {/* 
+        TWEAK THE STAR ORIGIN (VANISHING POINT) HERE:
+        The rotation prop below controls where the stars appear to come from.
+        Format is [X, Y, Z] in radians.
+        
+        - Y-Axis (middle value):
+          Positive (e.g. 0.3) = stars originate from the right
+          Negative (e.g. -0.3) = stars originate from the left
+        
+        - X-Axis (first value):
+          Positive = stars originate from below
+          Negative = stars originate from above
+      */}
+      <lineSegments ref={linesRef} rotation={[0, 0.3, 0]} geometry={geometry}>
+        <lineBasicMaterial
+          color="#aaccff"
+          transparent
+          opacity={0.7}
         />
-      </bufferGeometry>
-      <pointsMaterial
-        ref={materialRef}
-        size={0.15}
-        color="#ffffff"
-        transparent
-        opacity={0.8}
-        sizeAttenuation
-      />
-    </points>
+      </lineSegments>
+    </>
   );
 }
