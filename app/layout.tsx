@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
-import { Bruno_Ace_SC, Space_Grotesk, Oxanium, Space_Mono, Pirata_One } from "next/font/google";
+import { Bruno_Ace_SC, Space_Grotesk, Oxanium, Space_Mono, Pirata_One, Geist } from "next/font/google";
 import "./globals.css";
-import Navbar from "@/components/Navbar";
+import { cn } from "@/lib/utils";
+
+const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 
 const brunoAceSC = Bruno_Ace_SC({
   weight: "400",
@@ -62,7 +64,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${fontVariables} antialiased`}>
+    <html lang="en" className={cn("dark antialiased", fontVariables, "font-sans", geist.variable)}>
       <body>
         {/* <Navbar /> */}
         {children}

@@ -1,42 +1,61 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, useState, useEffect } from "react";
 import { useGLTF } from "@react-three/drei";
 import { Group } from "three";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
+import EngineThruster from "./EngineThruster";
 
 gsap.registerPlugin(useGSAP);
 
 export default function Ship() {
   const shipRef = useRef<Group>(null);
-  const primitiveRef = useRef<any>(null);
+  const modelGroupRef = useRef<Group>(null);
+  const progressRef = useRef({ value: 0 });
+
+  const [isMobile, setIsMobile] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    // Set initial value on client mount
+    setIsMobile(window.innerWidth < 768);
+
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   // Load the model
   const { scene } = useGLTF("/3d_model/d.s.s._harbinger_battle_cruiser.glb");
 
   useGSAP(() => {
-    if (!shipRef.current || !primitiveRef.current) return;
+    if (isMobile === null) return;
+    if (!shipRef.current || !modelGroupRef.current) return;
+
+    const startPos = isMobile ? { x: -1.0, y: 3.4, z: -8.0 } : { x: -1.30, y: 1.10, z: -6.90 };
+    const startScale = isMobile ? 0.020 : 0.040;
+
+    const midPos = isMobile ? { x: -0.2, y: 3.0, z: -5.0 } : { x: 3.20, y: 0.80, z: -5.20 };
+    const midScale = isMobile ? 0.048 : 0.11;
+
+    const endPos = isMobile ? { x: 0.2, y: 2.7, z: -3.0 } : { x: 5.20, y: 0.40, z: -3.00 };
+    const endScale = isMobile ? 0.048 : 0.11;
 
     // Position 1: Starting position (warp in start)
-    // x: -1.30, y: 1.10, z: -6.90
-    // Group Rotation x: 0.20, y: -1.50, z: 0.20
-    // Object Rotation x: -0.05, y: 0.10, z: -0.10
-    // Scale scale: 0.025
-    gsap.set(shipRef.current.position, { x: -1.30, y: 1.10, z: -6.90 });
+    gsap.set(shipRef.current.position, startPos);
     gsap.set(shipRef.current.rotation, { x: 0.20, y: -1.50, z: 0.20 });
-    gsap.set(primitiveRef.current.rotation, { x: -0.05, y: 0.10, z: -0.10 });
-    gsap.set(primitiveRef.current.scale, { x: 0.025, y: 0.025, z: 0.025 });
+    gsap.set(modelGroupRef.current.rotation, { x: -0.05, y: 0.10, z: -0.10 });
+    gsap.set(modelGroupRef.current.scale, { x: startScale, y: startScale, z: startScale });
+    gsap.set(progressRef.current, { value: 0 });
 
     const tl = gsap.timeline();
 
     // Fly from Pos 1 to Pos 2 (warp)
-    // Position x: 3.20, y: 0.80, z: -5.20
-    // Group Rotation x: 0.15, y: -1.65, z: 0.20
-    // Object Rotation x: 0.20, y: 0.15, z: -0.35
-    // Scale scale: 0.070
     tl.to(shipRef.current.position, {
-      x: 3.20, y: 0.80, z: -5.20,
+      ...midPos,
       duration: 1.2,
       ease: "power2.in",
     }, 0)
@@ -45,24 +64,20 @@ export default function Ship() {
       duration: 1.2,
       ease: "power2.in",
     }, 0)
-    .to(primitiveRef.current.rotation, {
+    .to(modelGroupRef.current.rotation, {
       x: 0.20, y: 0.15, z: -0.35,
       duration: 1.2,
       ease: "power2.in",
     }, 0)
-    .to(primitiveRef.current.scale, {
-      x: 0.070, y: 0.070, z: 0.070,
+    .to(modelGroupRef.current.scale, {
+      x: midScale, y: midScale, z: midScale,
       duration: 1.2,
       ease: "power2.in",
     }, 0);
 
     // Fly from Pos 2 to Pos 3 (settle for hero)
-    // Position x: 5.20, y: 0.40, z: -3.00
-    // Group Rotation x: 0.25, y: -1.55, z: 0.25
-    // Object Rotation x: -0.05, y: -0.05, z: -0.30
-    // Scale scale: 0.070
     tl.to(shipRef.current.position, {
-      x: 5.20, y: 0.40, z: -3.00,
+      ...endPos,
       duration: 3,
       ease: "power3.out",
     }, ">")
@@ -71,17 +86,81 @@ export default function Ship() {
       duration: 3,
       ease: "power3.out",
     }, "<")
-    .to(primitiveRef.current.rotation, {
+    .to(modelGroupRef.current.rotation, {
       x: -0.05, y: -0.05, z: -0.30,
       duration: 3,
       ease: "power3.out",
     }, "<")
-    // Scale stays the same for pos 3
-  }, []);
+    .to(modelGroupRef.current.scale, {
+      x: endScale, y: endScale, z: endScale,
+      duration: 3,
+      ease: "power3.out",
+    }, "<")
+    .to(progressRef.current, {
+      value: 1,
+      duration: 3,
+      ease: "power3.out",
+    }, "<");
+
+    // Infinite floating yo-yo effect (added directly to the timeline for clean garbage collection/cleanup)
+    tl.to(shipRef.current.position, {
+      y: "+=0.10",
+      duration: 3.5,
+      ease: "sine.inOut",
+      yoyo: true,
+      repeat: -1,
+    }, ">")
+    .to(shipRef.current.rotation, {
+      z: "+=0.015",
+      x: "-=0.01",
+      duration: 4.5,
+      ease: "sine.inOut",
+      yoyo: true,
+      repeat: -1,
+    }, "<");
+  }, [isMobile]);
 
   return (
     <group ref={shipRef} dispose={null}>
-      <primitive ref={primitiveRef} object={scene} />
+      {/* Ship and thrusters grouped as 1 so they scale and rotate together */}
+      <group ref={modelGroupRef}>
+        <primitive object={scene} />
+        
+        {/* 1 - Far Left Thruster */}
+        <EngineThruster 
+          position={[-122.30, 13.73, -45.39]} 
+          rotation={[0.00, -1.57, 0.00]} 
+          progressRef={progressRef}
+        />
+        
+        {/* 2 - Mid Left Thruster */}
+        <EngineThruster 
+          position={[-126.50, 11.60, -21.31]} 
+          rotation={[0.00, -1.57, 0.00]} 
+          progressRef={progressRef}
+        />
+        
+        {/* 3 - Center Thruster */}
+        <EngineThruster 
+          position={[-131.27, 9.82, 0.73]} 
+          rotation={[0.00, -1.57, 0.00]} 
+          progressRef={progressRef}
+        />
+        
+        {/* 4 - Mid Right Thruster */}
+        <EngineThruster 
+          position={[-125.50, 8.19, 23.01]} 
+          rotation={[0.00, -1.57, 0.00]} 
+          progressRef={progressRef}
+        />
+        
+        {/* 5 - Far Right Thruster */}
+        <EngineThruster 
+          position={[-120.30, 6.96, 46.86]} 
+          rotation={[0.00, -1.57, 0.00]} 
+          progressRef={progressRef}
+        />
+      </group>
     </group>
   );
 }

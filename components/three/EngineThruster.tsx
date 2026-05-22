@@ -4,67 +4,141 @@ import { useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 
+// Color palettes for Warp (Blue) vs. Settle (Red Simmer)
+const colors = {
+  outer: {
+    colorWarp: new THREE.Color("#00aaff"),
+    colorSettle: new THREE.Color("#ff2200"),
+    emissiveWarp: new THREE.Color("#0044ff"),
+    emissiveSettle: new THREE.Color("#990000"),
+  },
+  inner: {
+    colorWarp: new THREE.Color("#ffffff"),
+    colorSettle: new THREE.Color("#ffaa00"),
+    emissiveWarp: new THREE.Color("#00ffff"),
+    emissiveSettle: new THREE.Color("#ff1100"),
+  },
+  ring: {
+    colorWarp: new THREE.Color("#ffffff"),
+    colorSettle: new THREE.Color("#ff3300"),
+    emissiveWarp: new THREE.Color("#00aaff"),
+    emissiveSettle: new THREE.Color("#990000"),
+  },
+  light: {
+    colorWarp: new THREE.Color("#0088ff"),
+    colorSettle: new THREE.Color("#ff3300"),
+  }
+};
+
 interface EngineThrusterProps {
   position?: [number, number, number];
   rotation?: [number, number, number];
+  progressRef?: React.RefObject<{ value: number }>;
 }
 
 export default function EngineThruster({ 
   position = [0, 0, 0],
-  rotation = [0, 0, 0] 
+  rotation = [0, 0, 0],
+  progressRef
 }: EngineThrusterProps) {
   const lightRef = useRef<THREE.PointLight>(null);
   const outerMeshRef = useRef<THREE.Mesh>(null);
   const innerMeshRef = useRef<THREE.Mesh>(null);
+  
+  const outerMatRef = useRef<THREE.MeshStandardMaterial>(null);
+  const innerMatRef = useRef<THREE.MeshStandardMaterial>(null);
+  const ringMatRef = useRef<THREE.MeshStandardMaterial>(null);
 
   useFrame(({ clock }) => {
     const t = clock.getElapsedTime();
     
-    // Intense chaotic flicker for the light source
+    // progress: 0 = blue/big (warp), 1 = red/simmer (settled)
+    const p = progressRef?.current?.value ?? 1;
+
+    // Separate scale multipliers: extremely long at warp, but only moderately wide
+    // Increased starting widthScale to 22.0 to make the initial thruster radius much larger.
+    // Increased ending lengthScale to 7.5 to make the finishing thruster flame longer.
+    const lengthScale = THREE.MathUtils.lerp(90.0, 7.5, p);
+    const widthScale = THREE.MathUtils.lerp(22.0, 1.05, p);
+
+    // Organic rapid flickering using multiple frequencies and random noise (enhanced for more intense flicker)
+    const flicker = Math.sin(t * 140.0) * 0.35 + Math.cos(t * 70.0) * 0.25 + (Math.random() - 0.5) * 0.45;
+
+    // Dynamic light color, intensity, and range
     if (lightRef.current) {
-      lightRef.current.intensity = 5 + Math.random() * 5;
+      lightRef.current.color.copy(colors.light.colorWarp).lerp(colors.light.colorSettle, p);
+      const baseIntensity = THREE.MathUtils.lerp(150, 5.5, p);
+      // Scaled light intensity with our flicker coefficient (up to 85% fluctuation for intense flicker)
+      lightRef.current.intensity = baseIntensity * Math.max(0.05, 1.0 + flicker * 0.85);
+      lightRef.current.distance = THREE.MathUtils.lerp(300, 35, p);
     }
 
-    // High-frequency jitter for the outer plasma plume (creates a burning effect)
-    if (outerMeshRef.current) {
-      outerMeshRef.current.scale.y = 1 + Math.sin(t * 40) * 0.05 + Math.random() * 0.1;
-      outerMeshRef.current.scale.x = 1 + Math.random() * 0.05;
-      outerMeshRef.current.scale.z = 1 + Math.random() * 0.05;
+    // High-frequency jitter and scale for the outer plasma plume
+    if (outerMeshRef.current && outerMatRef.current) {
+      // Y-axis is length, X/Z are width in local mesh coordinates due to rotation
+      outerMeshRef.current.scale.y = (1 + Math.sin(t * 40) * 0.05 + Math.random() * 0.1) * lengthScale;
+      outerMeshRef.current.scale.x = (1 + Math.random() * 0.05) * widthScale;
+      outerMeshRef.current.scale.z = (1 + Math.random() * 0.05) * widthScale;
+      
+      // Shift position so it stays anchored to the engine nozzle
+      outerMeshRef.current.position.z = 5 * lengthScale;
+      
+      // Interpolate colors and emissive properties with flickering
+      outerMatRef.current.color.copy(colors.outer.colorWarp).lerp(colors.outer.colorSettle, p);
+      outerMatRef.current.emissive.copy(colors.outer.emissiveWarp).lerp(colors.outer.emissiveSettle, p);
+      
+      const baseEmissive = THREE.MathUtils.lerp(18, 1.8, p);
+      outerMatRef.current.emissiveIntensity = baseEmissive * Math.max(0.05, 1.0 + flicker * 0.60);
+      outerMatRef.current.opacity = THREE.MathUtils.lerp(0.95, 0.55, p);
     }
 
-    // Faster, tighter pulse for the ultra-hot inner core
-    if (innerMeshRef.current) {
-      innerMeshRef.current.scale.y = 1 + Math.sin(t * 50) * 0.1;
+    // Faster, tighter pulse for the inner core
+    if (innerMeshRef.current && innerMatRef.current) {
+      innerMeshRef.current.scale.y = (1 + Math.sin(t * 50) * 0.1) * lengthScale;
+      innerMeshRef.current.scale.x = widthScale;
+      innerMeshRef.current.scale.z = widthScale;
+      
+      // Anchor to the engine nozzle
+      innerMeshRef.current.position.z = 2.5 * lengthScale;
+      
+      // Interpolate core colors and emissive properties with flickering
+      innerMatRef.current.color.copy(colors.inner.colorWarp).lerp(colors.inner.colorSettle, p);
+      innerMatRef.current.emissive.copy(colors.inner.emissiveWarp).lerp(colors.inner.emissiveSettle, p);
+      
+      const baseInnerEmissive = THREE.MathUtils.lerp(25, 3.2, p);
+      innerMatRef.current.emissiveIntensity = baseInnerEmissive * Math.max(0.05, 1.0 + flicker * 0.45);
+    }
+
+    // Interpolate base engine ring glow with slight flickering sync
+    if (ringMatRef.current) {
+      ringMatRef.current.color.copy(colors.ring.colorWarp).lerp(colors.ring.colorSettle, p);
+      ringMatRef.current.emissive.copy(colors.ring.emissiveWarp).lerp(colors.ring.emissiveSettle, p);
+      const baseRingEmissive = THREE.MathUtils.lerp(30, 3.0, p);
+      ringMatRef.current.emissiveIntensity = baseRingEmissive * Math.max(0.05, 1.0 + flicker * 0.30);
     }
   });
 
   return (
     <group position={position} rotation={rotation}>
       {/* Dynamic Engine Light casting onto the hull */}
-      <pointLight ref={lightRef} color="#ff4400" distance={25} decay={1.5} />
+      <pointLight ref={lightRef} distance={30} decay={1.5} />
       
-      {/* Outer Plasma Plume (Orange/Red) */}
-      {/* Note: Cylinder/Cone points UP (Y-axis) by default, rotated to point Z+ */}
+      {/* Outer Plasma Plume (Cone points UP by default, rotated to Z+) */}
       <mesh ref={outerMeshRef} rotation={[Math.PI / 2, 0, 0]} position={[0, 0, 5]}>
         <coneGeometry args={[0.6, 10, 32]} />
         <meshStandardMaterial 
-          color="#ff5500" 
-          emissive="#ff2200" 
-          emissiveIntensity={5} 
+          ref={outerMatRef}
           transparent 
-          opacity={0.6} 
           blending={THREE.AdditiveBlending}
           depthWrite={false}
         />
       </mesh>
 
-      {/* Inner Ultra-Hot Core (White/Yellow) */}
+      {/* Inner Ultra-Hot Core */}
       <mesh ref={innerMeshRef} rotation={[Math.PI / 2, 0, 0]} position={[0, 0, 2.5]}>
         <cylinderGeometry args={[0.2, 0.4, 5, 16]} />
         <meshStandardMaterial 
-          color="#ffffff" 
-          emissive="#ffcc00" 
-          emissiveIntensity={10} 
+          ref={innerMatRef}
           blending={THREE.AdditiveBlending}
         />
       </mesh>
@@ -73,9 +147,7 @@ export default function EngineThruster({
       <mesh rotation={[Math.PI / 2, 0, 0]} position={[0, 0, 0.1]}>
         <torusGeometry args={[0.45, 0.08, 16, 32]} />
         <meshStandardMaterial 
-          color="#ffffff" 
-          emissive="#ff4400" 
-          emissiveIntensity={15} 
+          ref={ringMatRef}
         />
       </mesh>
     </group>
