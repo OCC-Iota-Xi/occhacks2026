@@ -1,4 +1,5 @@
-1const fs = require('fs');
+/* eslint-disable */
+const fs = require('fs');
 
 const glbPath = '/Users/nootnoot/occhacks2026/public/3d_model/d.s.s._harbinger_battle_cruiser.glb';
 

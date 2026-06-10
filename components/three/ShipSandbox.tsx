@@ -18,10 +18,10 @@ export default function ShipSandbox() {
 
   // LEVA CONTROLS
   const { 
-    pX, pY, pZ, 
-    rX, rY, rZ, 
-    sScale, 
-    oRX, oRY, oRZ,
+    s_pX, s_pY, s_pZ, 
+    s_rX, s_rY, s_rZ, 
+    s_sScale, 
+    s_oRX, s_oRY, s_oRZ,
     t1X, t1Y, t1Z,
     t2X, t2Y, t2Z,
     t3X, t3Y, t3Z,
@@ -30,22 +30,22 @@ export default function ShipSandbox() {
     trX, trY, trZ
   } = useControls("Ship Sandbox", {
     Position: folder({
-      pX: { value: -1.30, step: 0.1 },
-      pY: { value: 1.10, step: 0.1 },
-      pZ: { value: -6.90, step: 0.1 },
+      s_pX: { value: 5.20, step: 0.1 },
+      s_pY: { value: 0.40, step: 0.1 },
+      s_pZ: { value: -3.00, step: 0.1 },
     }),
     GroupRotation: folder({
-      rX: { value: 0.20, step: 0.05 },
-      rY: { value: -1.50, step: 0.05 },
-      rZ: { value: 0.20, step: 0.05 },
+      s_rX: { value: 0.25, step: 0.05 },
+      s_rY: { value: -1.55, step: 0.05 },
+      s_rZ: { value: 0.25, step: 0.05 },
     }),
     ObjectRotation: folder({
-      oRX: { value: -0.05, step: 0.05 },
-      oRY: { value: 0.10, step: 0.05 },
-      oRZ: { value: -0.10, step: 0.05 },
+      s_oRX: { value: -0.05, step: 0.05 },
+      s_oRY: { value: -0.05, step: 0.05 },
+      s_oRZ: { value: -0.30, step: 0.05 },
     }),
     Scaling: folder({
-      sScale: { value: 0.025, step: 0.005, min: 0.01, max: 0.2 },
+      s_sScale: { value: 0.11, step: 0.005, min: 0.01, max: 0.3 },
     }),
     "1 - Far Left Thruster": folder({
       t1X: { value: -122.00, step: 0.1, min: -200, max: 200 },
@@ -53,9 +53,9 @@ export default function ShipSandbox() {
       t1Z: { value: -44.89, step: 0.1, min: -100, max: 100 },
     }),
     "2 - Mid Left Thruster": folder({
-      t2X: { value: -126.20, step: 0.1, min: -200, max: 200 }, // User adjusted
-      t2Y: { value: 11.90, step: 0.1, min: -100, max: 100 },  // User adjusted
-      t2Z: { value: -21.21, step: 0.1, min: -100, max: 100 }, // User adjusted
+      t2X: { value: -126.20, step: 0.1, min: -200, max: 200 },
+      t2Y: { value: 11.90, step: 0.1, min: -100, max: 100 }, 
+      t2Z: { value: -21.21, step: 0.1, min: -100, max: 100 },
     }),
     "3 - Center Thruster": folder({
       t3X: { value: -131.47, step: 0.1, min: -200, max: 200 },
@@ -63,9 +63,9 @@ export default function ShipSandbox() {
       t3Z: { value: 0.73, step: 0.1, min: -100, max: 100 },
     }),
     "4 - Mid Right Thruster": folder({
-      t4X: { value: -126.20, step: 0.1, min: -200, max: 200 }, // User adjusted
-      t4Y: { value: 8.29, step: 0.1, min: -100, max: 100 },   // User adjusted
-      t4Z: { value: 23.01, step: 0.1, min: -100, max: 100 },  // User adjusted
+      t4X: { value: -126.20, step: 0.1, min: -200, max: 200 },
+      t4Y: { value: 8.29, step: 0.1, min: -100, max: 100 }, 
+      t4Z: { value: 23.01, step: 0.1, min: -100, max: 100 }, 
     }),
     "5 - Far Right Thruster": folder({
       t5X: { value: -122.00, step: 0.1, min: -200, max: 200 },
@@ -74,7 +74,7 @@ export default function ShipSandbox() {
     }),
     ThrusterRotation: folder({
       trX: { value: 0.00, step: 0.05 },
-      trY: { value: -1.57, step: 0.05 }, // User adjusted
+      trY: { value: -1.57, step: 0.05 },
       trZ: { value: 0.00, step: 0.05 },
     }),
   });
@@ -85,7 +85,15 @@ export default function ShipSandbox() {
   }, []);
 
   // Format the output text for easy copy-pasting
-  const copyText = `// Far Left Thruster
+  const copyText = `// Ship Group Position & Rotation
+position: [${s_pX.toFixed(2)}, ${s_pY.toFixed(2)}, ${s_pZ.toFixed(2)}],
+rotation: [${s_rX.toFixed(2)}, ${s_rY.toFixed(2)}, ${s_rZ.toFixed(2)}],
+
+// Ship Model Group Rotation & Scale
+rotation: [${s_oRX.toFixed(2)}, ${s_oRY.toFixed(2)}, ${s_oRZ.toFixed(2)}],
+scale: ${s_sScale.toFixed(3)},
+
+// Far Left Thruster
 position: [${t1X.toFixed(2)}, ${t1Y.toFixed(2)}, ${t1Z.toFixed(2)}],
 
 // Mid Left Thruster
@@ -107,11 +115,11 @@ rotation: [${trX.toFixed(2)}, ${trY.toFixed(2)}, ${trZ.toFixed(2)}]`;
     <group
       ref={shipRef}
       dispose={null}
-      position={[pX, pY, pZ]}
-      rotation={[rX, rY, rZ]}
+      position={[s_pX, s_pY, s_pZ]}
+      rotation={[s_rX, s_rY, s_rZ]}
     >
       {/* Ship and thrusters grouped as 1 so they scale and rotate together */}
-      <group scale={sScale} rotation={[oRX, oRY, oRZ]}>
+      <group scale={s_sScale} rotation={[s_oRX, s_oRY, s_oRZ]}>
         <primitive object={scene} />
         
         {/* 1 - Far Left Thruster */}
