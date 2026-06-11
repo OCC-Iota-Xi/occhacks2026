@@ -50,6 +50,45 @@
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
+
+  --animate-aurora: aurora 60s linear infinite;
+}
+
+@keyframes aurora {
+  from {
+    background-position: 50% 50%, 50% 50%;
+  }
+  to {
+    background-position: 350% 50%, 350% 50%;
+  }
+}
+
+.aurora-el {
+  position: absolute;
+  pointer-events: none;
+  inset: -10px;
+  opacity: 0.5;
+  filter: blur(10px) invert(1);
+  will-change: transform;
+  
+  --aurora: repeating-linear-gradient(100deg, #0044ff 10%, #00aaff 15%, #00ffff 20%, #ffffff 25%, #0088ff 30%);
+  --white-gradient: repeating-linear-gradient(100deg, #fff 0%, #fff 7%, transparent 10%, transparent 12%, #fff 16%);
+
+  background-image: var(--white-gradient), var(--aurora);
+  background-size: 300%, 200%;
+  background-position: 50% 50%, 50% 50%;
+  animation: aurora 60s linear infinite;
+}
+
+.aurora-el::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: var(--white-gradient), var(--aurora);
+  background-size: 200%, 100%;
+  background-attachment: fixed;
+  mix-blend-mode: difference;
+  animation: aurora 60s linear infinite;
 }
 
 body {

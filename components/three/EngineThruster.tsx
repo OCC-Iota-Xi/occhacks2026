@@ -52,8 +52,30 @@ export default function EngineThruster({
   useFrame(({ clock }) => {
     const t = clock.getElapsedTime();
     
+    // Check if this thruster is visible by checking parent visibility recursively
+    let isVisible = true;
+    if (lightRef.current) {
+      let parent = lightRef.current.parent;
+      while (parent) {
+        if (parent.visible === false) {
+          isVisible = false;
+          break;
+        }
+        parent = parent.parent;
+      }
+    }
+
+    if (!isVisible) {
+      if (lightRef.current) lightRef.current.intensity = 0;
+      return;
+    }
+
     // progress: 0 = blue/big (warp), 1 = red/simmer (settled)
     const p = progressRef?.current?.value ?? 1;
+    const clampedP = Math.max(0, Math.min(1, p));
+
+    // Calculate fade factor for negative p values (fade out as the engine expands off-screen)
+    const fadeFactor = p < 0 ? Math.max(0, 1 + p / 3.0) : 1.0;
 
     // Separate scale multipliers: extremely long at warp, but only moderately wide
     // Increased starting widthScale to 22.0 to make the initial thruster radius much larger.
@@ -61,60 +83,61 @@ export default function EngineThruster({
     const lengthScale = THREE.MathUtils.lerp(90.0, 7.5, p);
     const widthScale = THREE.MathUtils.lerp(22.0, 1.05, p);
 
-    // Organic rapid flickering using multiple frequencies and random noise (enhanced for more intense flicker)
-    const flicker = Math.sin(t * 140.0) * 0.35 + Math.cos(t * 70.0) * 0.25 + (Math.random() - 0.5) * 0.45;
+    // Soft, slow hum/pulsing with very minor heat shimmer (max 3% variance)
+    const flicker = Math.sin(t * 12.0) * 0.02 + Math.cos(t * 5.0) * 0.01 + (Math.random() - 0.5) * 0.005;
 
     // Dynamic light color, intensity, and range
     if (lightRef.current) {
-      lightRef.current.color.copy(colors.light.colorWarp).lerp(colors.light.colorSettle, p);
-      const baseIntensity = THREE.MathUtils.lerp(150, 5.5, p);
-      // Scaled light intensity with our flicker coefficient (up to 85% fluctuation for intense flicker)
-      lightRef.current.intensity = baseIntensity * Math.max(0.05, 1.0 + flicker * 0.85);
-      lightRef.current.distance = THREE.MathUtils.lerp(300, 35, p);
+      lightRef.current.color.copy(colors.light.colorWarp).lerp(colors.light.colorSettle, clampedP);
+      const baseIntensity = THREE.MathUtils.lerp(150, 5.5, clampedP);
+      // Soft light intensity fluctuation (max 1.5% fluctuation for comfortable view)
+      lightRef.current.intensity = baseIntensity * (1.0 + flicker * 0.5) * fadeFactor;
+      lightRef.current.distance = THREE.MathUtils.lerp(300, 35, clampedP);
     }
 
     // High-frequency jitter and scale for the outer plasma plume
     if (outerMeshRef.current && outerMatRef.current) {
       // Y-axis is length, X/Z are width in local mesh coordinates due to rotation
-      outerMeshRef.current.scale.y = (1 + Math.sin(t * 40) * 0.05 + Math.random() * 0.1) * lengthScale;
-      outerMeshRef.current.scale.x = (1 + Math.random() * 0.05) * widthScale;
-      outerMeshRef.current.scale.z = (1 + Math.random() * 0.05) * widthScale;
+      outerMeshRef.current.scale.y = (1 + Math.sin(t * 25) * 0.02 + Math.cos(t * 8) * 0.01) * lengthScale;
+      outerMeshRef.current.scale.x = (1 + Math.sin(t * 15) * 0.01) * widthScale;
+      outerMeshRef.current.scale.z = (1 + Math.sin(t * 15) * 0.01) * widthScale;
       
       // Shift position so it stays anchored to the engine nozzle
       outerMeshRef.current.position.z = 5 * lengthScale;
       
       // Interpolate colors and emissive properties with flickering
-      outerMatRef.current.color.copy(colors.outer.colorWarp).lerp(colors.outer.colorSettle, p);
-      outerMatRef.current.emissive.copy(colors.outer.emissiveWarp).lerp(colors.outer.emissiveSettle, p);
+      outerMatRef.current.color.copy(colors.outer.colorWarp).lerp(colors.outer.colorSettle, clampedP);
+      outerMatRef.current.emissive.copy(colors.outer.emissiveWarp).lerp(colors.outer.emissiveSettle, clampedP);
       
-      const baseEmissive = THREE.MathUtils.lerp(18, 1.8, p);
-      outerMatRef.current.emissiveIntensity = baseEmissive * Math.max(0.05, 1.0 + flicker * 0.60);
-      outerMatRef.current.opacity = THREE.MathUtils.lerp(0.95, 0.55, p);
+      const baseEmissive = THREE.MathUtils.lerp(18, 1.8, clampedP);
+      outerMatRef.current.emissiveIntensity = baseEmissive * (1.0 + flicker * 0.2) * fadeFactor;
+      outerMatRef.current.opacity = THREE.MathUtils.lerp(0.95, 0.55, clampedP) * fadeFactor;
     }
 
     // Faster, tighter pulse for the inner core
     if (innerMeshRef.current && innerMatRef.current) {
-      innerMeshRef.current.scale.y = (1 + Math.sin(t * 50) * 0.1) * lengthScale;
-      innerMeshRef.current.scale.x = widthScale;
-      innerMeshRef.current.scale.z = widthScale;
+      innerMeshRef.current.scale.y = (1 + Math.sin(t * 30) * 0.02) * lengthScale;
+      innerMeshRef.current.scale.x = (1 + Math.cos(t * 20) * 0.01) * widthScale;
+      innerMeshRef.current.scale.z = (1 + Math.cos(t * 20) * 0.01) * widthScale;
       
       // Anchor to the engine nozzle
       innerMeshRef.current.position.z = 2.5 * lengthScale;
       
       // Interpolate core colors and emissive properties with flickering
-      innerMatRef.current.color.copy(colors.inner.colorWarp).lerp(colors.inner.colorSettle, p);
-      innerMatRef.current.emissive.copy(colors.inner.emissiveWarp).lerp(colors.inner.emissiveSettle, p);
+      innerMatRef.current.color.copy(colors.inner.colorWarp).lerp(colors.inner.colorSettle, clampedP);
+      innerMatRef.current.emissive.copy(colors.inner.emissiveWarp).lerp(colors.inner.emissiveSettle, clampedP);
       
-      const baseInnerEmissive = THREE.MathUtils.lerp(25, 3.2, p);
-      innerMatRef.current.emissiveIntensity = baseInnerEmissive * Math.max(0.05, 1.0 + flicker * 0.45);
+      const baseInnerEmissive = THREE.MathUtils.lerp(25, 3.2, clampedP);
+      innerMatRef.current.emissiveIntensity = baseInnerEmissive * (1.0 + flicker * 0.15) * fadeFactor;
+      innerMatRef.current.opacity = (1.0 - clampedP) * fadeFactor;
     }
 
     // Interpolate base engine ring glow with slight flickering sync
     if (ringMatRef.current) {
-      ringMatRef.current.color.copy(colors.ring.colorWarp).lerp(colors.ring.colorSettle, p);
-      ringMatRef.current.emissive.copy(colors.ring.emissiveWarp).lerp(colors.ring.emissiveSettle, p);
-      const baseRingEmissive = THREE.MathUtils.lerp(30, 3.0, p);
-      ringMatRef.current.emissiveIntensity = baseRingEmissive * Math.max(0.05, 1.0 + flicker * 0.30);
+      ringMatRef.current.color.copy(colors.ring.colorWarp).lerp(colors.ring.colorSettle, clampedP);
+      ringMatRef.current.emissive.copy(colors.ring.emissiveWarp).lerp(colors.ring.emissiveSettle, clampedP);
+      const baseRingEmissive = THREE.MathUtils.lerp(30, 3.0, clampedP);
+      ringMatRef.current.emissiveIntensity = baseRingEmissive * (1.0 + flicker * 0.1) * fadeFactor;
     }
   });
 
@@ -139,7 +162,9 @@ export default function EngineThruster({
         <cylinderGeometry args={[0.2, 0.4, 5, 16]} />
         <meshStandardMaterial 
           ref={innerMatRef}
+          transparent
           blending={THREE.AdditiveBlending}
+          depthWrite={false}
         />
       </mesh>
 

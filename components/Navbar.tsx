@@ -13,51 +13,53 @@ export default function Navbar() {
   };
 
   return (
-    <nav className="relative z-10 max-w-7xl mx-auto px-8 py-6 flex items-center justify-between bg-transparent w-full">
-      {/* Logo */}
-      <Link
-        href="#"
-        className="text-2xl tracking-widest text-foreground select-none font-header transition-colors duration-300 hover:text-amber-500"
-      >
-        <span className="text-amber-500 font-bold mr-1">[</span>logo<span className="text-amber-500 font-bold ml-1">]</span>
-      </Link>
-
-      {/* Links and CTA grouped on the right */}
-      <div className="flex items-center gap-8">
-        {/* Nav Links */}
-        <div className="hidden md:flex items-center gap-8">
-          <Link 
-            href="#" 
-            className="text-sm font-medium text-foreground transition-colors hover:text-foreground"
-          >
-            Home
-          </Link>
-          <Link 
-            href="#tracks" 
-            className="text-sm text-muted-foreground transition-colors hover:text-foreground"
-          >
-            Tracks
-          </Link>
-          <Link 
-            href="#faqs" 
-            className="text-sm text-muted-foreground transition-colors hover:text-foreground"
-          >
-            FAQs
-          </Link>
-        </div>
-
-        {/* CTA Button using shadcn/ui Button */}
-        <Button 
-          variant="ghost" 
-          className="liquid-glass rounded-full px-6 py-2.5 text-sm text-foreground hover:scale-[1.03] transition-transform cursor-pointer font-medium"
-          onMouseMove={handleMouseMove}
-          asChild
+    <header className="fixed top-0 left-0 right-0 z-50 w-full border-b border-[var(--nav-border)] bg-[var(--nav-bg)] backdrop-blur-md transition-colors duration-300">
+      <div className="max-w-7xl mx-auto px-8 py-4 flex items-center justify-between w-full">
+        {/* Logo */}
+        <Link
+          href="#"
+          className="text-2xl tracking-widest text-[var(--text-primary)] select-none font-header transition-colors duration-300 hover:text-amber-500"
         >
-          <Link href="#register">
-            Register Now
-          </Link>
-        </Button>
+          <span className="text-amber-500 font-bold mr-1">[</span>logo<span className="text-amber-500 font-bold ml-1">]</span>
+        </Link>
+
+        {/* Links and CTA grouped on the right */}
+        <div className="flex items-center gap-8">
+          {/* Nav Links */}
+          <div className="hidden md:flex items-center gap-8">
+            <Link 
+              href="#" 
+              className="text-sm font-medium text-[var(--text-primary)] transition-opacity hover:opacity-85"
+            >
+              Home
+            </Link>
+            <Link 
+              href="#tracks" 
+              className="text-sm text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)]"
+            >
+              Tracks
+            </Link>
+            <Link 
+              href="#faqs" 
+              className="text-sm text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)]"
+            >
+              FAQs
+            </Link>
+          </div>
+
+          {/* CTA Button using shadcn/ui Button */}
+          <Button 
+            variant="ghost" 
+            className="liquid-glass rounded-full px-6 py-2.5 text-sm text-[var(--text-primary)] hover:scale-[1.03] transition-transform cursor-pointer font-medium"
+            onMouseMove={handleMouseMove}
+            asChild
+          >
+            <Link href="#register">
+              Register Now
+            </Link>
+          </Button>
+        </div>
       </div>
-    </nav>
+    </header>
   );
 }

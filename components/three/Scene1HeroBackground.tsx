@@ -11,6 +11,7 @@ import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 
+
 gsap.registerPlugin(useGSAP, ScrollTrigger);
 
 function InteractiveSetup() {
@@ -51,28 +52,30 @@ function InteractiveSetup() {
       }
     });
 
-    // End positions for camera position and look-at point
-    // Matches the ship's relative position [17.60, -2.00, 4.40] on desktop
-    const endCamX = isMobile ? -4.8 : -20;
-    const endCamY = isMobile ? 1.7 : 5;
-    const endCamZ = isMobile ? -1.0 : 5;
-
-    const endLookX = isMobile ? 0.2 : 5.2;
-    const endLookY = isMobile ? 2.7 : 0.4;
-    const endLookZ = -3.0;
-
+    // Camera moves to the side of the ship as it turns sideways (ship rotates 0.0 - 0.5)
+    // Ship settled position is [5.20, 0.40, -3.00], camera goes to its side
     scrollTl.to(baseCameraPos.current, {
-      x: endCamX,
-      y: endCamY,
-      z: endCamZ,
+      x: isMobile ? 2.0 : 5.0,
+      y: isMobile ? 0.8 : 2.5,
+      z: isMobile ? 11.0 : 10.0,
+      duration: 0.5,
       ease: "power2.inOut",
     }, 0)
       .to(baseLookAt.current, {
-        x: endLookX,
-        y: endLookY,
-        z: endLookZ,
+        x: isMobile ? 2.0 : 5.2,
+        y: isMobile ? 0.5 : 0.4,
+        z: isMobile ? -3.0 : -3.0,
+        duration: 0.5,
         ease: "power2.inOut",
       }, 0);
+
+    // White wipe sweeps left-to-right, trailing behind the engine glow (follows ship blast off)
+    scrollTl.to(".scene-bg-wrapper", {
+      "--wipe-inner": "100%",
+      "--wipe-outer": "120%",
+      duration: 0.5,
+      ease: "power2.in",
+    }, 0.5);
   });
 
   useFrame(({ camera }) => {
@@ -88,7 +91,7 @@ function InteractiveSetup() {
     camera.position.y = THREE.MathUtils.lerp(camera.position.y, baseCameraPos.current.y + parallaxY, 0.05);
     camera.position.z = THREE.MathUtils.lerp(camera.position.z, baseCameraPos.current.z, 0.05);
 
-    // Look at the animated base look-at target
+    // Look at the base look-at target
     camera.lookAt(baseLookAt.current.x, baseLookAt.current.y, baseLookAt.current.z);
 
     // Dynamic Lighting (directional key light moves slightly with mouse)
@@ -99,14 +102,26 @@ function InteractiveSetup() {
       lightRef.current.position.y = THREE.MathUtils.lerp(lightRef.current.position.y, lightTargetY, 0.05);
     }
 
-    // Dynamic Point Light (casts strong highlights on the front of the ship)
+    // Dynamic Point Light tracks the ship group's position dynamically in real-time
+    const shipObj = camera.parent?.getObjectByName("ship-group");
+    const shipX = shipObj ? shipObj.position.x : (isMobile ? 0.2 : 4.8);
+    const shipY = shipObj ? shipObj.position.y : (isMobile ? 2.7 : 1.0);
+    const shipZ = shipObj ? shipObj.position.z : -3.0;
+
     if (pointLightRef.current) {
-      const targetPX = (isMobile ? 0.2 : 4.8) + mx * 3.5;
-      const targetPY = (isMobile ? 2.7 : 1.0) + my * 3.0;
-      const targetPZ = 0.5; // In front of the ship's Z position (-3.0)
-      pointLightRef.current.position.x = THREE.MathUtils.lerp(pointLightRef.current.position.x, targetPX, 0.05);
-      pointLightRef.current.position.y = THREE.MathUtils.lerp(pointLightRef.current.position.y, targetPY, 0.05);
-      pointLightRef.current.position.z = THREE.MathUtils.lerp(pointLightRef.current.position.z, targetPZ, 0.05);
+      if (shipObj && shipObj.visible === false) {
+        pointLightRef.current.intensity = 0;
+      } else {
+        const targetPX = shipX + mx * 3.5;
+        const targetPY = shipY + 0.6 + my * 3.0;
+        const targetPZ = shipZ + 3.5; // In front of the ship's Z position
+        pointLightRef.current.position.x = THREE.MathUtils.lerp(pointLightRef.current.position.x, targetPX, 0.05);
+        pointLightRef.current.position.y = THREE.MathUtils.lerp(pointLightRef.current.position.y, targetPY, 0.05);
+        pointLightRef.current.position.z = THREE.MathUtils.lerp(pointLightRef.current.position.z, targetPZ, 0.05);
+        
+        // Restore standard intensity (20)
+        pointLightRef.current.intensity = THREE.MathUtils.lerp(pointLightRef.current.intensity, 20, 0.05);
+      }
     }
   });
 
@@ -133,9 +148,13 @@ function InteractiveSetup() {
 
 export default function Scene1HeroBackground() {
   return (
-    <div className="fixed inset-0 -z-10 bg-[#050509] overflow-hidden">
-      <Canvas camera={{ position: [0, 0, 10], fov: 45 }}>
-        <color attach="background" args={["#050509"]} />
+    <div className="fixed inset-0 -z-10 overflow-hidden scene-bg-wrapper"
+      style={{
+        background: "linear-gradient(to right, transparent var(--wipe-inner, -20%), #050509 var(--wipe-outer, 0%))",
+      } as React.CSSProperties}
+    >
+      <Canvas camera={{ position: [0, 0, 10], fov: 45 }} gl={{ alpha: true }}>
+        {/* Transparent background canvas - background color is handled by parent div */}
 
         {/* Dramatic Space Lighting */}
         <ambientLight intensity={0.08} />

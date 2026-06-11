@@ -4,7 +4,7 @@ import { Canvas } from "@react-three/fiber";
 import { Suspense } from "react";
 import ShipSandbox from "@/components/three/ShipSandbox";
 import HyperspaceStars from "@/components/three/HyperspaceStars";
-import { Environment, OrbitControls } from "@react-three/drei";
+import { Environment } from "@react-three/drei";
 
 export default function SandboxPage() {
   return (
@@ -18,7 +18,6 @@ export default function SandboxPage() {
           <directionalLight position={[-10, -10, -5]} intensity={2} color="#4b83f5" />
           
           <Environment preset="city" />
-          <OrbitControls makeDefault />
 
           <HyperspaceStars count={10000} />
           <Suspense fallback={null}>

@@ -48,118 +48,178 @@ export default function Ship() {
     const endPos = mobile ? { x: 0.2, y: 2.7, z: -3.0 } : { x: 5.20, y: 0.40, z: -3.00 };
     const endScale = mobile ? 0.048 : 0.11;
 
-    // Position 1: Starting position (warp in start)
-    gsap.set(ship.position, startPos);
-    gsap.set(ship.rotation, { x: 0.20, y: -1.50, z: 0.20 });
-    gsap.set(modelGroup.rotation, { x: -0.05, y: 0.10, z: -0.10 });
-    gsap.set(modelGroup.scale, { x: startScale, y: startScale, z: startScale });
-    gsap.set(progressRef.current, { value: 0 });
+    // Check if already scrolled on load
+    const isScrolled = typeof window !== "undefined" && window.scrollY > 20;
 
-    const tl = gsap.timeline({
-      onComplete: () => {
-        if (!ship || !modelGroup || !floatGroup) return;
+    // 1. Setup initial state
+    if (isScrolled) {
+      gsap.set(ship.position, endPos);
+      gsap.set(ship.rotation, { x: 0.25, y: -1.55, z: 0.25 });
+      gsap.set(modelGroup.rotation, { x: -0.05, y: -0.05, z: -0.30 });
+      gsap.set(modelGroup.scale, { x: endScale, y: endScale, z: endScale });
+      gsap.set(progressRef.current, { value: 1 });
+    } else {
+      gsap.set(ship.position, startPos);
+      gsap.set(ship.rotation, { x: 0.20, y: -1.50, z: 0.20 });
+      gsap.set(modelGroup.rotation, { x: -0.05, y: 0.10, z: -0.10 });
+      gsap.set(modelGroup.scale, { x: startScale, y: startScale, z: startScale });
+      gsap.set(progressRef.current, { value: 0 });
+    }
 
-        // Infinite floating yo-yo
-        gsap.to(floatGroup.position, {
-          y: "+=0.10",
-          duration: 3.5,
-          ease: "sine.inOut",
-          yoyo: true,
-          repeat: -1,
-        });
-        
-        gsap.to(floatGroup.rotation, {
-          z: "+=0.015",
-          x: "-=0.01",
-          duration: 4.5,
-          ease: "sine.inOut",
-          yoyo: true,
-          repeat: -1,
-        });
+    // Function to start floating
+    const startFloating = () => {
+      if (!ship || !modelGroup || !floatGroup) return;
+      if (gsap.getTweensOf(floatGroup.position).length > 0) return;
+      gsap.to(floatGroup.position, {
+        y: "+=0.10",
+        duration: 3.5,
+        ease: "sine.inOut",
+        yoyo: true,
+        repeat: -1,
+      });
+      gsap.to(floatGroup.rotation, {
+        z: "+=0.015",
+        x: "-=0.01",
+        duration: 4.5,
+        ease: "sine.inOut",
+        yoyo: true,
+        repeat: -1,
+      });
+    };
 
-        // Scroll trigger transition for Section 2
-        const scrollTl = gsap.timeline({
-          scrollTrigger: {
-            trigger: "#section-2",
-            start: "top bottom",
-            end: "top top",
-            scrub: 1.2,
+    // 2. Define Entry Animation (only if not scrolled)
+    let tl: gsap.core.Timeline | null = null;
+    if (!isScrolled) {
+      tl = gsap.timeline({
+        onComplete: startFloating
+      });
+
+      // Fly from Pos 1 to Pos 2 (warp)
+      tl.to(ship.position, {
+        ...midPos, duration: 0.6, ease: "power2.in",
+      }, 0)
+      .to(ship.rotation, {
+        x: 0.15, y: -1.65, z: 0.20,
+        duration: 0.6, ease: "power2.in",
+      }, 0)
+      .to(modelGroup.rotation, {
+        x: 0.20, y: 0.15, z: -0.35,
+        duration: 0.6, ease: "power2.in",
+      }, 0)
+      .to(modelGroup.scale, {
+        x: midScale, y: midScale, z: midScale,
+        duration: 0.6, ease: "power2.in",
+      }, 0);
+
+      // Fly from Pos 2 to Pos 3 (settle for hero)
+      tl.to(ship.position, {
+        ...endPos, duration: 1.5, ease: "power3.out",
+      }, ">")
+      .to(ship.rotation, {
+        x: 0.25, y: -1.55, z: 0.25,
+        duration: 1.5, ease: "power3.out",
+      }, "<")
+      .to(modelGroup.rotation, {
+        x: -0.05, y: -0.05, z: -0.30,
+        duration: 1.5, ease: "power3.out",
+      }, "<")
+      .to(modelGroup.scale, {
+        x: endScale, y: endScale, z: endScale,
+        duration: 1.5, ease: "power3.out",
+      }, "<")
+      .to(progressRef.current, {
+        value: 1, duration: 1.5, ease: "power3.out",
+      }, "<");
+    } else {
+      startFloating();
+    }
+
+    // 3. Define Scroll-Triggered Animation
+    const scrollEndPos = mobile
+      ? { x: 30.0, y: 0.5, z: 1.0 }
+      : { x: 50.0, y: 0.5, z: 3.0 };
+    const scrollEndScale = mobile ? 0.06 : 0.13;
+
+    const scrollTl = gsap.timeline({
+      scrollTrigger: {
+        trigger: "#section-2",
+        start: "top bottom",
+        end: "top top",
+        scrub: 1.2,
+        onEnter: () => {
+          if (tl && tl.isActive()) {
+            tl.progress(1);
+            tl.kill();
+            startFloating();
           }
-        });
-
-        scrollTl.to(ship.rotation, {
-          x: 0.25, y: -1.55, z: 0.10,
-          ease: "power2.inOut",
-        }, 0)
-        .to(modelGroup.rotation, {
-          x: -0.10, y: 1.30, z: -0.00,
-          ease: "power2.inOut",
-        }, 0)
-        .to(modelGroup.scale, {
-          x: mobile ? 0.048 : 0.110,
-          y: mobile ? 0.048 : 0.110,
-          z: mobile ? 0.048 : 0.110,
-          ease: "power2.inOut",
-        }, 0);
-
-        // Thruster intensity during scroll
-        scrollTl.to(progressRef.current, {
-          value: 0.0,
-          duration: 0.5,
-          ease: "power1.in",
-        }, 0)
-        .to(progressRef.current, {
-          value: 0.3,
-          duration: 0.5,
-          ease: "power1.out",
-        }, 0.5);
-
-        ScrollTrigger.refresh();
+        },
+        onUpdate: (self) => {
+          if (self.progress > 0 && tl && tl.isActive()) {
+            tl.progress(1);
+            tl.kill();
+            startFloating();
+          }
+        }
       }
     });
 
-    // Fly from Pos 1 to Pos 2 (warp)
-    tl.to(ship.position, {
-      ...midPos, duration: 1.2, ease: "power2.in",
-    }, 0)
-    .to(ship.rotation, {
-      x: 0.15, y: -1.65, z: 0.20,
-      duration: 1.2, ease: "power2.in",
+    // Ensure ship is visible when not scrolled past the end
+    scrollTl.set(ship, { visible: true }, 0);
+
+    // Phase 1 (0.0 - 0.5): Ship rotates to a clean side profile (pointing right, along the flight path)
+    scrollTl.to(ship.rotation, {
+      x: 0,
+      y: 0,
+      z: 0,
+      duration: 0.5,
+      ease: "power2.inOut",
     }, 0)
     .to(modelGroup.rotation, {
-      x: 0.20, y: 0.15, z: -0.35,
-      duration: 1.2, ease: "power2.in",
+      x: 0.0,
+      y: 0.0,
+      z: -0.10,
+      duration: 0.5,
+      ease: "power2.inOut",
     }, 0)
     .to(modelGroup.scale, {
-      x: midScale, y: midScale, z: midScale,
-      duration: 1.2, ease: "power2.in",
+      x: scrollEndScale,
+      y: scrollEndScale,
+      z: scrollEndScale,
+      duration: 0.5,
+      ease: "power2.inOut",
     }, 0);
 
-    // Fly from Pos 2 to Pos 3 (settle for hero)
-    tl.to(ship.position, {
-      ...endPos, duration: 3, ease: "power3.out",
-    }, ">")
-    .to(ship.rotation, {
-      x: 0.25, y: -1.55, z: 0.25,
-      duration: 3, ease: "power3.out",
-    }, "<")
-    .to(modelGroup.rotation, {
-      x: -0.05, y: -0.05, z: -0.30,
-      duration: 3, ease: "power3.out",
-    }, "<")
-    .to(modelGroup.scale, {
-      x: endScale, y: endScale, z: endScale,
-      duration: 3, ease: "power3.out",
-    }, "<")
+    // Phase 2 (0.4 - 0.5): Engines ignite to full warp as ship picks up speed
+    scrollTl.to(progressRef.current, {
+      value: 0.0,
+      duration: 0.1,
+      ease: "power2.inOut",
+    }, 0.4)
+    // Phase 2b (0.5 - 1.0): Engines expand massively to cover the screen and transition smoothly
     .to(progressRef.current, {
-      value: 1, duration: 3, ease: "power3.out",
-    }, "<");
+      value: -4.0,
+      duration: 0.5,
+      ease: "power2.in",
+    }, 0.5);
+
+    // Phase 3 (0.5 - 1.0): Ship sweeps right across the screen and off the edge
+    scrollTl.to(ship.position, {
+      x: scrollEndPos.x,
+      y: scrollEndPos.y,
+      z: scrollEndPos.z,
+      duration: 0.5,
+      ease: "power3.in",
+    }, 0.5);
+
+    // Make the ship invisible after it has fully moved off-screen (at progress 1.0)
+    scrollTl.set(ship, { visible: false }, 1.0);
 
   }); // No deps — useGSAP handles Strict Mode naturally
 
   return (
     <group
       ref={shipRef}
+      name="ship-group"
       dispose={null}
       position={[5.20, 0.40, -3.00]}
       rotation={[0.25, -1.55, 0.25]}

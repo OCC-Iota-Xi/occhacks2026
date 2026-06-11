@@ -5,8 +5,9 @@ import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
 
-gsap.registerPlugin(useGSAP);
+gsap.registerPlugin(useGSAP, ScrollTrigger);
 
 // A simple deterministic pseudo-random generator to satisfy React's render purity rules
 function createSeededRandom(seed: number) {
@@ -27,14 +28,31 @@ export default function HyperspaceStars({ count = 3000 }) {
     const tl = gsap.timeline();
     tl.to(speedRef.current, {
       value: 20,
-      duration: 0.5, // Stay fast during initial warp
+      duration: 0.2, // Stay fast during initial warp
       ease: "none"
     })
       .to(speedRef.current, {
         value: 0.1,
-        duration: 0.5, // Slow down as the ship settles
+        duration: 0.4, // Slow down as the ship settles
         ease: "power3.out",
       });
+
+    // Fade stars out as we scroll to Section 2
+    const scrollTl = gsap.timeline({
+      scrollTrigger: {
+        trigger: "#section-2",
+        start: "top bottom",
+        end: "top top",
+        scrub: 1.2,
+      }
+    });
+
+    if (linesRef.current) {
+      scrollTl.to(linesRef.current.material, {
+        opacity: 0,
+        ease: "power2.inOut",
+      }, 0);
+    }
   }, []);
 
   const [geometry, speeds] = useMemo(() => {
