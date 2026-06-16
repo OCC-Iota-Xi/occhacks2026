@@ -144,7 +144,7 @@ export default function Ship() {
       scrollTrigger: {
         trigger: "#section-2",
         start: "top bottom",
-        end: "top top",
+        end: "top center",
         scrub: 1.2,
         onEnter: () => {
           if (tl && tl.isActive()) {
@@ -166,53 +166,58 @@ export default function Ship() {
     // Ensure ship is visible when not scrolled past the end
     scrollTl.set(ship, { visible: true }, 0);
 
-    // Phase 1 (0.0 - 0.5): Ship rotates to a clean side profile (pointing right, along the flight path)
-    scrollTl.to(ship.rotation, {
+    // Ship rotates, scales, ignites engines, and sweeps right across the screen simultaneously (0.0 - 0.25)
+    scrollTl.fromTo(ship.rotation, {
+      x: 0.25, y: -1.55, z: 0.25
+    }, {
       x: 0,
       y: 0,
       z: 0,
-      duration: 0.5,
-      ease: "power2.inOut",
+      duration: 0.25,
+      ease: "none",
+      immediateRender: false,
     }, 0)
-    .to(modelGroup.rotation, {
+    .fromTo(modelGroup.rotation, {
+      x: -0.05, y: -0.05, z: -0.30
+    }, {
       x: 0.0,
       y: 0.0,
       z: -0.10,
-      duration: 0.5,
-      ease: "power2.inOut",
+      duration: 0.25,
+      ease: "none",
+      immediateRender: false,
     }, 0)
-    .to(modelGroup.scale, {
+    .fromTo(modelGroup.scale, {
+      x: endScale, y: endScale, z: endScale
+    }, {
       x: scrollEndScale,
       y: scrollEndScale,
       z: scrollEndScale,
-      duration: 0.5,
-      ease: "power2.inOut",
-    }, 0);
-
-    // Phase 2 (0.4 - 0.5): Engines ignite to full warp as ship picks up speed
-    scrollTl.to(progressRef.current, {
-      value: 0.0,
-      duration: 0.1,
-      ease: "power2.inOut",
-    }, 0.4)
-    // Phase 2b (0.5 - 1.0): Engines expand massively to cover the screen and transition smoothly
-    .to(progressRef.current, {
+      duration: 0.25,
+      ease: "none",
+      immediateRender: false,
+    }, 0)
+    .fromTo(progressRef.current, {
+      value: 1.0
+    }, {
       value: -4.0,
-      duration: 0.5,
-      ease: "power2.in",
-    }, 0.5);
-
-    // Phase 3 (0.5 - 1.0): Ship sweeps right across the screen and off the edge
-    scrollTl.to(ship.position, {
+      duration: 0.25,
+      ease: "none",
+      immediateRender: false,
+    }, 0)
+    .fromTo(ship.position, {
+      x: endPos.x, y: endPos.y, z: endPos.z
+    }, {
       x: scrollEndPos.x,
       y: scrollEndPos.y,
       z: scrollEndPos.z,
-      duration: 0.5,
-      ease: "power3.in",
-    }, 0.5);
+      duration: 0.25,
+      ease: "none",
+      immediateRender: false,
+    }, 0);
 
-    // Make the ship invisible after it has fully moved off-screen (at progress 1.0)
-    scrollTl.set(ship, { visible: false }, 1.0);
+    // Make the ship invisible after it has fully moved off-screen (at progress 0.25)
+    scrollTl.set(ship, { visible: false }, 0.25);
 
   }); // No deps — useGSAP handles Strict Mode naturally
 

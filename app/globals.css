@@ -52,6 +52,36 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 
   --animate-aurora: aurora 60s linear infinite;
+
+  --animate-gradient: gradient 8s linear infinite;
+  @keyframes aurora {
+  0% {
+    background-position: 0% 50%;
+    transform: rotate(-5deg) scale(0.9);
+    }
+  25% {
+    background-position: 50% 100%;
+    transform: rotate(5deg) scale(1.1);
+    }
+  50% {
+    background-position: 100% 50%;
+    transform: rotate(-3deg) scale(0.95);
+    }
+  75% {
+    background-position: 50% 0%;
+    transform: rotate(3deg) scale(1.05);
+    }
+  100% {
+    background-position: 0% 50%;
+    transform: rotate(-5deg) scale(0.9);
+    }
+  }
+}
+
+@keyframes gradient {
+  to {
+    background-position: var(--bg-size, 300%) 0;
+  }
 }
 
 @keyframes aurora {
@@ -70,7 +100,7 @@
   opacity: 0.5;
   filter: blur(10px) invert(1);
   will-change: transform;
-  
+
   --aurora: repeating-linear-gradient(100deg, #0044ff 10%, #00aaff 15%, #00ffff 20%, #ffffff 25%, #0088ff 30%);
   --white-gradient: repeating-linear-gradient(100deg, #fff 0%, #fff 7%, transparent 10%, transparent 12%, #fff 16%);
 
@@ -241,4 +271,61 @@ body {
 
 .liquid-glass:hover::after {
   opacity: 1;
+}
+
+/* Custom Cyberpunk Button Lights Animation */
+@keyframes cyber-light-1 {
+  0%, 100% { opacity: 0.2; transform: scale(0.9); }
+  50% { opacity: 1; transform: scale(1.1); }
+}
+
+@keyframes cyber-light-2 {
+  0%, 100% { opacity: 0.9; transform: scale(1.1); }
+  50% { opacity: 0.1; transform: scale(0.8); }
+}
+
+@keyframes cyber-light-3 {
+  0%, 100% { opacity: 0.4; transform: scale(0.8); }
+  50% { opacity: 0.98; transform: scale(1.2); }
+}
+
+/* Hover-Only triggers on parent .group element */
+.group:hover .cyber-light-1 {
+  animation: cyber-light-1 0.9s infinite ease-in-out;
+}
+
+.group:hover .cyber-light-2 {
+  animation: cyber-light-2 1.4s infinite ease-in-out;
+}
+
+.group:hover .cyber-light-3 {
+  animation: cyber-light-3 1.9s infinite ease-in-out;
+}
+
+/* Lenis smooth scroll helper styles */
+html.lenis,
+html.lenis body {
+  height: auto;
+}
+
+.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+
+.lenis-smooth [data-lenis-prevent] {
+  overscroll-behavior: contain;
+}
+
+.lenis-stopped {
+  overflow: hidden;
+}
+
+/* Prevent iframe interaction (YouTube embeds) from capturing mouse movements while scrubbing scroll */
+.lenis-scrolling iframe {
+  pointer-events: none;
+}
+
+/* Smooth scrolling for in-page anchor navigation (no snapping) */
+html {
+  scroll-behavior: smooth;
 }

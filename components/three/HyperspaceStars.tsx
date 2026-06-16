@@ -37,21 +37,43 @@ export default function HyperspaceStars({ count = 3000 }) {
         ease: "power3.out",
       });
 
-    // Fade stars out as we scroll to Section 2
+    // Fade & warp stars out as we scroll to Section 2
     const scrollTl = gsap.timeline({
       scrollTrigger: {
         trigger: "#section-2",
         start: "top bottom",
-        end: "top top",
+        end: "top center",
         scrub: 1.2,
       }
     });
 
+    // Animate star speed to a moderate speed-up
+    scrollTl.to(speedRef.current, {
+      value: 12,
+      ease: "power1.in",
+    }, 0);
+
     if (linesRef.current) {
+      // Gently rotate the star field to shift the vanishing point to the left
+      scrollTl.to(linesRef.current.rotation, {
+        x: 0.1, // Keep original vertical rotation
+        y: 0.35, // Gentle shift to the left
+        z: 0.0,
+        ease: "power1.out",
+      }, 0);
+
+      // Slide the entire star field subtly to the left
+      scrollTl.to(linesRef.current.position, {
+        x: -20,
+        y: 0,
+        ease: "power1.inOut",
+      }, 0);
+
+      // Fade out opacity as transition completes
       scrollTl.to(linesRef.current.material, {
         opacity: 0,
-        ease: "power2.inOut",
-      }, 0);
+        ease: "power1.inOut",
+      }, 0.25);
     }
   }, []);
 
@@ -113,6 +135,11 @@ export default function HyperspaceStars({ count = 3000 }) {
 
   useFrame((state, delta) => {
     if (!linesRef.current) return;
+
+    // Performance optimization: bypass loops if stars are completely invisible
+    const material = linesRef.current.material as THREE.LineBasicMaterial;
+    if (material && material.opacity === 0) return;
+
     const pos = linesRef.current.geometry.attributes.position.array as Float32Array;
 
     const speed = speedRef.current.value;
