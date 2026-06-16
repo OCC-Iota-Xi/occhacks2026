@@ -13,7 +13,13 @@ export default function Navbar() {
   };
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 w-full border-b border-[var(--nav-border)] bg-[var(--nav-bg)] backdrop-blur-md transition-colors duration-300">
+    <header 
+      style={{
+        backdropFilter: "blur(var(--nav-blur, 0px))",
+        WebkitBackdropFilter: "blur(var(--nav-blur, 0px))",
+      }}
+      className="fixed top-0 left-0 right-0 z-50 w-full bg-[var(--nav-bg)] transition-colors duration-300"
+    >
       <div className="max-w-7xl mx-auto px-8 py-4 flex items-center justify-between w-full">
         {/* Logo */}
         <Link
@@ -34,13 +40,25 @@ export default function Navbar() {
               Home
             </Link>
             <Link 
+              href="#about" 
+              className="text-sm text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)]"
+            >
+              About
+            </Link>
+            <Link 
               href="#tracks" 
               className="text-sm text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)]"
             >
               Tracks
             </Link>
             <Link 
-              href="#faqs" 
+              href="#sponsors" 
+              className="text-sm text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)]"
+            >
+              Sponsors
+            </Link>
+            <Link 
+              href="#faq" 
               className="text-sm text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)]"
             >
               FAQs

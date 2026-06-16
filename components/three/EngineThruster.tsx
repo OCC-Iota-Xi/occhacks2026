@@ -79,8 +79,8 @@ export default function EngineThruster({
 
     // Separate scale multipliers: extremely long at warp, but only moderately wide
     // Increased starting widthScale to 22.0 to make the initial thruster radius much larger.
-    // Increased ending lengthScale to 7.5 to make the finishing thruster flame longer.
-    const lengthScale = THREE.MathUtils.lerp(90.0, 7.5, p);
+    // Increased ending lengthScale to 20.0 to make the finishing thruster flame longer.
+    const lengthScale = THREE.MathUtils.lerp(180.0, 20.0, p);
     const widthScale = THREE.MathUtils.lerp(22.0, 1.05, p);
 
     // Soft, slow hum/pulsing with very minor heat shimmer (max 3% variance)
@@ -89,10 +89,10 @@ export default function EngineThruster({
     // Dynamic light color, intensity, and range
     if (lightRef.current) {
       lightRef.current.color.copy(colors.light.colorWarp).lerp(colors.light.colorSettle, clampedP);
-      const baseIntensity = THREE.MathUtils.lerp(150, 5.5, clampedP);
+      const baseIntensity = THREE.MathUtils.lerp(300, 22.0, clampedP);
       // Soft light intensity fluctuation (max 1.5% fluctuation for comfortable view)
       lightRef.current.intensity = baseIntensity * (1.0 + flicker * 0.5) * fadeFactor;
-      lightRef.current.distance = THREE.MathUtils.lerp(300, 35, clampedP);
+      lightRef.current.distance = THREE.MathUtils.lerp(300, 45.0, clampedP);
     }
 
     // High-frequency jitter and scale for the outer plasma plume

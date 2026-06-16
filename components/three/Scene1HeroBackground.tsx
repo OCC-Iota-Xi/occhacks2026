@@ -47,35 +47,34 @@ function InteractiveSetup() {
       scrollTrigger: {
         trigger: "#section-2",
         start: "top bottom",
-        end: "top top",
+        end: "top center",
         scrub: 1.2,
       }
     });
 
-    // Camera moves to the side of the ship as it turns sideways (ship rotates 0.0 - 0.5)
-    // Ship settled position is [5.20, 0.40, -3.00], camera goes to its side
+    // Camera moves to the side of the ship as it turns sideways (0.0 - 0.25)
     scrollTl.to(baseCameraPos.current, {
       x: isMobile ? 2.0 : 5.0,
       y: isMobile ? 0.8 : 2.5,
       z: isMobile ? 11.0 : 10.0,
-      duration: 0.5,
-      ease: "power2.inOut",
+      duration: 0.25,
+      ease: "none",
     }, 0)
       .to(baseLookAt.current, {
         x: isMobile ? 2.0 : 5.2,
         y: isMobile ? 0.5 : 0.4,
         z: isMobile ? -3.0 : -3.0,
-        duration: 0.5,
-        ease: "power2.inOut",
+        duration: 0.25,
+        ease: "none",
       }, 0);
 
-    // White wipe sweeps left-to-right, trailing behind the engine glow (follows ship blast off)
+    // White wipe sweeps left-to-right, trailing behind the engine glow (0.0 - 0.25)
     scrollTl.to(".scene-bg-wrapper", {
       "--wipe-inner": "100%",
       "--wipe-outer": "120%",
-      duration: 0.5,
-      ease: "power2.in",
-    }, 0.5);
+      duration: 0.25,
+      ease: "none",
+    }, 0);
   });
 
   useFrame(({ camera }) => {
@@ -119,8 +118,8 @@ function InteractiveSetup() {
         pointLightRef.current.position.y = THREE.MathUtils.lerp(pointLightRef.current.position.y, targetPY, 0.05);
         pointLightRef.current.position.z = THREE.MathUtils.lerp(pointLightRef.current.position.z, targetPZ, 0.05);
         
-        // Restore standard intensity (20)
-        pointLightRef.current.intensity = THREE.MathUtils.lerp(pointLightRef.current.intensity, 20, 0.05);
+        // Restore standard intensity (1.5)
+        pointLightRef.current.intensity = THREE.MathUtils.lerp(pointLightRef.current.intensity, 1.5, 0.05);
       }
     }
   });
@@ -130,17 +129,17 @@ function InteractiveSetup() {
       <directionalLight
         ref={lightRef}
         position={[10, 10, 5]}
-        intensity={1.8}
+        intensity={0.1}
         color="#ffffff"
       />
       {/* Interactive hull light sweep */}
       <pointLight
         ref={pointLightRef}
         position={[4.8, 1.0, 0.5]}
-        intensity={20}
+        intensity={1.5}
         distance={25}
         decay={1.8}
-        color="#aaccff"
+        color="#ffffff"
       />
     </>
   );
@@ -157,16 +156,16 @@ export default function Scene1HeroBackground() {
         {/* Transparent background canvas - background color is handled by parent div */}
 
         {/* Dramatic Space Lighting */}
-        <ambientLight intensity={0.08} />
+        <ambientLight intensity={0.015} />
 
         {/* Dynamic Key Light & Camera Parallax */}
         <InteractiveSetup />
 
-        {/* Blue Rim Light from below/behind for sci-fi look */}
-        <directionalLight position={[-10, -10, -5]} intensity={1.2} color="#4b83f5" />
+        {/* Soft starlight rim light from below/behind */}
+        <directionalLight position={[-10, -10, -5]} intensity={0.15} color="#dce6ff" />
 
         {/* Environment map for realistic metallic reflections */}
-        <Environment preset="city" environmentIntensity={0.35} />
+        <Environment preset="studio" environmentIntensity={0.1} />
 
         {/* Scene Objects */}
         <HyperspaceStars count={10000} />

@@ -50,6 +50,8 @@ export const metadata: Metadata = {
   },
 };
 
+import SmoothScroll from "@/components/SmoothScroll";
+
 const fontVariables = [
   brunoAceSC.variable,
   spaceGrotesk.variable,
@@ -66,6 +68,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={cn("dark antialiased", fontVariables, "font-sans", geist.variable)}>
       <body>
+        {/* <SmoothScroll /> */}
         {/* <Navbar /> */}
         {children}
       </body>
