@@ -24,9 +24,9 @@ export default function Navbar() {
         {/* Logo */}
         <Link
           href="#"
-          className="text-2xl tracking-widest text-[var(--text-primary)] select-none font-header transition-colors duration-300 hover:text-amber-500"
+          className="text-xl sm:text-2xl tracking-wider text-[var(--text-primary)] select-none font-header transition-colors duration-300 hover:opacity-90"
         >
-          <span className="text-amber-500 font-bold mr-1">[</span>logo<span className="text-amber-500 font-bold ml-1">]</span>
+          OCC<span className="text-amber-500">Hacks</span>
         </Link>
 
         {/* Links and CTA grouped on the right */}

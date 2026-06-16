@@ -1,4 +1,5 @@
 import React from "react";
+import PastHackathonsPanel from "./PastHackathonsPanel";
 
 interface AboutSectionProps {
   aboutTextRef: React.RefObject<HTMLDivElement | null>;
@@ -47,53 +48,7 @@ export default function AboutSection({ aboutTextRef, videoContainerRef }: AboutS
           ref={videoContainerRef}
           className="lg:col-span-5 w-full max-w-2xl mx-auto lg:mx-0 lg:ml-auto"
         >
-          <div className="about-video-panel flex flex-col gap-6 p-6 sm:p-8 rounded-2xl border border-[var(--card-border)] bg-[var(--card-bg)] backdrop-blur-md shadow-2xl">
-            <h3 className="font-header text-2xl sm:text-3xl text-[var(--text-primary)] tracking-wider leading-none">
-              Past <span className="text-black">Hackathons</span>
-            </h3>
-
-            {/* Spookathon — label on the left */}
-            <div className="grid grid-cols-[5.5rem_1fr] sm:grid-cols-[6.5rem_1fr] gap-4 items-center">
-              <a
-                href="https://spookathon-2025.devpost.com/?ref_feature=challenge&ref_medium=discover"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="font-header text-sm sm:text-base md:text-lg font-normal leading-tight tracking-wide text-[var(--text-primary)] hover:text-[var(--card-1-accent)] hover:underline underline-offset-4 transition-colors"
-              >
-                Spookathon 2025
-              </a>
-              <div className="about-video-card group relative w-full max-w-56 sm:max-w-64 md:max-w-72 justify-self-end aspect-video rounded-2xl overflow-hidden border border-[var(--card-border)] bg-black/20 backdrop-blur-md hover:border-[var(--card-1-accent)]/30 transition-all duration-300 hover:scale-[1.01]">
-                <iframe
-                  className="w-full h-full"
-                  src="https://www.youtube.com/embed/I9FVxneDnL4"
-                  title="Spookathon 2025"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                  allowFullScreen
-                ></iframe>
-              </div>
-            </div>
-
-            {/* HackCC — label on the right */}
-            <div className="grid grid-cols-[1fr_5.5rem] sm:grid-cols-[1fr_6.5rem] gap-4 items-center">
-              <div className="about-video-card group relative w-full max-w-56 sm:max-w-64 md:max-w-72 justify-self-start aspect-video rounded-2xl overflow-hidden border border-[var(--card-border)] bg-black/20 backdrop-blur-md hover:border-[var(--text-accent)]/30 transition-all duration-300 hover:scale-[1.01]">
-                <iframe
-                  className="w-full h-full"
-                  src="https://www.youtube.com/embed/vT81BYkjc8k"
-                  title="HackCC 2024 Recap"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                  allowFullScreen
-                ></iframe>
-              </div>
-              <a
-                href="https://hackcc-23092.devpost.com/?ref_feature=challenge&ref_medium=discover"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="font-header text-sm sm:text-base md:text-lg font-semibold leading-tight tracking-wide text-[var(--text-primary)] hover:text-[var(--text-accent)] hover:underline underline-offset-4 transition-colors text-right"
-              >
-                HackCC 2024
-              </a>
-            </div>
-          </div>
+          <PastHackathonsPanel />
         </div>
       </div>
     </section>
