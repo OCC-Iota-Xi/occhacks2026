@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { GlowingEffect } from "@/components/ui/glowing-effect";
 
 const PAST_HACKATHONS = [
   {
@@ -24,8 +25,16 @@ export default function PastHackathonsPanel() {
   const active = PAST_HACKATHONS[activeIndex];
 
   return (
-    <div className="about-video-panel group/card relative flex flex-col rounded-2xl border border-[var(--card-border)] bg-[var(--card-bg)] backdrop-blur-md shadow-2xl overflow-hidden">
-      <div className="shrink-0 border-b border-[var(--card-border)] bg-[var(--card-bg)] px-4 py-3 sm:px-6 sm:py-4 text-center">
+    <div className="about-video-panel group/card relative flex flex-col rounded-2xl">
+      <GlowingEffect
+        spread={40}
+        glow={true}
+        disabled={false}
+        proximity={64}
+        inactiveZone={0.01}
+      />
+      <div className="relative z-10 flex flex-col rounded-2xl border border-[var(--card-border)] bg-[var(--card-bg)] backdrop-blur-md shadow-2xl overflow-hidden w-full h-full">
+        <div className="shrink-0 border-b border-[var(--card-border)] bg-[var(--card-bg)] px-4 py-3 sm:px-6 sm:py-4 text-center">
         <h3 className="font-header font-normal text-base sm:text-lg md:text-xl text-[var(--text-primary)] tracking-wider leading-snug">
           Past event:{" "}
           <a
@@ -92,5 +101,6 @@ export default function PastHackathonsPanel() {
         ))}
       </div>
     </div>
+  </div>
   );
 }
