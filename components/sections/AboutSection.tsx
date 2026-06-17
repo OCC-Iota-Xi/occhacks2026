@@ -1,5 +1,6 @@
 import React from "react";
 import PastHackathonsPanel from "./PastHackathonsPanel";
+import { GlowingEffect } from "@/components/ui/glowing-effect";
 
 interface AboutSectionProps {
   aboutTextRef: React.RefObject<HTMLDivElement | null>;
@@ -18,27 +19,70 @@ export default function AboutSection({ aboutTextRef, videoContainerRef }: AboutS
           <h2 className="font-header text-3xl sm:text-5xl md:text-6xl text-[var(--text-primary)] tracking-wider leading-none">
             About <span className="bg-clip-text text-transparent bg-gradient-to-r from-[var(--text-accent)] to-[#4f46e5]">Us</span>
           </h2>
-          <p className="font-body text-sm sm:text-base md:text-lg text-[var(--text-secondary)] leading-relaxed">
-            OCC Hacks is Orange Coast College&apos;s premier hackathon. Born from the legacy of HackCC—the first hackathon specifically designed to support and champion community college students—our mission is to provide an inclusive, high-energy environment for tech innovation.
+          <p className="font-body text-sm sm:text-base md:text-lg text-black leading-relaxed">
+            OCC Hacks is Orange Coast College&apos;s official hackathon, happening on Oct 11-12th at the Orange Coast College Ballroom.
           </p>
           
           {/* Highlight badges / grid */}
           <div className="grid grid-cols-2 gap-4 mt-4">
-            <div className="min-h-[8.5rem] sm:min-h-[9.5rem] flex flex-col justify-center p-5 sm:p-6 rounded-xl border border-[var(--card-border)] bg-[var(--card-bg)] backdrop-blur-xs hover:border-[var(--card-2-accent)]/30 transition-all duration-300">
-              <h3 className="font-header text-lg md:text-xl text-[var(--text-primary)] font-semibold">150+ Participants</h3>
-              <p className="text-xs sm:text-sm text-[var(--card-desc)] mt-2">Students and builders from across Southern California</p>
+            {/* Card 1 */}
+            <div className="relative min-h-[8.5rem] sm:min-h-[9.5rem] rounded-xl border border-[var(--card-border)] bg-[var(--card-bg)] backdrop-blur-xs hover:border-[var(--card-2-accent)]/30 transition-all duration-300">
+              <GlowingEffect
+                spread={40}
+                glow={true}
+                disabled={false}
+                proximity={64}
+                inactiveZone={0.01}
+              />
+              <div className="relative z-10 h-full flex flex-col justify-center p-5 sm:p-6">
+                <h3 className="font-header text-lg md:text-xl text-[var(--text-primary)] font-semibold">150+ Participants</h3>
+                <p className="text-xs sm:text-sm text-[var(--card-desc)] mt-2">Students and builders from across Southern California</p>
+              </div>
             </div>
-            <div className="min-h-[8.5rem] sm:min-h-[9.5rem] flex flex-col justify-center p-5 sm:p-6 rounded-xl border border-[var(--card-border)] bg-[var(--card-bg)] backdrop-blur-xs hover:border-[var(--card-1-accent)]/30 transition-all duration-300">
-              <h3 className="font-header text-lg md:text-xl text-[var(--text-primary)] font-semibold">Beginner Friendly</h3>
-              <p className="text-xs sm:text-sm text-[var(--card-desc)] mt-2">Workshops, tracks, and 1-on-1 mentorship for all levels</p>
+
+            {/* Card 2 */}
+            <div className="relative min-h-[8.5rem] sm:min-h-[9.5rem] rounded-xl border border-[var(--card-border)] bg-[var(--card-bg)] backdrop-blur-xs hover:border-[var(--card-1-accent)]/30 transition-all duration-300">
+              <GlowingEffect
+                spread={40}
+                glow={true}
+                disabled={false}
+                proximity={64}
+                inactiveZone={0.01}
+              />
+              <div className="relative z-10 h-full flex flex-col justify-center p-5 sm:p-6">
+                <h3 className="font-header text-lg md:text-xl text-[var(--text-primary)] font-semibold">Beginner Friendly</h3>
+                <p className="text-xs sm:text-sm text-[var(--card-desc)] mt-2">Workshops, tracks, and 1-on-1 mentorship for all levels</p>
+              </div>
             </div>
-            <div className="min-h-[8.5rem] sm:min-h-[9.5rem] flex flex-col justify-center p-5 sm:p-6 rounded-xl border border-[var(--card-border)] bg-[var(--card-bg)] backdrop-blur-xs hover:border-[var(--card-3-accent)]/30 transition-all duration-300">
-              <h3 className="font-header text-lg md:text-xl text-[var(--text-primary)] font-semibold">Meals Provided</h3>
-              <p className="text-xs sm:text-sm text-[var(--card-desc)] mt-2">Breakfast, lunch, dinner, and snacks throughout the event</p>
+
+            {/* Card 3 */}
+            <div className="relative min-h-[8.5rem] sm:min-h-[9.5rem] rounded-xl border border-[var(--card-border)] bg-[var(--card-bg)] backdrop-blur-xs hover:border-[var(--card-3-accent)]/30 transition-all duration-300">
+              <GlowingEffect
+                spread={40}
+                glow={true}
+                disabled={false}
+                proximity={64}
+                inactiveZone={0.01}
+              />
+              <div className="relative z-10 h-full flex flex-col justify-center p-5 sm:p-6">
+                <h3 className="font-header text-lg md:text-xl text-[var(--text-primary)] font-semibold">Meals Provided</h3>
+                <p className="text-xs sm:text-sm text-[var(--card-desc)] mt-2">Breakfast, lunch, dinner, and snacks throughout the event</p>
+              </div>
             </div>
-            <div className="min-h-[8.5rem] sm:min-h-[9.5rem] flex flex-col justify-center p-5 sm:p-6 rounded-xl border border-[var(--card-border)] bg-[var(--card-bg)] backdrop-blur-xs hover:border-[var(--card-2-accent)]/30 transition-all duration-300">
-              <h3 className="font-header text-lg md:text-xl text-[var(--text-primary)] font-semibold">$15,000+ in Fundraising</h3>
-              <p className="text-xs sm:text-sm text-[var(--card-desc)] mt-2">Prizes, bounties, and support for the hackathon</p>
+
+            {/* Card 4 */}
+            <div className="relative min-h-[8.5rem] sm:min-h-[9.5rem] rounded-xl border border-[var(--card-border)] bg-[var(--card-bg)] backdrop-blur-xs hover:border-[var(--card-2-accent)]/30 transition-all duration-300">
+              <GlowingEffect
+                spread={40}
+                glow={true}
+                disabled={false}
+                proximity={64}
+                inactiveZone={0.01}
+              />
+              <div className="relative z-10 h-full flex flex-col justify-center p-5 sm:p-6">
+                <h3 className="font-header text-lg md:text-xl text-[var(--text-primary)] font-semibold">$15,000+ in Fundraising</h3>
+                <p className="text-xs sm:text-sm text-[var(--card-desc)] mt-2">Prizes, bounties, and support for the hackathon</p>
+              </div>
             </div>
           </div>
         </div>
