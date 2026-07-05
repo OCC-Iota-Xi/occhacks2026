@@ -140,7 +140,7 @@ export default function Home() {
         "--card-1-accent": "#fbbf24",
         "--card-2-accent": "#22d3ee",
         "--card-3-accent": "#c084fc",
-        "--nav-bg": "rgba(5, 5, 9, 0)",
+        "--nav-bg": "rgba(9, 9, 11, 0)",
         "--nav-border": "rgba(255, 255, 255, 0)",
         "--nav-blur": "0px",
       } as React.CSSProperties}
@@ -150,14 +150,14 @@ export default function Home() {
         <span />
       </AuroraBackground>
 
-      {/* 3D Scene Layer (Fixed Background Canvas) */}
-      <Scene1HeroBackground />
-
       {/* Navigation Bar */}
       <Navbar />
 
       {/* Hero Section */}
-      <section className="relative min-h-screen flex flex-col justify-between">
+      <section className="relative isolate overflow-hidden min-h-screen flex flex-col justify-between">
+        {/* 3D Scene Layer — confined to the hero viewport, scrolls away with it */}
+        <Scene1HeroBackground />
+
         {/* Main content container */}
         <div className="flex-1 flex items-center px-6 sm:px-12 md:px-24 z-10">
           <div ref={textRef} className="max-w-3xl w-full text-left translate-y-10 md:translate-y-14">

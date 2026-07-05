@@ -1,6 +1,7 @@
 import React from "react";
 import PastHackathonsPanel from "./PastHackathonsPanel";
 import { GlowingEffect } from "@/components/ui/glowing-effect";
+import AtmosphereTransition from "@/components/AtmosphereTransition";
 
 interface AboutSectionProps {
   aboutTextRef: React.RefObject<HTMLDivElement | null>;
@@ -10,6 +11,9 @@ interface AboutSectionProps {
 export default function AboutSection({ aboutTextRef, videoContainerRef }: AboutSectionProps) {
   return (
     <section id="section-2" className="relative min-h-screen flex items-center px-6 sm:px-12 md:px-24 py-16 md:py-24 z-10 w-full">
+      {/* Small white blur seam transitioning in from the hero */}
+      <AtmosphereTransition />
+
       {/* Navigation Anchor */}
       <div id="about" className="absolute top-0 left-0" />
       
