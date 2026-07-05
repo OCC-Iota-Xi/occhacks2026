@@ -1,7 +1,7 @@
 "use client";
 
 import { Canvas, useFrame } from "@react-three/fiber";
-import { Suspense, useRef, useEffect } from "react";
+import { Suspense, useRef, useEffect, useState } from "react";
 import Ship from "./Ship";
 import HyperspaceStars from "./HyperspaceStars";
 import ColorfulNebula from "./ColorfulNebula";
@@ -68,13 +68,6 @@ function InteractiveSetup() {
         ease: "none",
       }, 0);
 
-    // White wipe sweeps left-to-right, trailing behind the engine glow (0.0 - 0.25)
-    scrollTl.to(".scene-bg-wrapper", {
-      "--wipe-inner": "100%",
-      "--wipe-outer": "120%",
-      duration: 0.25,
-      ease: "none",
-    }, 0);
   });
 
   useFrame(({ camera }) => {
@@ -146,13 +139,29 @@ function InteractiveSetup() {
 }
 
 export default function Scene1HeroBackground() {
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  // Only render frames while the hero canvas is actually on screen. Once it
+  // scrolls out of view the render loop is parked so the GPU goes idle.
+  const [onScreen, setOnScreen] = useState(true);
+
+  useEffect(() => {
+    const el = wrapperRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => setOnScreen(entry.isIntersecting),
+      { threshold: 0 }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
   return (
-    <div className="fixed inset-0 -z-10 overflow-hidden scene-bg-wrapper"
+    <div ref={wrapperRef} className="absolute inset-0 overflow-hidden scene-bg-wrapper"
       style={{
-        background: "linear-gradient(to right, transparent var(--wipe-inner, -20%), #050509 var(--wipe-outer, 0%))",
+        background: "oklch(14.1% 0.005 285.823)",
       } as React.CSSProperties}
     >
-      <Canvas camera={{ position: [0, 0, 10], fov: 45 }} gl={{ alpha: true }}>
+      <Canvas dpr={[1, 2]} frameloop={onScreen ? "always" : "never"} camera={{ position: [0, 0, 10], fov: 45 }} gl={{ alpha: true }}>
         {/* Transparent background canvas - background color is handled by parent div */}
 
         {/* Dramatic Space Lighting */}
@@ -168,7 +177,7 @@ export default function Scene1HeroBackground() {
         <Environment preset="studio" environmentIntensity={0.1} />
 
         {/* Scene Objects */}
-        <HyperspaceStars count={10000} />
+        <HyperspaceStars count={5000} />
         {/* <ColorfulNebula /> */}
         <Suspense fallback={null}>
           <Ship />

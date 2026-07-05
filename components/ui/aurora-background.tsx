@@ -25,8 +25,8 @@ export const AuroraBackground = ({
         <div
           className="aurora-el"
           style={showRadialGradient ? {
-            maskImage: "linear-gradient(to left, black 20%, transparent 75%)",
-            WebkitMaskImage: "linear-gradient(to left, black 20%, transparent 75%)",
+            maskImage: "radial-gradient(ellipse 85% 75% at 70% 30%, black 10%, transparent 70%)",
+            WebkitMaskImage: "radial-gradient(ellipse 85% 75% at 70% 30%, black 10%, transparent 70%)",
           } : undefined}
         ></div>
       </div>

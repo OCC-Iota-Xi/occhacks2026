@@ -5,7 +5,7 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-  --color-background: #050509;
+  --color-background: oklch(14.1% 0.005 285.823);
 
   /* Font families */
   --font-header: var(--font-bruno-ace-sc), ui-serif, serif;
@@ -116,7 +116,6 @@
   inset: 0;
   background-image: var(--white-gradient), var(--aurora);
   background-size: 200%, 100%;
-  background-attachment: fixed;
   mix-blend-mode: difference;
   animation: aurora 60s linear infinite;
 }
