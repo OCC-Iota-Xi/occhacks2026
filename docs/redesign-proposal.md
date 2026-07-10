@@ -28,7 +28,8 @@ The vibe: confident through restraint. Almost no color, almost no boxes — when
 
 Same faces as agreed, weight discipline intact — this theme leans on them harder:
 
-- **Inter 400** — everything, including the giant headlines. At 8rem, regular weight is plenty; hierarchy comes from size, not weight. 500 permitted only on button labels.
+- **Schibsted Grotesk 400** — the giant display headlines (site-wide `font-display`). At 8rem, regular weight is plenty; hierarchy comes from size, not weight.
+- **Inter 400** — body, nav, labels, buttons. 500 permitted only on button labels.
 - **Newsreader italic (300–400)** — the accent phrase inside headlines ("a 24-hour *studio*"), pull-quotes, and the footer sign-off. Never for whole paragraphs.
 - Numbers everywhere get `tabular-nums`. Lowercase/sentence case; no letterspaced caps, no all-caps sections.
 

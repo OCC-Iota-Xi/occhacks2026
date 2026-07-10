@@ -3,7 +3,7 @@ import CountUp from "@/components/motion/CountUp";
 import SectionHeading from "@/components/SectionHeading";
 
 const STATS = [
-  { value: <CountUp to={150} suffix="+" />, label: "hackers" },
+  { value: <CountUp to={150} suffix="+" />, label: "crew members" },
   { value: <CountUp to={24} />, label: "hours" },
   { value: "all", label: "meals covered" },
   { value: "yes", label: "beginner friendly" },
@@ -17,10 +17,10 @@ export default function About() {
       <Reveal className="mx-auto mt-10 max-w-2xl text-center" delay={0.1}>
         <p className="text-base leading-relaxed text-muted-foreground sm:text-lg">
           OCC Hacks is Orange Coast College&apos;s official hackathon, held at the OCC
-          Ballroom in Costa Mesa. For one weekend the room becomes a working studio:
-          150+ students from across Southern California building, learning, and
+          Ballroom in Costa Mesa. For one weekend the room becomes the deck of our
+          ship: 150+ students from across Southern California building, learning, and
           shipping side by side — with workshops, mentors, and every meal on us.
-          First hackathon? Perfect. That&apos;s who we built it for.
+          First hackathon? Perfect. Every pirate starts somewhere.
         </p>
       </Reveal>
 

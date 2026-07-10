@@ -38,7 +38,7 @@ const FAQS = [
 export default function FAQ() {
   return (
     <section id="faq" className="scroll-mt-24 px-6 py-24 md:py-32">
-      <SectionHeading plain="before you" accent="ask" className="mb-12" />
+      <SectionHeading plain="before you" accent="board" className="mb-12" />
 
       <Reveal className="mx-auto max-w-2xl">
         <Accordion type="single" collapsible>
