@@ -33,7 +33,7 @@ export default function Tracks() {
 
   return (
     <section id="tracks" className="scroll-mt-24 py-24 md:py-32">
-      <SectionHeading plain="selected" accent="tracks" className="mb-16 px-6" />
+      <SectionHeading plain="Our" accent="tracks" className="mb-16 px-6" />
 
       <div className="border-b border-border">
         {TRACKS.map((track, i) => (
@@ -46,7 +46,7 @@ export default function Tracks() {
                 {track.number}
               </p>
               <motion.h3
-                className="mt-2 font-serif italic text-4xl text-foreground sm:text-5xl"
+                className="mt-2 font-serif text-4xl text-foreground sm:text-5xl"
                 variants={{ hover: { scale: 1.02 } }}
                 transition={{ type: "spring", stiffness: 300, damping: 20 }}
               >

@@ -17,10 +17,11 @@ const SPONSORS = [
 export default function Sponsors() {
   return (
     <section id="sponsors" className="scroll-mt-24 px-6 py-24 md:py-32">
-      <SectionHeading plain="with" accent="friends" className="mb-6" />
+      <SectionHeading plain="our" accent="fleet" className="mb-6" />
       <Reveal className="mx-auto max-w-xl text-center" delay={0.05}>
         <p className="text-sm leading-relaxed text-muted-foreground sm:text-base">
-          Our sponsors keep OCC Hacks free for every student who walks in the door.
+          Our sponsors keep the ship flying — and OCC Hacks free for every student
+          who walks up the gangway.
         </p>
       </Reveal>
 

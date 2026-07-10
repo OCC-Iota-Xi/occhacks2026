@@ -35,7 +35,7 @@ const DAYS = [
 export default function Schedule() {
   return (
     <section id="schedule" className="scroll-mt-24 px-6 py-24 md:py-32">
-      <SectionHeading plain="two days in the" accent="studio" className="mb-12" />
+      <SectionHeading plain="two days" accent="aboard" className="mb-12" />
 
       <Reveal>
         <Tabs defaultValue="day-one" className="mx-auto max-w-2xl">

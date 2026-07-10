@@ -1,6 +1,12 @@
 import Marquee from "@/components/motion/Marquee";
 
-const ITEMS = ["occ hacks 2026", "oct 11–12", "orange coast college", "free to attend"];
+const ITEMS = [
+  "occ hacks 2026",
+  "oct 11–12",
+  "orange coast college",
+  "free to board",
+  "the future is uncharted",
+];
 
 export default function MarqueeStrip() {
   return (

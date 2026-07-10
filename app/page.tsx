@@ -1,7 +1,6 @@
 import Navbar from "@/components/Navbar";
 import Hero from "@/components/sections/Hero";
-import MarqueeStrip from "@/components/sections/MarqueeStrip";
-import About from "@/components/sections/About";
+import AboutSection from "@/components/sections/AboutSection";
 import Tracks from "@/components/sections/Tracks";
 import Schedule from "@/components/sections/Schedule";
 import Sponsors from "@/components/sections/Sponsors";
@@ -13,8 +12,7 @@ export default function Home() {
     <main>
       <Navbar />
       <Hero />
-      <MarqueeStrip />
-      <About />
+      <AboutSection />
       <Tracks />
       <Schedule />
       <Sponsors />
