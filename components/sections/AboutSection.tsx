@@ -36,7 +36,7 @@ interface Stat {
 
 function StatsRow({ stats }: { stats: Stat[] }) {
   return (
-    <div className="flex w-full flex-wrap justify-center gap-x-12 gap-y-6">
+    <div className="flex w-full flex-wrap justify-center gap-x-20 gap-y-6">
       {stats.map(({ value, label }) => (
         <div key={label} className="flex flex-col items-center gap-1.5 text-center">
           <span className="font-header text-4xl tracking-wider text-[var(--text-primary)] sm:text-5xl">
