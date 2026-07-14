@@ -2,16 +2,16 @@ import { ImageResponse } from "next/og";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 
-export const alt = "OCC Hacks 2026 — a 24-hour space pirate hackathon. Oct 11–12 at Orange Coast College.";
+export const alt =
+  "OCC Hacks 2026 — Orange Coast College's hackathon. October 11–12, 2026 in the OCC Ballroom. Free to attend.";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
-/* Recreates the site's hero as the link-share card: deep space, gold
-   headline, uncharted-future tagline, date line. */
+/* The link-share card: deep space, gold logo dot, the OCCHacks wordmark
+   in its white + amber split, and plain-English event facts. */
 export default async function OpenGraphImage() {
-  const [inter, newsreader, schibsted] = await Promise.all([
+  const [inter, schibsted] = await Promise.all([
     readFile(join(process.cwd(), "assets/fonts/inter-400.ttf")),
-    readFile(join(process.cwd(), "assets/fonts/newsreader-italic-400.ttf")),
     readFile(join(process.cwd(), "assets/fonts/schibsted-grotesk-400.ttf")),
   ]);
 
@@ -27,7 +27,7 @@ export default async function OpenGraphImage() {
           justifyContent: "center",
           backgroundColor: "#0b0d17",
           backgroundImage:
-            "radial-gradient(circle at 20% 25%, rgba(34, 211, 238, 0.12), transparent 45%), radial-gradient(circle at 80% 75%, rgba(124, 58, 237, 0.14), transparent 45%)",
+            "radial-gradient(circle at 20% 25%, rgba(251, 191, 36, 0.10), transparent 45%), radial-gradient(circle at 80% 75%, rgba(249, 115, 22, 0.12), transparent 45%)",
           fontFamily: "Inter",
           color: "#e8eaf2",
         }}
@@ -44,37 +44,24 @@ export default async function OpenGraphImage() {
         <div
           style={{
             display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            textAlign: "center",
+            fontFamily: "Schibsted Grotesk",
+            fontSize: 118,
+            lineHeight: 1.1,
+            letterSpacing: "0.02em",
           }}
         >
-          <div
-            style={{
-              fontFamily: "Schibsted Grotesk",
-              fontSize: 44,
-              letterSpacing: "-0.02em",
-            }}
-          >
-            ahoy, we are
-          </div>
-          <div
-            style={{
-              fontFamily: "Newsreader",
-              fontStyle: "italic",
-              color: "#fbbf24",
-              fontSize: 130,
-              lineHeight: 1.1,
-            }}
-          >
-            occ hacks.
-          </div>
+          <span style={{ color: "#ffffff" }}>OCC</span>
+          <span style={{ color: "#f97316" }}>Hacks</span>
+          <span style={{ color: "#ffffff", marginLeft: 24 }}>2026</span>
         </div>
-        <div style={{ marginTop: 48, fontSize: 28, color: "#e8eaf2" }}>
-          Oct 11–12, 2026 · Orange Coast College
+        <div style={{ marginTop: 28, fontSize: 34, color: "#e8eaf2" }}>
+          Orange Coast College&apos;s hackathon
+        </div>
+        <div style={{ marginTop: 40, fontSize: 26, color: "#9aa0b8" }}>
+          October 11–12, 2026 · OCC Ballroom · Costa Mesa, CA
         </div>
         <div style={{ marginTop: 12, fontSize: 22, color: "#9aa0b8" }}>
-          the future is uncharted · every meal covered · free to board
+          free to attend · food, workshops, mentors & prizes
         </div>
       </div>
     ),
@@ -83,7 +70,6 @@ export default async function OpenGraphImage() {
       fonts: [
         { name: "Inter", data: inter, weight: 400, style: "normal" },
         { name: "Schibsted Grotesk", data: schibsted, weight: 400, style: "normal" },
-        { name: "Newsreader", data: newsreader, weight: 400, style: "italic" },
       ],
     }
   );
