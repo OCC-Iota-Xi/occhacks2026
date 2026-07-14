@@ -25,12 +25,12 @@ export default function Hero() {
   return (
     <section
       id="top"
-      className="relative isolate overflow-hidden min-h-screen flex flex-col justify-between"
+      className="relative isolate overflow-hidden min-h-screen flex flex-col justify-center gap-6 lg:justify-between lg:gap-0"
     >
       <HeroAstronaut />
 
       {/* Main content container */}
-      <div className="flex-1 flex items-center px-6 sm:px-12 md:px-24 z-10">
+      <div className="flex items-center px-6 sm:px-12 md:px-24 z-10 lg:flex-1">
         <motion.div
           className="max-w-3xl w-full text-left"
           initial={
@@ -70,7 +70,7 @@ export default function Hero() {
           <div className="flex flex-wrap gap-4 md:gap-6">
             <Button
               variant="ghost"
-              className="liquid-glass rounded-full px-10 py-5 text-lg md:px-12 md:py-6 md:text-xl h-auto text-[var(--text-primary)] hover:scale-[1.03] transition-transform cursor-pointer font-medium"
+              className="liquid-glass rounded-full px-6 py-3 text-sm md:px-12 md:py-6 md:text-xl h-auto text-[var(--text-primary)] hover:scale-[1.03] transition-transform cursor-pointer font-medium"
               onMouseMove={handleMouseMove}
               asChild
             >
@@ -78,7 +78,7 @@ export default function Hero() {
             </Button>
             <Button
               variant="ghost"
-              className="liquid-glass rounded-full px-10 py-5 text-lg md:px-12 md:py-6 md:text-xl h-auto text-[var(--text-primary)] hover:scale-[1.03] transition-transform cursor-pointer font-medium"
+              className="liquid-glass rounded-full px-6 py-3 text-sm md:px-12 md:py-6 md:text-xl h-auto text-[var(--text-primary)] hover:scale-[1.03] transition-transform cursor-pointer font-medium"
               onMouseMove={handleMouseMove}
               asChild
             >
