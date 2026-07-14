@@ -29,6 +29,15 @@ const PREVIOUS = {
   ],
 };
 
+const BENEFITS = [
+  "extra credit for OCC courses",
+  "free food all weekend",
+  "learn from industry mentors",
+  "workshops for all skill levels",
+  "free swag and merch",
+  "network with fellow hackers",
+];
+
 interface Stat {
   value: string;
   label: string;
@@ -83,7 +92,7 @@ export default function AboutSection() {
     >
       {/* Headline */}
       <RevealLines
-        className="font-header text-4xl tracking-wider leading-tight text-[var(--text-primary)] sm:text-5xl md:text-6xl lg:text-7xl"
+        className="font-header text-5xl tracking-wider leading-tight text-[var(--text-primary)] sm:text-6xl md:text-7xl lg:text-8xl xl:text-[7rem] 2xl:text-[8rem]"
         lines={[<span key="1">you belong here.</span>]}
       />
 
@@ -114,7 +123,7 @@ export default function AboutSection() {
             href={SHOWREEL.youtube}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-center font-body text-sm tracking-wide text-[var(--text-secondary)] transition-colors hover:text-[var(--text-accent)] sm:text-base"
+            className="text-center font-body text-sm tracking-wide text-[var(--text-secondary)] hover:underline underline-offset-4 sm:text-base"
           >
             {SHOWREEL.name}
           </a>
@@ -130,7 +139,7 @@ export default function AboutSection() {
             href={PREVIOUS.youtube}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-center font-body text-sm tracking-wide text-[var(--text-secondary)] transition-colors hover:text-[var(--text-accent)] sm:text-base"
+            className="text-center font-body text-sm tracking-wide text-[var(--text-secondary)] hover:underline underline-offset-4 sm:text-base"
           >
             {PREVIOUS.name}
           </a>
@@ -149,6 +158,65 @@ export default function AboutSection() {
             allowFullScreen
           />
         </motion.div>
+      </div>
+
+      {/* What OCC Hacks is + why join: description on the left, stacked
+          benefits on the right */}
+      <div className="mt-14 flex w-full flex-col gap-10 md:mt-20 md:flex-row md:items-start md:gap-12">
+        <RevealLines
+          delay={0.15}
+          className="flex-1 font-body text-lg leading-relaxed text-[var(--text-primary)] sm:text-xl"
+          lines={[
+            <span
+              key="heading"
+              className="block pb-4 font-header text-3xl tracking-wider text-[var(--text-primary)]"
+            >
+              about us
+            </span>,
+            <span key="1">
+              OCC Hacks is a hackathon where individuals or teams collaborate
+              to build innovative solutions to real-world challenges within a
+              limited timeframe. Participants design, develop, and present
+              their projects while learning new skills, networking with
+              others, and competing for prizes.
+            </span>,
+            <span key="2" className="block pt-4">
+              This year, we&apos;ve configured the logistics to accommodate up to 150
+              hackers, secured more funding than ever, and taken every lesson
+              from previous years to make this the biggest and baddest one
+              yet.
+            </span>,
+          ]}
+        />
+
+        <RevealLines
+          delay={0.35}
+          className="flex-1 font-body text-lg text-[var(--text-primary)] sm:text-xl"
+          lineClassName="py-1"
+          lines={[
+            <span
+              key="heading"
+              className="block pb-4 text-center font-header text-3xl tracking-wider text-[var(--text-primary)]"
+            >
+              Why OCC Hacks?
+            </span>,
+            ...Array.from(
+              { length: Math.ceil(BENEFITS.length / 2) },
+              (_, i) => BENEFITS.slice(i * 2, i * 2 + 2),
+            ).map((pair) => (
+              <span key={pair[0]} className="grid grid-cols-2 gap-x-8">
+                {pair.map((benefit) => (
+                  <span key={benefit} className="group flex items-center gap-4">
+                    <span className="flex w-10 shrink-0 items-center justify-center font-header text-4xl leading-none text-[var(--text-primary)] transition-transform duration-300 ease-out group-hover:rotate-90 group-hover:scale-125">
+                      +
+                    </span>
+                    <span>{benefit}</span>
+                  </span>
+                ))}
+              </span>
+            )),
+          ]}
+        />
       </div>
     </section>
   );

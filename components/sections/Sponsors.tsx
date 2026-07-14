@@ -1,37 +1,39 @@
+import Image from "next/image";
 import SectionHeading from "@/components/SectionHeading";
 import Reveal from "@/components/motion/Reveal";
+import { Button } from "@/components/ui/button";
 
 const SPONSORS = [
-  { name: "OCC Division of Technology", tier: "platinum" },
-  { name: "Google Cloud", tier: "platinum" },
-  { name: "GitHub", tier: "gold" },
-  { name: "Vercel", tier: "gold" },
-  { name: "GSAP", tier: "gold" },
-  { name: "Retool", tier: "gold" },
-  { name: "StandOut Stickers", tier: "silver" },
-  { name: "Major League Hacking", tier: "silver" },
-  { name: "Wolfram Language", tier: "silver" },
-  { name: "OCC CS Club", tier: "silver" },
+  { name: "Iota Xi", logo: "/Offical IX Logo.svg", width: 192, height: 192 },
+  { name: "Phi Theta Kappa", logo: "/PTK Logo white.svg", width: 85, height: 188 },
+  { name: "Alpha Beta Gamma", logo: "/ABG Logo.svg", width: 166, height: 165 },
+  {
+    name: "National Technical Honor Society",
+    logo: "/MAT Logo.svg",
+    width: 138,
+    height: 150,
+  },
 ];
 
 export default function Sponsors() {
   return (
     <section id="sponsors" className="scroll-mt-24 px-6 py-24 md:py-32">
-      <SectionHeading plain="our" accent="fleet" className="mb-6" />
-      <Reveal className="mx-auto max-w-xl text-center" delay={0.05}>
-        <p className="text-sm leading-relaxed text-muted-foreground sm:text-base">
-          Our sponsors keep the ship flying — and OCC Hacks free for every student
-          who walks up the gangway.
-        </p>
-      </Reveal>
-
+      <SectionHeading plain="Sponsors" accent="" className="mb-6" />
       <Reveal className="mx-auto mt-14 max-w-4xl" delay={0.1}>
-        <div className="grid grid-cols-2 border-t border-l border-border sm:grid-cols-3 md:grid-cols-5">
+        <div className="grid grid-cols-2 gap-x-8 gap-y-12 md:grid-cols-4">
           {SPONSORS.map((sponsor) => (
             <div
               key={sponsor.name}
-              className="flex min-h-24 items-center justify-center border-r border-b border-border px-4 py-6 text-center"
+              className="flex flex-col items-center justify-center gap-4 px-4 text-center"
             >
+              <Image
+                src={sponsor.logo}
+                alt={`${sponsor.name} logo`}
+                width={sponsor.width}
+                height={sponsor.height}
+                unoptimized
+                className="h-28 w-auto object-contain transition-transform duration-300 ease-out hover:scale-110 sm:h-32"
+              />
               <span className="text-sm text-muted-foreground/70 transition-colors duration-300 hover:text-foreground">
                 {sponsor.name}
               </span>
@@ -40,13 +42,13 @@ export default function Sponsors() {
         </div>
       </Reveal>
 
-      <Reveal className="mt-10 text-center" delay={0.15}>
-        <a
-          href="mailto:sponsor@occhacks.com"
-          className="text-sm text-muted-foreground transition-colors hover:text-ring"
+      <Reveal className="mt-14 text-center" delay={0.15}>
+        <Button
+          asChild
+          className="h-auto rounded-full bg-foreground px-8 py-3 text-sm text-background hover:bg-foreground/85"
         >
-          want to sponsor? &rarr; sponsor@occhacks.com
-        </a>
+          <a href="mailto:sponsor@occhacks.com">sponsor us</a>
+        </Button>
       </Reveal>
     </section>
   );

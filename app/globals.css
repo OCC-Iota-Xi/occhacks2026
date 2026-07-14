@@ -5,7 +5,6 @@
 @theme inline {
   /* Space pirate fonts */
   --font-sans: var(--font-space-grotesk), ui-sans-serif, system-ui, sans-serif;
-  --font-serif: var(--font-pirata-one), ui-serif, Georgia, serif;
   --font-display: var(--font-bruno-ace), var(--font-space-grotesk), ui-sans-serif, sans-serif;
   --font-header: var(--font-bruno-ace), var(--font-space-grotesk), ui-sans-serif, sans-serif;
   --font-body: var(--font-space-grotesk), ui-sans-serif, system-ui, sans-serif;
@@ -75,7 +74,6 @@
      to the light aurora theme is gone, so these keep their dark values) */
   --text-primary: #ffffff;
   --text-secondary: #d1d5db;
-  --text-accent: #22d3ee;
   --card-bg: rgba(0, 0, 0, 0.4);
   --card-border: rgba(255, 255, 255, 0.1);
   --card-desc: #d1d5db;
