@@ -9,14 +9,14 @@ interface SectionHeadingProps {
 
 /**
  * The site's one heading pattern: centered Bruno Ace with the accent
- * phrase in Pirata One blackletter. Ends with a period. No labels above.
+ * phrase in gold. No labels above.
  */
 export default function SectionHeading({ plain, accent, className }: SectionHeadingProps) {
   return (
     <Reveal className={cn("text-center", className)}>
       <h2 className="font-display text-4xl tracking-tight text-foreground sm:text-5xl md:text-6xl">
         {plain}{" "}
-        <span className="font-serif text-[1.06em] leading-none text-ring">{accent}</span>.
+        <span className="text-ring">{accent}</span>
       </h2>
     </Reveal>
   );

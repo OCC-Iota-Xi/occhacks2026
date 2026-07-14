@@ -22,7 +22,7 @@ export default function RegisterPage() {
           lines={[
             <span key="1">
               join the{" "}
-              <span className="font-serif text-[1.06em] text-ring">crew</span>.
+              <span className="text-ring">crew</span>
             </span>,
           ]}
         />

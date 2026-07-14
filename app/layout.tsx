@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
-import { Bruno_Ace_SC, Pirata_One, Space_Grotesk } from "next/font/google";
+import { Bruno_Ace_SC, Space_Grotesk } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 import Particles from "@/components/motion/Particles";
+import SpaceEffects from "@/components/SpaceEffects";
 
 const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
@@ -14,13 +15,6 @@ const brunoAce = Bruno_Ace_SC({
   subsets: ["latin"],
   weight: "400",
   variable: "--font-bruno-ace",
-  display: "swap",
-});
-
-const pirataOne = Pirata_One({
-  subsets: ["latin"],
-  weight: "400",
-  variable: "--font-pirata-one",
   display: "swap",
 });
 
@@ -55,7 +49,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={cn("antialiased", spaceGrotesk.variable, brunoAce.variable, pirataOne.variable)}
+      className={cn("antialiased", spaceGrotesk.variable, brunoAce.variable)}
     >
       <body className="relative">
         {/* Global space backdrop: one drifting WebGL particle field spanning
@@ -74,6 +68,8 @@ export default function RootLayout({
             pixelRatio={1}
           />
         </div>
+        {/* Twinkling sparkles + falling meteors over the particle field */}
+        <SpaceEffects />
         {children}
       </body>
     </html>

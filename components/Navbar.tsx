@@ -1,9 +1,20 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
 export default function Navbar() {
+  // Hidden while the page is at the very top; slides in once you scroll.
+  const [atTop, setAtTop] = useState(true);
+
+  useEffect(() => {
+    const onScroll = () => setAtTop(window.scrollY < 10);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
   const handleMouseMove = (e: React.MouseEvent<HTMLButtonElement | HTMLAnchorElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
     const x = e.clientX - rect.left;
@@ -18,17 +29,11 @@ export default function Navbar() {
         backdropFilter: "blur(var(--nav-blur, 0px))",
         WebkitBackdropFilter: "blur(var(--nav-blur, 0px))",
       }}
-      className="fixed top-0 left-0 right-0 z-50 w-full bg-[var(--nav-bg)] transition-colors duration-300"
+      className={`fixed top-0 left-0 right-0 z-50 w-full bg-[var(--nav-bg)] transition-all duration-300 ${
+        atTop ? "pointer-events-none -translate-y-full opacity-0" : "translate-y-0 opacity-100"
+      }`}
     >
-      <div className="max-w-7xl mx-auto px-8 py-4 flex items-center justify-between w-full">
-        {/* Logo */}
-        <Link
-          href="/"
-          className="text-xl sm:text-2xl tracking-wider text-[var(--text-primary)] select-none font-header transition-colors duration-300 hover:opacity-90"
-        >
-          OCC<span className="text-amber-500">Hacks</span>
-        </Link>
-
+      <div className="max-w-7xl mx-auto px-8 py-4 flex items-center justify-end w-full">
         {/* Links and CTA grouped on the right */}
         <div className="flex items-center gap-8">
           {/* Nav Links */}

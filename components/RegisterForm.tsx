@@ -50,7 +50,7 @@ export default function RegisterForm() {
           lines={[
             <span key="1">
               see you{" "}
-              <span className="font-serif text-[1.06em] text-ring">out there</span>.
+              <span className="text-ring">out there</span>
             </span>,
           ]}
         />

@@ -1,0 +1,312 @@
+/* Themed flat-art track planets in the hero-planet style: solid disc,
+   rounded blob features, crescent shade. education = Earth,
+   productivity = Saturn, spoof apps = Pluto (heart and all).
+
+   Each disc spins by scrolling two copies of its surface features inside
+   the clipped circle (same trick as the hero planet). Hovering a planet
+   enlarges it. */
+
+.wrap {
+  position: relative;
+  width: 180px;
+  height: 180px;
+  margin: 0 auto 2rem;
+  transition: transform 0.4s ease;
+}
+
+.wrap:hover {
+  transform: scale(1.12);
+}
+
+/* Saturn gets an extra size boost, rings and all. */
+.saturnWrap {
+  transform: scale(1.12);
+}
+
+.saturnWrap:hover {
+  transform: scale(1.25);
+}
+
+.disc {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  overflow: hidden;
+}
+
+/* Scrolling surface: two identical feature sets, shifted one width apart,
+   translated by -100% for a seamless loop. */
+.surface {
+  position: absolute;
+  inset: 0;
+  animation: track-spin 16s linear infinite;
+}
+
+.set {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.set2 {
+  left: 100%;
+}
+
+.set > div {
+  position: absolute;
+  border-radius: 999px;
+}
+
+@keyframes track-spin {
+  to {
+    transform: translateX(-100%);
+  }
+}
+
+/* Crescent shading, matching the hero planet's offset shadow. Static,
+   above the moving surface — like real lighting. */
+.shade {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  box-shadow: inset -20px -14px 0 rgba(0, 0, 0, 0.18);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .surface {
+    animation: none;
+  }
+  .wrap,
+  .wrap:hover {
+    transform: none;
+    transition: none;
+  }
+}
+
+/* ——— Earth (education): oceans, continents, clouds, ice cap ——— */
+.earth {
+  background-color: #4775ff;
+}
+
+.earth .surface {
+  animation-duration: 18s;
+}
+
+.cont1 {
+  background: #62c370;
+  width: 72px;
+  height: 56px;
+  top: 26px;
+  left: 18px;
+  border-radius: 61% 39% 55% 45% / 55% 48% 52% 45% !important;
+  transform: rotate(-12deg);
+}
+
+.cont2 {
+  background: #62c370;
+  width: 58px;
+  height: 48px;
+  top: 78px;
+  left: 112px;
+  border-radius: 45% 55% 60% 40% / 50% 42% 58% 50% !important;
+  transform: rotate(18deg);
+}
+
+.cont3 {
+  background: #62c370;
+  width: 42px;
+  height: 30px;
+  top: 128px;
+  left: 48px;
+  border-radius: 55% 45% 48% 52% / 60% 50% 50% 40% !important;
+}
+
+.cloud1 {
+  background: rgba(255, 255, 255, 0.5);
+  width: 86px;
+  height: 13px;
+  top: 60px;
+  left: -16px;
+}
+
+.cloud2 {
+  background: rgba(255, 255, 255, 0.5);
+  width: 64px;
+  height: 11px;
+  top: 108px;
+  left: 88px;
+}
+
+/* Polar cap: pinned to the pole, doesn't rotate with the surface. */
+.earthCap {
+  position: absolute;
+  background: rgba(255, 255, 255, 0.85);
+  width: 76px;
+  height: 26px;
+  top: -8px;
+  left: 52px;
+  border-radius: 999px;
+}
+
+/* ——— Saturn (productivity): banded gold disc + tilted rings ——— */
+.saturn {
+  background-color: #ffd147;
+  inset: 8px;
+}
+
+.saturn .surface {
+  animation-duration: 13s;
+}
+
+.sBand1 {
+  background: #ffe699;
+  width: 128px;
+  height: 18px;
+  top: 30px;
+  left: -18px;
+}
+
+.sBand2 {
+  background: #f0b429;
+  width: 140px;
+  height: 16px;
+  top: 68px;
+  left: 47px;
+}
+
+.sBand3 {
+  background: #ffe699;
+  width: 94px;
+  height: 14px;
+  top: 105px;
+  left: -12px;
+}
+
+.sBand4 {
+  background: rgba(180, 110, 0, 0.22);
+  width: 58px;
+  height: 12px;
+  top: 12px;
+  left: 70px;
+}
+
+/* Rings, in two layers so they read as fully connected: a complete
+   ellipse painted behind the disc, then just the near (bottom) arc
+   painted on top of it — transparent top border on the front copy. */
+.ring,
+.ringBack {
+  position: absolute;
+  width: 236px;
+  height: 66px;
+  top: 57px;
+  left: -28px;
+  border: 10px solid #e8a33d;
+  border-radius: 50%;
+  transform: rotate(-16deg);
+}
+
+.ring {
+  border-top-color: transparent;
+}
+
+.ringBack {
+  border-color: #c9882f;
+}
+
+.ring2,
+.ring2Back {
+  position: absolute;
+  width: 260px;
+  height: 76px;
+  top: 52px;
+  left: -40px;
+  border: 4px solid rgba(232, 163, 61, 0.45);
+  border-radius: 50%;
+  transform: rotate(-16deg);
+}
+
+.ring2 {
+  border-top-color: transparent;
+}
+
+.ring2Back {
+  border-color: rgba(201, 136, 47, 0.45);
+}
+
+/* ——— Pluto (spoof apps): icy dwarf with the Tombaugh heart ——— */
+.pluto {
+  background-color: #d9b391;
+}
+
+.pluto .surface {
+  animation-duration: 22s;
+}
+
+.patch {
+  background: rgba(120, 70, 50, 0.3);
+  width: 120px;
+  height: 30px;
+  top: 24px;
+  left: -20px;
+  transform: rotate(-8deg);
+}
+
+.crater1 {
+  background: rgba(120, 70, 50, 0.35);
+  width: 22px;
+  height: 22px;
+  top: 52px;
+  left: 118px;
+}
+
+.crater2 {
+  background: rgba(120, 70, 50, 0.35);
+  width: 14px;
+  height: 14px;
+  top: 28px;
+  left: 96px;
+}
+
+/* Sun glint: lighting, so it stays put while the surface turns. */
+.glint {
+  position: absolute;
+  background: rgba(255, 255, 255, 0.4);
+  width: 26px;
+  height: 10px;
+  top: 12px;
+  left: 40px;
+  border-radius: 999px;
+}
+
+/* The famous heart: rotated square + two pseudo-element lobes. */
+.heart {
+  background: #f4e3cd;
+  width: 48px;
+  height: 48px;
+  top: 102px;
+  left: 66px;
+  border-radius: 0 !important;
+  transform: rotate(-45deg);
+}
+
+.heart::before,
+.heart::after {
+  content: "";
+  position: absolute;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: inherit;
+}
+
+.heart::before {
+  top: -24px;
+  left: 0;
+}
+
+.heart::after {
+  top: 0;
+  left: 24px;
+}

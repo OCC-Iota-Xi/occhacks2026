@@ -1,0 +1,222 @@
+/* Sparkle stars + falling meteors, adapted from maaarj's "Planets"
+   (codepen.io/maaarj/pen/YZLEBM), recolored to the site's gold-on-space
+   palette. Fixed full-viewport layer behind the content. */
+
+/* Spans the whole document (body is relative), so everything in it
+   scrolls away with the page instead of following the viewport. */
+.effects {
+  position: absolute;
+  inset: 0;
+  z-index: -10;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+/* Plus-shaped sparkle: a horizontal and a vertical ellipse pulsing
+   against each other around a center dot. Per-instance delay comes in
+   via the --d custom property. */
+.spark {
+  position: absolute;
+}
+
+.spark div:nth-child(1) {
+  position: relative;
+  width: 20px;
+  height: 6px;
+  border-radius: 100%;
+  background: #fff;
+  animation: twinkleW 1.4s ease infinite;
+  animation-delay: var(--d, 0s);
+}
+
+.spark div:nth-child(2) {
+  position: absolute;
+  width: 6px;
+  height: 20px;
+  left: 7px;
+  top: -7px;
+  border-radius: 100%;
+  background: #fff;
+  animation: twinkleH 1.4s ease infinite;
+  animation-delay: var(--d, 0s);
+}
+
+.spark div:nth-child(3) {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  left: 5px;
+  top: -2px;
+  border-radius: 100px;
+  background: #fff;
+}
+
+@keyframes twinkleW {
+  0%,
+  100% {
+    width: 20px;
+    left: 0;
+  }
+  50% {
+    width: 10px;
+    left: 5px;
+  }
+}
+
+@keyframes twinkleH {
+  0%,
+  100% {
+    height: 20px;
+    top: -7px;
+  }
+  50% {
+    height: 10px;
+    top: -3px;
+  }
+}
+
+/* Small twinkling dots. */
+.dot {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  border-radius: 100%;
+  animation: twinkle 2.2s ease infinite;
+  animation-delay: var(--d, 0s);
+}
+
+.dotGold {
+  background: linear-gradient(to right, #fbbf24, transparent);
+}
+
+.dotWhite {
+  background: linear-gradient(to right, transparent, #e8eaf2);
+}
+
+@keyframes twinkle {
+  0%,
+  100% {
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* Meteor: gold head + triangle flare with two soft gradient tails,
+   falling diagonally down-left, then a long invisible pause. */
+.meteor {
+  position: absolute;
+  top: -20vh; /* offscreen when animations are disabled */
+  left: 50vw;
+  transform: rotate(40deg);
+  opacity: 0;
+}
+
+.meteor div:nth-child(1) {
+  position: absolute;
+  width: 20px;
+  height: 150px;
+  left: -5.5px;
+  top: -96px;
+  border-radius: 100px;
+  background: linear-gradient(to top, rgba(249, 115, 22, 0.5), transparent);
+  opacity: 0.8;
+  z-index: -2;
+}
+
+.meteor div:nth-child(2) {
+  position: absolute;
+  width: 12px;
+  height: 100px;
+  left: -1.5px;
+  top: -53px;
+  border-radius: 500px;
+  background: linear-gradient(to top, rgba(251, 191, 36, 0.7), transparent);
+  opacity: 0.8;
+}
+
+.meteor div:nth-child(3) {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  top: 35px;
+  border-radius: 100px;
+  background: #fbbf24;
+  z-index: 2;
+}
+
+.meteor div:nth-child(4) {
+  position: absolute;
+  width: 0;
+  height: 0;
+  top: 8px;
+  border-left: 4px solid transparent;
+  border-right: 5px solid transparent;
+  border-bottom: 30px solid #fbbf24;
+  z-index: 1;
+}
+
+.meteor1 {
+  animation: drop1 9s ease infinite;
+  animation-delay: 2s;
+}
+
+.meteor2 {
+  transform: rotate(40deg) scale(0.8);
+  animation: drop2 12s ease infinite;
+  animation-delay: 6s;
+}
+
+@keyframes drop1 {
+  0% {
+    opacity: 0;
+    top: -10vh;
+    left: 85vw;
+  }
+  6% {
+    opacity: 1;
+  }
+  24% {
+    top: 55vh;
+    left: 55vw;
+    opacity: 0;
+  }
+  100% {
+    top: 55vh;
+    left: 55vw;
+    opacity: 0;
+  }
+}
+
+@keyframes drop2 {
+  0% {
+    opacity: 0;
+    top: -10vh;
+    left: 45vw;
+  }
+  5% {
+    opacity: 1;
+  }
+  20% {
+    top: 50vh;
+    left: 15vw;
+    opacity: 0;
+  }
+  100% {
+    top: 50vh;
+    left: 15vw;
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spark div,
+  .dot,
+  .meteor {
+    animation: none;
+  }
+  .dot {
+    opacity: 0.6;
+  }
+}
