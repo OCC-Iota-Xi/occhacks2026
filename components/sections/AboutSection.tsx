@@ -99,7 +99,7 @@ export default function AboutSection() {
       {/* Showreel grid: on md+ the whole block keeps the full-bleed video's
           footprint; the shrinking frame frees the right and bottom for the
           caption and the previous recap. On mobile it all stacks. */}
-      <div ref={wrapRef} className="relative mt-14 w-full md:mt-20 md:aspect-video">
+      <div ref={wrapRef} className="relative mt-14 w-full max-md:flex max-md:flex-col md:mt-20 md:aspect-video">
         {/* Latest recap: full-bleed → tile, top-left */}
         <motion.div
           style={{ width, height }}
@@ -133,7 +133,7 @@ export default function AboutSection() {
         {/* Previous recap: mirrored row in the freed bottom half */}
         <motion.div
           style={{ opacity: secondOpacity, y: secondY }}
-          className="mt-8 flex flex-col gap-6 max-md:!translate-y-0 max-md:!opacity-100 md:absolute md:bottom-0 md:left-0 md:mt-0 md:h-[48%] md:w-[46%] md:justify-center"
+          className="mt-8 flex flex-col gap-6 max-md:order-4 max-md:!translate-y-0 max-md:!opacity-100 md:absolute md:bottom-0 md:left-0 md:mt-0 md:h-[48%] md:w-[46%] md:justify-center"
         >
           <a
             href={PREVIOUS.youtube}
@@ -148,7 +148,7 @@ export default function AboutSection() {
 
         <motion.div
           style={{ opacity: secondOpacity, y: secondY }}
-          className="relative mt-8 aspect-video w-full overflow-hidden bg-black/40 max-md:!translate-y-0 max-md:!opacity-100 md:absolute md:bottom-0 md:right-0 md:mt-0 md:aspect-auto md:h-[48%] md:w-[48%]"
+          className="relative mt-8 aspect-video w-full overflow-hidden bg-black/40 max-md:order-3 max-md:!translate-y-0 max-md:!opacity-100 md:absolute md:bottom-0 md:right-0 md:mt-0 md:aspect-auto md:h-[48%] md:w-[48%]"
         >
           <iframe
             className="pointer-events-none absolute inset-0 h-full w-full"
@@ -204,7 +204,7 @@ export default function AboutSection() {
               { length: Math.ceil(BENEFITS.length / 2) },
               (_, i) => BENEFITS.slice(i * 2, i * 2 + 2),
             ).map((pair) => (
-              <span key={pair[0]} className="grid grid-cols-2 gap-x-8">
+              <span key={pair[0]} className="grid grid-cols-1 gap-x-8 gap-y-2 sm:grid-cols-2">
                 {pair.map((benefit) => (
                   <span key={benefit} className="group flex items-center gap-4">
                     <span className="flex w-10 shrink-0 items-center justify-center font-header text-4xl leading-none text-[var(--text-primary)] transition-transform duration-300 ease-out group-hover:rotate-90 group-hover:scale-125">

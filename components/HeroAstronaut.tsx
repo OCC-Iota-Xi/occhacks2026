@@ -3,10 +3,8 @@
 import { motion } from "motion/react";
 import styles from "./HeroAstronaut.module.css";
 
-/* ————— tweak here ————— */
-/** Overall scale of the 500px scene (1 = pen's full size). */
-const SCALE = 1.15;
-/* —————————————————————— */
+/* Scene scale per breakpoint lives in the scale-* classes on the scene
+   div below (the pen's scene is 500px at scale 1). */
 
 /** One copy of the planet's surface bands (duplicated for the spin loop). */
 function SurfaceBands() {
@@ -33,12 +31,12 @@ function SurfaceBands() {
 export default function HeroAstronaut() {
   return (
     <motion.div
-      className="pointer-events-none absolute inset-y-0 right-0 z-0 hidden w-1/2 items-center justify-center lg:flex"
+      className="pointer-events-none relative z-0 order-2 flex h-[340px] w-full items-center justify-center lg:absolute lg:inset-y-0 lg:right-0 lg:order-none lg:h-auto lg:w-1/2"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ delay: 1, duration: 1.2 }}
     >
-      <div className={styles.backg} style={{ transform: `scale(${SCALE})` }}>
+      <div className={`${styles.backg} scale-[0.6] sm:scale-75 lg:scale-115`}>
         <div className={styles.planet}>
           <div className={styles.surface}>
             <div className={styles.set}>
