@@ -22,7 +22,7 @@ export const metadata: Metadata = {
   // Update if the production domain differs — absolute URLs for the OG image
   // and icons resolve against this.
   metadataBase: new URL("https://occhacks.com"),
-  title: "OCC Hacks 2026 — Orange Coast College's Student Hackathon",
+  title: "OCC Hacks 2026 — Orange Coast College's Hackathon",
   description:
     "OCC Hacks is Orange Coast College's official student hackathon, organized by the Iota Xi (ΙΞ) Society. October 11–12, 2026 in the OCC Ballroom. Free to attend, open to all majors and skill levels — food, workshops, mentors, and prizes included.",
   keywords: [
@@ -37,7 +37,7 @@ export const metadata: Metadata = {
     "2026",
   ],
   openGraph: {
-    title: "OCC Hacks 2026 — Orange Coast College's Student Hackathon",
+    title: "OCC Hacks 2026 — Orange Coast College's Hackathon",
     description:
       "A free two-day student hackathon at Orange Coast College. October 11–12, 2026 in the OCC Ballroom — all majors and skill levels welcome.",
     type: "website",
@@ -45,7 +45,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "OCC Hacks 2026 — Orange Coast College's Student Hackathon",
+    title: "OCC Hacks 2026 — Orange Coast College's Hackathon",
     description:
       "A free two-day student hackathon at Orange Coast College. October 11–12, 2026 in the OCC Ballroom — all majors and skill levels welcome.",
   },
