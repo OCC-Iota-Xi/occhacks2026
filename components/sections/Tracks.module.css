@@ -1,6 +1,6 @@
 /* Themed flat-art track planets in the hero-planet style: solid disc,
-   rounded blob features, crescent shade. education = Earth,
-   productivity = Saturn, spoof apps = Pluto (heart and all).
+   rounded blob features, crescent shade. entertainment = Earth,
+   education & learning = Saturn, productivity & society = Pluto (heart and all).
 
    Each disc spins by scrolling two copies of its surface features inside
    the clipped circle (same trick as the hero planet). Hovering a planet
@@ -235,7 +235,7 @@
   border-color: rgba(201, 136, 47, 0.45);
 }
 
-/* ——— Pluto (spoof apps): icy dwarf with the Tombaugh heart ——— */
+/* ——— Pluto (productivity & society): icy dwarf with the Tombaugh heart ——— */
 .pluto {
   background-color: #d9b391;
 }

@@ -2,26 +2,26 @@ import SectionHeading from "@/components/SectionHeading";
 import styles from "./Tracks.module.css";
 import Reveal from "@/components/motion/Reveal";
 
-type PlanetVariant = "earth" | "saturn" | "pluto";
+export type PlanetVariant = "earth" | "saturn" | "pluto";
 
 const TRACKS: { planet: PlanetVariant; name: string; description: string }[] = [
   {
     planet: "earth",
-    name: "education",
+    name: "entertainment",
+    description:
+      "Make something people can't put down — games, interactive stories, music and media tools, or anything built for pure fun.",
+  },
+  {
+    planet: "saturn",
+    name: "education & learning",
     description:
       "Build tools that help people learn — tutoring platforms, study aids, interactive lessons, or anything that makes knowledge stick.",
   },
   {
-    planet: "saturn",
-    name: "productivity",
-    description:
-      "Ship apps that save time and cut the busywork — task managers, automation, planners, or smarter everyday workflows.",
-  },
-  {
     planet: "pluto",
-    name: "spoof apps",
+    name: "productivity & society",
     description:
-      "Go wild with parody and joke apps. Useless machines, absurd tools, and shamelessly silly ideas are all fair game.",
+      "Ship apps that save time or make life better — task managers, automation, civic tools, or projects that serve your community.",
   },
 ];
 
@@ -35,7 +35,7 @@ function Surface({ children }: { children: React.ReactNode }) {
   );
 }
 
-function TrackPlanet({ variant }: { variant: PlanetVariant }) {
+export function TrackPlanet({ variant }: { variant: PlanetVariant }) {
   if (variant === "earth") {
     return (
       <div className={styles.wrap}>
@@ -97,7 +97,7 @@ function TrackPlanet({ variant }: { variant: PlanetVariant }) {
  */
 export default function Tracks() {
   return (
-    <section id="tracks" className="scroll-mt-24 px-6 py-24 sm:px-12 md:px-24 md:py-32">
+    <section id="tracks" className="scroll-mt-24 px-6 py-16 sm:px-12 md:px-24 md:py-24">
       <SectionHeading plain="Tracks" accent="" className="mb-16" />
 
       <div className="grid gap-12 md:grid-cols-3 md:gap-16">

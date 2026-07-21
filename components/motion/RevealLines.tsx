@@ -1,5 +1,6 @@
 "use client";
 
+import { useRef, useState } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import { lineReveal, stagger, viewportOnce } from "@/lib/motion";
 import { cn } from "@/lib/utils";
@@ -15,7 +16,8 @@ interface RevealLinesProps {
 
 /**
  * Editorial mask reveal: each line sits in an overflow-hidden wrapper and
- * slides up into place, staggered.
+ * slides up into place, staggered. Once every line has landed, the masks are
+ * released so hover effects inside (scale, magnetic drift) can overflow.
  */
 export default function RevealLines({
   lines,
@@ -25,6 +27,9 @@ export default function RevealLines({
   delay = 0,
 }: RevealLinesProps) {
   const reduceMotion = useReducedMotion();
+  const doneCount = useRef(0);
+  const [revealed, setRevealed] = useState(false);
+  const masked = !revealed && !reduceMotion;
 
   return (
     <motion.div
@@ -40,8 +45,18 @@ export default function RevealLines({
       transition={{ delayChildren: delay }}
     >
       {lines.map((line, i) => (
-        <div key={i} className="overflow-hidden pb-[0.12em] -mb-[0.12em]">
-          <motion.div variants={reduceMotion ? undefined : lineReveal} className={cn("will-change-transform", lineClassName)}>
+        <div
+          key={i}
+          className={cn("pb-[0.12em] -mb-[0.12em]", masked ? "overflow-hidden" : "overflow-visible")}
+        >
+          <motion.div
+            variants={reduceMotion ? undefined : lineReveal}
+            className={cn(masked && "will-change-transform", lineClassName)}
+            onAnimationComplete={() => {
+              doneCount.current += 1;
+              if (doneCount.current >= lines.length) setRevealed(true);
+            }}
+          >
             {line}
           </motion.div>
         </div>

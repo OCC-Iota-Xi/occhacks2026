@@ -9,32 +9,34 @@ const DAYS = [
     id: "day-one",
     label: "day one · oct 11",
     events: [
-      { time: "9:00 am", name: "doors open · check-in & breakfast" },
-      { time: "10:00 am", name: "opening ceremony" },
-      { time: "10:30 am", name: "team formation" },
-      { time: "11:00 am", name: "hacking begins" },
+      { time: "8:00 am", name: "registration opens" },
+      { time: "9:00 am", name: "opening ceremony" },
+      { time: "9:15 am", name: "competition start" },
       { time: "12:30 pm", name: "lunch" },
-      { time: "3:00 pm", name: "workshop · build your first api" },
-      { time: "6:30 pm", name: "dinner" },
-      { time: "9:00 pm", name: "late-night snack & games" },
+      { time: "2:00 pm", name: "keynote speaker #1" },
+      { time: "4:30 pm", name: "keynote speaker #2" },
+      { time: "6:00 pm", name: "dinner" },
+      { time: "8:00 pm", name: "end of day" },
     ],
   },
   {
     id: "day-two",
     label: "day two · oct 12",
     events: [
-      { time: "8:00 am", name: "breakfast" },
-      { time: "11:00 am", name: "hacking ends · submissions due" },
-      { time: "11:30 am", name: "lunch" },
-      { time: "12:30 pm", name: "project expo & judging" },
-      { time: "2:30 pm", name: "awards & closing ceremony" },
+      { time: "9:00 am", name: "competition start" },
+      { time: "9:00 am", name: "breakfast" },
+      { time: "11:00 am", name: "leetcode challenge" },
+      { time: "12:00 pm", name: "lunch" },
+      { time: "3:30 pm", name: "submission deadline" },
+      { time: "3:45 pm", name: "judging" },
+      { time: "5:15 pm", name: "closing ceremony & awards" },
     ],
   },
 ];
 
 export default function Schedule() {
   return (
-    <section id="schedule" className="scroll-mt-24 px-6 py-24 md:py-32">
+    <section id="schedule" className="scroll-mt-24 px-6 py-16 md:py-24">
       <SectionHeading plain="Schedule" accent="" className="mb-12" />
 
       <Reveal>
