@@ -2,6 +2,7 @@
 
 import { useRef } from "react";
 import { motion, useReducedMotion, useScroll, useTransform } from "motion/react";
+import Magnetic from "@/components/motion/Magnetic";
 import RevealLines from "@/components/motion/RevealLines";
 
 const ambient = (id: string) =>
@@ -88,7 +89,7 @@ export default function AboutSection() {
   return (
     <section
       id="about"
-      className="relative z-10 w-full scroll-mt-24 px-6 py-24 sm:px-12 md:px-24 md:py-36"
+      className="relative z-10 w-full scroll-mt-24 px-6 py-16 sm:px-12 md:px-24 md:py-24"
     >
       {/* Headline */}
       <RevealLines
@@ -119,14 +120,17 @@ export default function AboutSection() {
           style={{ opacity: captionOpacity, y: captionY }}
           className="mt-8 flex flex-col gap-6 max-md:!translate-y-0 max-md:!opacity-100 md:absolute md:right-0 md:top-0 md:mt-0 md:h-[48%] md:w-[46%] md:justify-center"
         >
-          <a
-            href={SHOWREEL.youtube}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-center font-body text-sm tracking-wide text-[var(--text-secondary)] hover:underline underline-offset-4 sm:text-base"
-          >
-            {SHOWREEL.name}
-          </a>
+          <p className="text-center font-body text-sm tracking-wide text-[var(--text-secondary)] sm:text-base">
+            Previously hosted:{" "}
+            <a
+              href={SHOWREEL.youtube}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:underline underline-offset-4"
+            >
+              {SHOWREEL.name}
+            </a>
+          </p>
           <StatsRow stats={SHOWREEL.stats} />
         </motion.div>
 
@@ -135,14 +139,17 @@ export default function AboutSection() {
           style={{ opacity: secondOpacity, y: secondY }}
           className="mt-8 flex flex-col gap-6 max-md:order-4 max-md:!translate-y-0 max-md:!opacity-100 md:absolute md:bottom-0 md:left-0 md:mt-0 md:h-[48%] md:w-[46%] md:justify-center"
         >
-          <a
-            href={PREVIOUS.youtube}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-center font-body text-sm tracking-wide text-[var(--text-secondary)] hover:underline underline-offset-4 sm:text-base"
-          >
-            {PREVIOUS.name}
-          </a>
+          <p className="text-center font-body text-sm tracking-wide text-[var(--text-secondary)] sm:text-base">
+            Previously hosted:{" "}
+            <a
+              href={PREVIOUS.youtube}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:underline underline-offset-4"
+            >
+              {PREVIOUS.name}
+            </a>
+          </p>
           <StatsRow stats={PREVIOUS.stats} />
         </motion.div>
 
@@ -192,7 +199,6 @@ export default function AboutSection() {
         <RevealLines
           delay={0.35}
           className="flex-1 font-body text-lg text-[var(--text-primary)] sm:text-xl"
-          lineClassName="py-1"
           lines={[
             <span
               key="heading"
@@ -204,14 +210,16 @@ export default function AboutSection() {
               { length: Math.ceil(BENEFITS.length / 2) },
               (_, i) => BENEFITS.slice(i * 2, i * 2 + 2),
             ).map((pair) => (
-              <span key={pair[0]} className="grid grid-cols-1 gap-x-8 gap-y-2 sm:grid-cols-2">
+              <span key={pair[0]} className="grid grid-cols-1 gap-x-8 gap-y-2 py-1 sm:grid-cols-2">
                 {pair.map((benefit) => (
-                  <span key={benefit} className="group flex items-center gap-4">
+                  <Magnetic key={benefit} className="group flex items-center gap-4">
                     <span className="flex w-10 shrink-0 items-center justify-center font-header text-4xl leading-none text-[var(--text-primary)] transition-transform duration-300 ease-out group-hover:rotate-90 group-hover:scale-125">
                       +
                     </span>
-                    <span>{benefit}</span>
-                  </span>
+                    <span className="origin-left transition-transform duration-300 ease-out group-hover:scale-110">
+                      {benefit}
+                    </span>
+                  </Magnetic>
                 ))}
               </span>
             )),

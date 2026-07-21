@@ -1,9 +1,8 @@
 "use client";
 
 import { motion, useReducedMotion } from "motion/react";
-import Link from "next/link";
 import { AnimatedGradientText } from "@/components/ui/animated-gradient-text";
-import { Button } from "@/components/ui/button";
+import CtaButtons from "@/components/CtaButtons";
 import HeroAstronaut from "@/components/HeroAstronaut";
 
 /**
@@ -13,14 +12,6 @@ import HeroAstronaut from "@/components/HeroAstronaut";
  */
 export default function Hero() {
   const reduceMotion = useReducedMotion();
-
-  const handleMouseMove = (e: React.MouseEvent<HTMLButtonElement | HTMLAnchorElement>) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    e.currentTarget.style.setProperty("--mouse-x", `${x}px`);
-    e.currentTarget.style.setProperty("--mouse-y", `${y}px`);
-  };
 
   return (
     <section
@@ -66,25 +57,8 @@ export default function Hero() {
             </span>
           </div>
 
-          {/* CTA Buttons */}
-          <div className="flex flex-wrap gap-4 md:gap-6">
-            <Button
-              variant="ghost"
-              className="liquid-glass rounded-full px-6 py-3 text-sm md:px-12 md:py-6 md:text-xl h-auto text-[var(--text-primary)] hover:scale-[1.03] transition-transform cursor-pointer font-medium"
-              onMouseMove={handleMouseMove}
-              asChild
-            >
-              <Link href="/register">Register Now</Link>
-            </Button>
-            <Button
-              variant="ghost"
-              className="liquid-glass rounded-full px-6 py-3 text-sm md:px-12 md:py-6 md:text-xl h-auto text-[var(--text-primary)] hover:scale-[1.03] transition-transform cursor-pointer font-medium"
-              onMouseMove={handleMouseMove}
-              asChild
-            >
-              <a href="mailto:sponsor@occhacks.com">Sponsor Us</a>
-            </Button>
-          </div>
+          {/* CTA Buttons — shared with the join section */}
+          <CtaButtons />
         </motion.div>
       </div>
     </section>

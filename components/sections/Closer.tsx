@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 /* lucide-react no longer ships brand icons, so these are drawn in the
    same style (24x24 viewBox, stroke currentColor) as drop-in equivalents. */
 const iconProps = {
@@ -38,21 +40,35 @@ function DiscordIcon({ className }: { className?: string }) {
   );
 }
 
+function DevpostIcon({ className }: { className?: string }) {
+  /* Like Discord, the Devpost mark needs its filled hexagon-D path. */
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden="true">
+      <path d="M6.002 1.61 0 12.004 6.002 22.39h11.996L24 12.004 17.998 1.61zm1.593 4.084h3.947c3.605 0 6.276 1.695 6.276 6.31 0 4.436-3.21 6.302-6.456 6.302H7.595zm2.517 2.449v7.714h1.241c2.646 0 3.862-1.55 3.862-3.861.009-2.569-1.096-3.853-3.767-3.853z" />
+    </svg>
+  );
+}
+
 const SOCIALS = [
   { label: "Instagram", href: "https://www.instagram.com/cshs_occ/", Icon: InstagramIcon },
   { label: "Discord", href: "https://discord.gg/Qn638vTzp2", Icon: DiscordIcon },
   { label: "LinkedIn", href: "https://www.linkedin.com/company/106461068/", Icon: LinkedinIcon },
+  /* TODO: placeholder — swap for the real Devpost URL once the hackathon page exists. */
+  { label: "Devpost", href: "https://occ-hacks-2026.devpost.com/", Icon: DevpostIcon },
 ];
 
 /** The site footer. */
 export default function Closer() {
   return (
     <section className="px-6 pb-10">
-      <footer className="mt-24 border-t border-border pt-10">
+      <footer className="mt-12 border-t border-border pt-10">
         <div className="flex flex-col items-center gap-5 text-center text-sm text-muted-foreground">
-          <span className="select-none font-header text-lg tracking-wider text-[var(--text-primary)]">
+          <Link
+            href="/"
+            className="select-none font-header text-lg tracking-wider text-[var(--text-primary)] transition-opacity hover:opacity-85"
+          >
             OCC<span className="text-amber-500">Hacks</span>
-          </span>
+          </Link>
           <div className="flex items-center gap-6">
             {SOCIALS.map(({ label, href, Icon }) => (
               <a

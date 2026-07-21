@@ -30,6 +30,14 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -69,6 +77,16 @@
   --input: #2a3050;
   --ring: #fbbf24;                /* treasure gold */
   --radius: 0.625rem;
+
+  /* Sidebar — a touch deeper than the page so it reads as a panel */
+  --sidebar: #0c0f18;
+  --sidebar-foreground: #e8eaf2;
+  --sidebar-primary: #fbbf24;
+  --sidebar-primary-foreground: #0b0d17;
+  --sidebar-accent: #1f1a10;      /* dark amber wash on active/hover */
+  --sidebar-accent-foreground: #fcd34d;
+  --sidebar-border: #232842;
+  --sidebar-ring: #fbbf24;
 
   /* Hero / navbar / about-card vars (static — the old GSAP scroll transition
      to the light aurora theme is gone, so these keep their dark values) */

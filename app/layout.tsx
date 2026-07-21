@@ -2,8 +2,7 @@ import type { Metadata } from "next";
 import { Bruno_Ace_SC, Space_Grotesk } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
-import Particles from "@/components/motion/Particles";
-import SpaceEffects from "@/components/SpaceEffects";
+import { TooltipProvider } from "@/components/ui/tooltip";
 
 const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
@@ -62,25 +61,7 @@ export default function RootLayout({
       className={cn("antialiased", spaceGrotesk.variable, brunoAce.variable)}
     >
       <body className="relative">
-        {/* Global space backdrop: one drifting WebGL particle field spanning
-            the full document, so the stars scroll past with the page.
-            pixelRatio is capped at 1 to keep the page-tall canvas cheap. */}
-        <div className="absolute inset-0 -z-10" aria-hidden="true">
-          <Particles
-            particleColors={["#e8eaf2", "#e8eaf2", "#e8eaf2", "#fbbf24", "#22d3ee"]}
-            particleCount={4000}
-            particleSpread={20}
-            speed={0.1}
-            particleBaseSize={100}
-            moveParticlesOnHover={false}
-            alphaParticles
-            disableRotation
-            pixelRatio={1}
-          />
-        </div>
-        {/* Twinkling sparkles + falling meteors over the particle field */}
-        <SpaceEffects />
-        {children}
+        <TooltipProvider>{children}</TooltipProvider>
       </body>
     </html>
   );

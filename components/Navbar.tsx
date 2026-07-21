@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -13,17 +13,41 @@ const LINKS = [
   { label: "FAQs", href: "/#faq" },
 ];
 
+/** Cursor within this many px of the top edge keeps the nav shown. */
+const HOVER_ZONE = 80;
+
 export default function Navbar() {
-  // Hidden while the page is at the very top; slides in once you scroll.
-  const [atTop, setAtTop] = useState(true);
+  // Shown on load; hides on scroll down, returns on any scroll up or when
+  // the cursor sits near the top edge.
+  const [scrollVisible, setScrollVisible] = useState(true);
+  const [hoverVisible, setHoverVisible] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const lastY = useRef(0);
 
   useEffect(() => {
-    const onScroll = () => setAtTop(window.scrollY < 10);
-    onScroll();
+    lastY.current = window.scrollY;
+
+    const onScroll = () => {
+      const y = Math.max(0, window.scrollY);
+      if (y < 10) setScrollVisible(true);
+      else if (y > lastY.current) setScrollVisible(false);
+      else if (y < lastY.current) setScrollVisible(true);
+      lastY.current = y;
+    };
+
+    const onMouseMove = (e: MouseEvent) => {
+      setHoverVisible(e.clientY <= HOVER_ZONE);
+    };
+
     window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
+    window.addEventListener("mousemove", onMouseMove, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("mousemove", onMouseMove);
+    };
   }, []);
+
+  const visible = scrollVisible || hoverVisible || menuOpen;
 
   const handleMouseMove = (e: React.MouseEvent<HTMLButtonElement | HTMLAnchorElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -40,7 +64,7 @@ export default function Navbar() {
         WebkitBackdropFilter: "blur(var(--nav-blur, 0px))",
       }}
       className={`fixed top-0 left-0 right-0 z-50 w-full bg-[var(--nav-bg)] transition-all duration-300 ${
-        atTop ? "pointer-events-none -translate-y-full opacity-0" : "translate-y-0 opacity-100"
+        visible ? "translate-y-0 opacity-100" : "pointer-events-none -translate-y-full opacity-0"
       }`}
     >
       <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between w-full sm:px-8 md:justify-end">
