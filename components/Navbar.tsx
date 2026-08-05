@@ -105,7 +105,7 @@ export default function Navbar() {
             onMouseMove={handleMouseMove}
             asChild
           >
-            <Link href="/register">
+            <Link href="/register" target="_blank" rel="noopener noreferrer">
               Register Now
             </Link>
           </Button>

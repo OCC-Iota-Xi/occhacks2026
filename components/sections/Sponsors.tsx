@@ -23,6 +23,7 @@ const SPONSORS = [
     logo: "/sponsors/ABG Logo.svg",
     width: 166,
     height: 165,
+    subtleHover: true,
     href: "https://orangecoastcollege.edu/academics/honor-societies/societies/alpha-beta-gamma.html",
   },
   {
@@ -38,6 +39,7 @@ const SPONSORS = [
     width: 515,
     height: 1000,
     grayscale: true,
+    subtleHover: true,
     href: "https://orangecoastcollege.edu/academics/honor-societies/societies/nths.html",
   },
 ];
@@ -62,9 +64,9 @@ export default function Sponsors() {
                 width={sponsor.width}
                 height={sponsor.height}
                 unoptimized
-                className={`h-28 w-auto object-contain transition duration-300 ease-out group-hover:scale-110 group-hover:brightness-150 sm:h-32 ${
-                  sponsor.grayscale ? "grayscale" : ""
-                }`}
+                className={`h-28 w-auto object-contain transition duration-300 ease-out group-hover:scale-110 sm:h-32 ${
+                  sponsor.subtleHover ? "group-hover:brightness-110" : "group-hover:brightness-150"
+                } ${sponsor.grayscale ? "grayscale" : ""}`}
               />
               <span className="text-sm text-muted-foreground/70 transition-colors duration-300 group-hover:text-foreground">
                 {sponsor.name}

@@ -3,7 +3,7 @@
 import { useActionState, useEffect, useState } from "react";
 import Link from "next/link";
 import { motion } from "motion/react";
-import { submitRegistration, type RegistrationState } from "@/app/register/actions";
+import { submitVolunteer, type RegistrationState } from "@/app/register/actions";
 import RevealLines from "@/components/motion/RevealLines";
 import Reveal from "@/components/motion/Reveal";
 import FieldRow from "@/components/FieldRow";
@@ -11,32 +11,34 @@ import CheckboxList from "@/components/CheckboxList";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Select } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
-import { OCC_CLASSES, SHIRT_SIZES, TRACKS } from "@/lib/form-options";
+import { AVAILABILITY_BLOCKS, OCC_CLASSES, SHIRT_SIZES } from "@/lib/form-options";
 
-export interface RegistrationDefaults {
+export interface VolunteerDefaults {
   full_name: string;
   occ_id: string;
   dob: string;
   email: string;
   phone: string;
   iota_xi: string;
+  role: string;
   shirt: string;
   needs: string;
+  expertise: string;
 }
 
 const initialState: RegistrationState = { ok: false, message: "" };
 
-export default function RegisterForm({
+export default function VolunteerForm({
   defaults,
   isUpdate,
 }: {
-  defaults?: Partial<RegistrationDefaults>;
+  defaults?: Partial<VolunteerDefaults>;
   isUpdate?: boolean;
 }) {
-  const [state, formAction, pending] = useActionState(submitRegistration, initialState);
+  const [state, formAction, pending] = useActionState(submitVolunteer, initialState);
+  const [role, setRole] = useState(defaults?.role ?? "");
   const [iotaXi, setIotaXi] = useState(defaults?.iota_xi ?? "");
   const [shirt, setShirt] = useState(defaults?.shirt ?? "");
 
@@ -52,14 +54,14 @@ export default function RegisterForm({
           className="font-display text-5xl leading-[1.05] tracking-tight sm:text-6xl"
           lines={[
             <span key="1">
-              see you <span className="text-ring">out there</span>
+              thank you <span className="text-ring">for helping</span>
             </span>,
           ]}
         />
         <Reveal className="mt-8" delay={0.3}>
           <p className="text-base text-muted-foreground">
-            You&apos;re registered. We&apos;ll email you closer to the event
-            with everything you need — see you oct 11–12.
+            You&apos;re signed up. We&apos;ll email you with shift details and
+            everything else closer to the event.
           </p>
           <Link href="/" className="mt-8 inline-block text-sm transition-colors hover:text-ring">
             &larr; back to the site
@@ -126,7 +128,39 @@ export default function RegisterForm({
         </RadioGroup>
       </FieldRow>
 
-      <FieldRow number="07" label="t-shirt size">
+      <FieldRow number="07" label="how do you want to help?">
+        <RadioGroup name="role" value={role} onValueChange={setRole} required>
+          <RadioGroupItem value="volunteer">volunteer</RadioGroupItem>
+          <RadioGroupItem value="mentor">mentor</RadioGroupItem>
+          <RadioGroupItem value="both">either works</RadioGroupItem>
+        </RadioGroup>
+      </FieldRow>
+
+      <FieldRow
+        number="08"
+        label="which time periods are you available to help?"
+        hint="check every block that works — we'll build shifts around it."
+        wide
+      >
+        <CheckboxList name="availability" options={AVAILABILITY_BLOCKS} />
+      </FieldRow>
+
+      <FieldRow
+        number="09"
+        label="what can you help with?"
+        htmlFor="expertise"
+        hint="mentors: languages, frameworks, or topics you can guide on. volunteers: anything you'd rather do or avoid."
+        wide
+      >
+        <Textarea
+          id="expertise"
+          name="expertise"
+          placeholder="…"
+          defaultValue={defaults?.expertise}
+        />
+      </FieldRow>
+
+      <FieldRow number="10" label="t-shirt size">
         <RadioGroup name="shirt" value={shirt} onValueChange={setShirt} required>
           {SHIRT_SIZES.map((size) => (
             <RadioGroupItem key={size} value={size}>
@@ -137,7 +171,7 @@ export default function RegisterForm({
       </FieldRow>
 
       <FieldRow
-        number="08"
+        number="11"
         label="any accessibility, dietary, or other needs we should know about?"
         htmlFor="needs"
         hint="allergies, mobility, quiet space, anything at all."
@@ -147,7 +181,7 @@ export default function RegisterForm({
       </FieldRow>
 
       <FieldRow
-        number="09"
+        number="12"
         label="are you currently taking any of these classes at OCC?"
         hint="extra credit is available — no double dipping. leave blank if none apply."
         wide
@@ -155,34 +189,11 @@ export default function RegisterForm({
         <CheckboxList name="classes" options={OCC_CLASSES} />
       </FieldRow>
 
-      <FieldRow
-        number="10"
-        label="rank the tracks"
-        hint="1 = most interested, 3 = least. use each number once."
-      >
-        <div className="flex flex-col gap-4">
-          {TRACKS.map((t) => (
-            <div key={t.key} className="flex items-center justify-between gap-4">
-              <span className="text-sm text-muted-foreground">{t.label}</span>
-              <Select name={`rank_${t.key}`} defaultValue="" required className="max-w-24">
-                <option value="" disabled>
-                  —
-                </option>
-                <option value="1">1</option>
-                <option value="2">2</option>
-                <option value="3">3</option>
-              </Select>
-            </div>
-          ))}
-        </div>
-      </FieldRow>
-
       <div className="border-t border-border py-8">
         <label className="mx-auto flex max-w-md cursor-pointer items-start justify-center gap-3 text-left">
           <Checkbox name="eligibility" defaultChecked={isUpdate} required className="mt-0.5" />
           <span className="text-sm text-muted-foreground">
-            I&apos;m 18 or older, currently enrolled as a student, and I agree to follow
-            the event code of conduct.
+            I&apos;m 18 or older and I agree to follow the event code of conduct.
           </span>
         </label>
       </div>
@@ -194,7 +205,7 @@ export default function RegisterForm({
             disabled={pending}
             className="h-auto rounded-full bg-foreground px-8 py-3 text-sm text-background hover:bg-foreground/85 disabled:opacity-60"
           >
-            {pending ? "saving…" : isUpdate ? "update registration" : "submit registration"}
+            {pending ? "saving…" : isUpdate ? "update sign-up" : "submit sign-up"}
           </Button>
         </motion.div>
         {state.message && (
@@ -203,7 +214,7 @@ export default function RegisterForm({
           </p>
         )}
         <p className="mt-4 text-xs text-muted-foreground/70">
-          free to attend · every meal covered · oct 11–12, 2026
+          meals covered for every shift · oct 11–12, 2026
         </p>
       </div>
     </form>

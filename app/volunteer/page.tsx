@@ -3,17 +3,17 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { LogOut } from "lucide-react";
 import RegisterBackdrop from "@/components/RegisterBackdrop";
-import RegisterForm, { type RegistrationDefaults } from "@/components/RegisterForm";
-import { signOut } from "./actions";
+import VolunteerForm, { type VolunteerDefaults } from "@/components/VolunteerForm";
+import { signOut } from "@/app/register/actions";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
-  title: "register — OCC Hacks 2026",
+  title: "volunteer & mentor — OCC Hacks 2026",
   description:
-    "Register for OCC Hacks 2026 — Oct 11–12 at Orange Coast College. Free to attend, every meal covered.",
+    "Help run OCC Hacks 2026 — Oct 11–12 at Orange Coast College. Volunteer a shift or mentor a team.",
 };
 
-export default async function RegisterPage() {
+export default async function VolunteerPage() {
   const supabase = await createClient();
   const {
     data: { user },
@@ -21,12 +21,12 @@ export default async function RegisterPage() {
   if (!user) redirect("/signin");
 
   const { data: existing } = await supabase
-    .from("registrations")
-    .select("full_name, occ_id, dob, email, phone, iota_xi, shirt, needs")
+    .from("volunteers")
+    .select("full_name, occ_id, dob, email, phone, iota_xi, role, shirt, needs, expertise")
     .eq("user_id", user.id)
     .maybeSingle();
 
-  const defaults: Partial<RegistrationDefaults> = {
+  const defaults: Partial<VolunteerDefaults> = {
     ...existing,
     iota_xi: existing?.iota_xi == null ? "" : existing.iota_xi ? "yes" : "no",
     email: existing?.email ?? user.email ?? "",
@@ -56,21 +56,21 @@ export default async function RegisterPage() {
       <section className="mx-auto max-w-2xl px-6 pb-24 pt-16">
         <div className="text-center">
           <h1 className="font-display text-4xl tracking-tight sm:text-5xl">
-            register as a hacker
+            volunteer or mentor
           </h1>
           <p className="mt-4 text-sm text-muted-foreground">
-            oct 11–12, 2026 · free to attend · every meal covered.{" "}
+            oct 11–12, 2026 · meals covered for every shift.{" "}
             <Link
-              href="/volunteer"
+              href="/register"
               className="underline underline-offset-4 transition-colors hover:text-foreground"
             >
-              volunteering or mentoring instead?
+              want to hack instead?
             </Link>
           </p>
         </div>
 
         <div className="mt-12">
-          <RegisterForm defaults={defaults} isUpdate={!!existing} />
+          <VolunteerForm defaults={defaults} isUpdate={!!existing} />
         </div>
       </section>
     </main>
