@@ -214,7 +214,7 @@ export default function VolunteerForm({
           </p>
         )}
         <p className="mt-4 text-xs text-muted-foreground/70">
-          meals covered for every shift · oct 11–12, 2026
+          meals covered for every shift · oct 10–11, 2026
         </p>
       </div>
     </form>

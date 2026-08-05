@@ -59,7 +59,7 @@ export default function RegisterForm({
         <Reveal className="mt-8" delay={0.3}>
           <p className="text-base text-muted-foreground">
             You&apos;re registered. We&apos;ll email you closer to the event
-            with everything you need — see you oct 11–12.
+            with everything you need — see you oct 10–11.
           </p>
           <Link href="/" className="mt-8 inline-block text-sm transition-colors hover:text-ring">
             &larr; back to the site
@@ -203,7 +203,7 @@ export default function RegisterForm({
           </p>
         )}
         <p className="mt-4 text-xs text-muted-foreground/70">
-          free to attend · every meal covered · oct 11–12, 2026
+          free to attend · every meal covered · oct 10–11, 2026
         </p>
       </div>
     </form>

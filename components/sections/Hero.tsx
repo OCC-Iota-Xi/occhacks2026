@@ -45,7 +45,7 @@ export default function Hero() {
           {/* Event Details */}
           <div className="mb-6 md:mb-8 text-left">
             <span className="block pl-1 font-body text-base sm:text-lg md:text-xl tracking-wide text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.5)]">
-              October 11-12th, 2026 @{" "}
+              October 10-11th, 2026 @{" "}
               <a
                 href="https://orangecoastcollege.edu/"
                 target="_blank"
