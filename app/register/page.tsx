@@ -10,7 +10,7 @@ import { createClient } from "@/lib/supabase/server";
 export const metadata: Metadata = {
   title: "register — OCC Hacks 2026",
   description:
-    "Register for OCC Hacks 2026 — Oct 11–12 at Orange Coast College. Free to attend, every meal covered.",
+    "Register for OCC Hacks 2026 — Oct 10–11 at Orange Coast College. Free to attend, every meal covered.",
 };
 
 export default async function RegisterPage() {
@@ -59,7 +59,7 @@ export default async function RegisterPage() {
             register as a hacker
           </h1>
           <p className="mt-4 text-sm text-muted-foreground">
-            oct 11–12, 2026 · free to attend · every meal covered.{" "}
+            oct 10–11, 2026 · free to attend · every meal covered.{" "}
             <Link
               href="/volunteer"
               className="underline underline-offset-4 transition-colors hover:text-foreground"

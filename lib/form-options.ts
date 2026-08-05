@@ -23,11 +23,11 @@ export const TRACKS = [
 
 /** Shifts volunteers and mentors can sign up for across the weekend. */
 export const AVAILABILITY_BLOCKS = [
-  "oct 11 · setup (7–8 am)",
+  "oct 10 · setup (7–8 am)",
+  "oct 10 · morning (8 am–12 pm)",
+  "oct 10 · afternoon (12–4 pm)",
+  "oct 10 · evening (4–8 pm)",
   "oct 11 · morning (8 am–12 pm)",
   "oct 11 · afternoon (12–4 pm)",
-  "oct 11 · evening (4–8 pm)",
-  "oct 12 · morning (8 am–12 pm)",
-  "oct 12 · afternoon (12–4 pm)",
-  "oct 12 · teardown (4–6 pm)",
+  "oct 11 · teardown (4–6 pm)",
 ];

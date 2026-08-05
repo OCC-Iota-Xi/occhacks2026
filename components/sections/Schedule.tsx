@@ -7,7 +7,7 @@ import Reveal from "@/components/motion/Reveal";
 const DAYS = [
   {
     id: "day-one",
-    label: "day one · oct 11",
+    label: "day one · oct 10",
     events: [
       { time: "8:00 am", name: "registration opens" },
       { time: "9:00 am", name: "opening ceremony" },
@@ -21,7 +21,7 @@ const DAYS = [
   },
   {
     id: "day-two",
-    label: "day two · oct 12",
+    label: "day two · oct 11",
     events: [
       { time: "9:00 am", name: "competition start" },
       { time: "9:00 am", name: "breakfast" },

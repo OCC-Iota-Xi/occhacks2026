@@ -20,7 +20,7 @@ The vibe: confident through restraint. Almost no color, almost no boxes — when
 | **Hairline rules** | No cards. Content sits in full-width rows separated by 1px `stone-300` rules. Tracks, schedule, FAQ, and stats are all ruled lists. |
 | **Numbered rows** | List items carry small tabular numbers (`01`, `02`, `03`) set above their content on the center axis — the reference's case-list pattern, recomposed for the centered layout. Used for tracks, schedule, and FAQ. |
 | **Center axis** | Everything is center-aligned: headlines, dates, buttons, paragraphs, rows, footer. The page reads as one vertical poster column (`max-w-3xl` text, `max-w-5xl` rows), and the symmetry is itself part of the theme's calm. The nav is the only exception (wordmark left, stacked links right, per the reference). |
-| **The marquee** | A slim repeating text strip between hero and content: `occ hacks 2026 · oct 11–12 · orange coast college · free to attend ·` — hairline above and below, drifting slowly, pausing on hover. |
+| **The marquee** | A slim repeating text strip between hero and content: `occ hacks 2026 · oct 10–11 · orange coast college · free to attend ·` — hairline above and below, drifting slowly, pausing on hover. |
 | **The rotating badge** | A circular-text stamp (`orange coast college · est. 2024 · 24 hours ·`) rotating one turn per ~30s, centered above the hero headline as its crown. The only ornament. |
 | **Inverted footer** | The final CTA + footer flips to `stone-950` ink with paper text — the reference's closing move and the page's single dramatic beat. |
 
@@ -77,9 +77,9 @@ Count-up on the stat row. Everything gated by `useReducedMotion` (reveals become
 
 2. **Hero** — the statement, dead-center of the viewport. Stacked giant headline, center-aligned, line-revealed on load:
    `occ hacks is` / `a 24-hour *studio*` / `on the golden coast.`
-   (italic phrase in `orange-700`). Below, centered in plain reading size: `Oct 11–12, 2026 · Orange Coast College`, one supporting sentence, then the buttons centered — ink pill **register** + text link **see the tracks →**. The rotating circular badge sits above the headline, centered, as the hero's crown. No imagery.
+   (italic phrase in `orange-700`). Below, centered in plain reading size: `Oct 10–11, 2026 · Orange Coast College`, one supporting sentence, then the buttons centered — ink pill **register** + text link **see the tracks →**. The rotating circular badge sits above the headline, centered, as the hero's crown. No imagery.
 
-3. **Marquee strip** — `occ hacks 2026 · oct 11–12 · orange coast college · free to attend ·` repeating between hairlines.
+3. **Marquee strip** — `occ hacks 2026 · oct 10–11 · orange coast college · free to attend ·` repeating between hairlines.
 
 4. **About** — "built by students, for *students*." A single centered column: one strong paragraph at reading size (`max-w-2xl`), then a centered ruled stat strip — `150+ hackers` / `24 hours` / `every meal covered` / `beginner friendly` — values counting up in ink above their labels in `stone-600`, separated by short vertical hairlines.
 

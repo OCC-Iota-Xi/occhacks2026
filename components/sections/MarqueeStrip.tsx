@@ -2,7 +2,7 @@ import Marquee from "@/components/motion/Marquee";
 
 const ITEMS = [
   "occ hacks 2026",
-  "oct 11–12",
+  "oct 10–11",
   "orange coast college",
   "free to board",
   "the future is uncharted",
