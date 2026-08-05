@@ -8,20 +8,17 @@ const TRACKS: { planet: PlanetVariant; name: string; description: string }[] = [
   {
     planet: "earth",
     name: "entertainment",
-    description:
-      "Make something people can't put down — games, interactive stories, music and media tools, or anything built for pure fun.",
+    description: "Games, media, and anything built for fun.",
   },
   {
     planet: "saturn",
-    name: "education & learning",
-    description:
-      "Build tools that help people learn — tutoring platforms, study aids, interactive lessons, or anything that makes knowledge stick.",
+    name: "education",
+    description: "Tools that help people learn and make knowledge stick.",
   },
   {
     planet: "pluto",
-    name: "productivity & society",
-    description:
-      "Ship apps that save time or make life better — task managers, automation, civic tools, or projects that serve your community.",
+    name: "productivity",
+    description: "Apps that save time and make everyday life easier.",
   },
 ];
 

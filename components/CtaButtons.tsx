@@ -5,11 +5,8 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 const CTAS = [
-  { label: "Become a Hacker/Volunteer", href: "/register" },
-  {
-    label: "Mentor",
-    href: "mailto:lnguyen1509@student.cccd.edu?subject=Mentoring%20at%20OCC%20Hacks%202026",
-  },
+  { label: "Become a Hacker", href: "/register", primary: true },
+  { label: "Join as a Volunteer/Mentor", href: "/volunteer" },
   {
     label: "Sponsor Us",
     href: "mailto:lnguyen1509@student.cccd.edu?subject=Sponsoring%20OCC%20Hacks%202026",
@@ -33,12 +30,24 @@ export default function CtaButtons({ className }: { className?: string }) {
         <Button
           key={cta.label}
           variant="ghost"
-          className="liquid-glass h-auto cursor-pointer rounded-full px-6 py-3 text-sm font-medium text-[var(--text-primary)] transition-transform hover:scale-[1.03] md:px-8 md:py-4 md:text-base"
+          className={cn(
+            "h-auto cursor-pointer rounded-full px-6 py-3 text-sm font-medium transition-transform hover:scale-[1.03] md:px-8 md:py-4 md:text-base",
+            cta.primary
+              ? "liquid-glass glass-gold text-[#fcd34d]"
+              : "liquid-glass glass-visible text-[var(--text-primary)]"
+          )}
           onMouseMove={handleMouseMove}
           asChild
         >
           {cta.href.startsWith("/") ? (
-            <Link href={cta.href}>{cta.label}</Link>
+            <Link
+              href={cta.href}
+              {...(cta.primary
+                ? { target: "_blank", rel: "noopener noreferrer" }
+                : {})}
+            >
+              {cta.label}
+            </Link>
           ) : (
             <a href={cta.href}>{cta.label}</a>
           )}

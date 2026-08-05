@@ -166,6 +166,55 @@
   opacity: 1;
 }
 
+/* More identifiable glass pill: visible rim and a faint fill at rest. */
+.liquid-glass.glass-visible {
+  background: rgba(255, 255, 255, 0.06);
+}
+.liquid-glass.glass-visible::before {
+  opacity: 0.55;
+}
+.liquid-glass.glass-visible:hover::before {
+  opacity: 1;
+}
+
+/* Primary CTA: same glass language, tinted treasure gold, with a periodic
+   sheen sweeping across so it catches the eye at rest. */
+.liquid-glass.glass-gold {
+  background:
+    linear-gradient(
+      110deg,
+      transparent 30%,
+      rgba(255, 231, 150, 0.4) 50%,
+      transparent 70%
+    ) no-repeat 180% 0 / 250% 100%,
+    rgba(251, 191, 36, 0.24);
+  animation: gold-sheen 3.6s ease-in-out infinite;
+}
+.liquid-glass.glass-gold::before {
+  background:
+    radial-gradient(
+      120px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
+      rgba(255, 235, 170, 0.95) 0%,
+      rgba(251, 191, 36, 0.3) 60%,
+      transparent 100%
+    ),
+    linear-gradient(
+      180deg,
+      rgba(252, 211, 77, 0.9) 0%,
+      rgba(251, 191, 36, 0.35) 50%,
+      rgba(252, 211, 77, 0.9) 100%
+    );
+  opacity: 0.9;
+}
+.liquid-glass.glass-gold:hover::before {
+  opacity: 1;
+}
+@keyframes gold-sheen {
+  0% { background-position: 180% 0, 0 0; }
+  55% { background-position: -80% 0, 0 0; }
+  100% { background-position: -80% 0, 0 0; }
+}
+
 /* Shifting indicator lights on the hero CTA icons — hover only */
 @keyframes cyber-light-1 {
   0%, 100% { opacity: 0.2; transform: scale(0.9); }
