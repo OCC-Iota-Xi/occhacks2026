@@ -78,14 +78,15 @@
   --ring: #fbbf24;                /* treasure gold */
   --radius: 0.625rem;
 
-  /* Sidebar — a touch deeper than the page so it reads as a panel */
-  --sidebar: #0c0f18;
+  /* Sidebar — same deep space as the page, split by a hairline instead of a
+     panel edge, so the signed-in pages read as one continuous surface */
+  --sidebar: oklch(14.5% 0 0);
   --sidebar-foreground: #e8eaf2;
   --sidebar-primary: #fbbf24;
   --sidebar-primary-foreground: #0b0d17;
   --sidebar-accent: #1f1a10;      /* dark amber wash on active/hover */
   --sidebar-accent-foreground: #fcd34d;
-  --sidebar-border: #232842;
+  --sidebar-border: rgba(232, 234, 242, 0.1);
   --sidebar-ring: #fbbf24;
 
   /* Hero / navbar / about-card vars (static — the old GSAP scroll transition
@@ -100,6 +101,10 @@
   --card-3-accent: #c084fc;
   --nav-bg: rgba(11, 13, 23, 0);
   --nav-blur: 0px;
+
+  /* Scrollbar thumb — starlight, muted enough to read as part of the page. */
+  --scrollbar-thumb: rgba(154, 160, 184, 0.45);
+  --scrollbar-thumb-hover: rgba(154, 160, 184, 0.7);
 }
 
 @keyframes gradient {
@@ -241,6 +246,60 @@
 ::selection {
   background: #fbbf24;
   color: #0b0d17;
+}
+
+/* Date fields: white picker icon on the dark form rows. `color-scheme` also
+   gives the native calendar popup its dark treatment. */
+input[type="date"] {
+  color-scheme: dark;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0.85;
+  transition: opacity 0.2s ease;
+}
+
+input[type="date"]:hover::-webkit-calendar-picker-indicator {
+  opacity: 1;
+}
+
+/* Scrollbars that stay out of the way: invisible at rest, fading in while
+   the area is being scrolled (JS adds `is-scrolling`) or hovered. */
+.scroll-soft {
+  scrollbar-width: thin;
+  /* No transition here: Chrome refuses to finish a scrollbar-color animation
+     and leaves the thumb stuck transparent. It snaps in instead. */
+  scrollbar-color: transparent transparent;
+}
+
+.scroll-soft:hover,
+.scroll-soft.is-scrolling {
+  scrollbar-color: var(--scrollbar-thumb) transparent;
+}
+
+.scroll-soft::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.scroll-soft::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scroll-soft::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: transparent;
+  transition: background 0.25s ease;
+}
+
+.scroll-soft:hover::-webkit-scrollbar-thumb,
+.scroll-soft.is-scrolling::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+}
+
+.scroll-soft::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover);
 }
 
 @layer base {

@@ -2,6 +2,10 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { after } from "next/server";
+import { sendHackerWelcome, sendVolunteerWelcome } from "@/lib/email/welcome";
+import type { VolunteerRole } from "@/lib/email/templates";
+import { isOldEnough, UNDER_18_MESSAGE } from "@/lib/eligibility";
 import { createClient } from "@/lib/supabase/server";
 
 export interface RegistrationState {
@@ -9,7 +13,15 @@ export interface RegistrationState {
   message: string;
 }
 
-const HACKER_REQUIRED = ["name", "dob", "email", "phone", "iota_xi", "shirt"] as const;
+const HACKER_REQUIRED = [
+  "name",
+  "school",
+  "major",
+  "dob",
+  "email",
+  "iota_xi",
+  "shirt",
+] as const;
 const VOLUNTEER_REQUIRED = [
   "name",
   "dob",
@@ -32,7 +44,6 @@ export async function submitRegistration(
   if (!user) redirect("/signin");
 
   const field = (key: string) => String(formData.get(key) ?? "").trim();
-
   for (const key of HACKER_REQUIRED) {
     if (!field(key)) {
       return { ok: false, message: "please fill in every required field." };
@@ -40,6 +51,9 @@ export async function submitRegistration(
   }
   if (!formData.get("eligibility")) {
     return { ok: false, message: "please confirm the eligibility checkbox." };
+  }
+  if (!isOldEnough(field("dob"))) {
+    return { ok: false, message: UNDER_18_MESSAGE };
   }
 
   const ranks = {
@@ -57,9 +71,11 @@ export async function submitRegistration(
       user_id: user.id,
       email: field("email"),
       full_name: field("name"),
+      school: field("school"),
+      major: field("major"),
       occ_id: field("occ_id") || null,
       dob: field("dob"),
-      phone: field("phone"),
+      phone: field("phone") || null,
       iota_xi: field("iota_xi") === "yes",
       shirt: field("shirt"),
       needs: field("needs") || null,
@@ -73,8 +89,15 @@ export async function submitRegistration(
   );
 
   if (error) {
+    console.error("registration upsert failed:", error);
     return { ok: false, message: "something went wrong saving your registration — try again." };
   }
+
+  // After the response, so a slow mail provider never delays the confirmation.
+  // Only the first save sends — `sendHackerWelcome` no-ops on later edits.
+  const email = field("email");
+  const fullName = field("name");
+  after(() => sendHackerWelcome(supabase, user.id, email, fullName));
 
   return { ok: true, message: "" };
 }
@@ -127,8 +150,15 @@ export async function submitVolunteer(
   );
 
   if (error) {
+    console.error("volunteer upsert failed:", error);
     return { ok: false, message: "something went wrong saving your sign-up — try again." };
   }
+
+  // Same as the hacker flow: fire after the response, first save only.
+  const email = field("email");
+  const fullName = field("name");
+  const role = field("role") as VolunteerRole;
+  after(() => sendVolunteerWelcome(supabase, user.id, email, fullName, role));
 
   return { ok: true, message: "" };
 }

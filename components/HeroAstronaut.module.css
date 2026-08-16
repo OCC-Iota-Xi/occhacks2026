@@ -1,14 +1,12 @@
 /* Ported from Coding Artist's "Pure Css Astronaut Animated"
    (codepen.io/Coding-Artist/pen/gjZJOZ). Pure CSS, no images.
-   Original body/background and attribution link dropped; the
-   backdrop circle keeps the pen's subtle dark disc. */
+   Original body/background and attribution link dropped, along with the
+   pen's dark backdrop disc — it read as a grey halo against the hero. */
 
 .backg {
   position: relative;
   height: 500px;
   width: 500px;
-  border-radius: 50%;
-  background-color: rgba(0, 0, 0, 0.1);
 }
 
 .planet {

@@ -31,7 +31,8 @@ export async function proxy(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) {
+  // Dev-only: allow viewing the form without a session (saving still requires auth).
+  if (!user && process.env.NODE_ENV !== "development") {
     const url = request.nextUrl.clone();
     url.pathname = "/signin";
     url.search = "";

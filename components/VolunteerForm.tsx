@@ -72,7 +72,7 @@ export default function VolunteerForm({
   }
 
   return (
-    <form action={formAction} className="border-b border-border">
+    <form action={formAction}>
       <FieldRow number="01" label="full name" htmlFor="name">
         <Input
           id="name"
@@ -189,7 +189,7 @@ export default function VolunteerForm({
         <CheckboxList name="classes" options={OCC_CLASSES} />
       </FieldRow>
 
-      <div className="border-t border-border py-8">
+      <div className="py-8">
         <label className="mx-auto flex max-w-md cursor-pointer items-start justify-center gap-3 text-left">
           <Checkbox name="eligibility" defaultChecked={isUpdate} required className="mt-0.5" />
           <span className="text-sm text-muted-foreground">
@@ -198,7 +198,7 @@ export default function VolunteerForm({
         </label>
       </div>
 
-      <div className="border-t border-border py-10 text-center">
+      <div className="py-10 text-center">
         <motion.div whileTap={{ scale: 0.97 }} className="inline-block">
           <Button
             type="submit"
