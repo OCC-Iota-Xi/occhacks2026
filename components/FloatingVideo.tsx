@@ -39,8 +39,13 @@ export default function FloatingVideo() {
    * and since clicks can't reach it, only this can restart it.
    */
   function play() {
-    frameRef.current?.contentWindow?.postMessage(
-      JSON.stringify({ event: "command", func: "playVideo", args: [] }),
+    const frame = frameRef.current?.contentWindow;
+    if (!frame) return;
+    // The player ignores commands until it's been greeted on the widget
+    // channel, so the handshake goes out ahead of every attempt.
+    frame.postMessage(JSON.stringify({ event: "listening", id: 1, channel: "widget" }), "*");
+    frame.postMessage(
+      JSON.stringify({ event: "command", func: "playVideo", args: [], id: 1, channel: "widget" }),
       "*"
     );
   }
@@ -72,6 +77,37 @@ export default function FloatingVideo() {
     if (!shown || dismissed) return;
     const timers = [600, 1500, 3000, 5000].map((ms) => setTimeout(play, ms));
     return () => timers.forEach(clearTimeout);
+  }, [shown, dismissed]);
+
+  /**
+   * Anything that stops the player — a declined autoplay, a backgrounded tab —
+   * puts YouTube's chrome back over the picture, so any resting state gets
+   * nudged straight back into playing. Throttled so a browser that refuses to
+   * play can't be asked in a tight loop.
+   */
+  useEffect(() => {
+    if (!shown || dismissed) return;
+    let last = 0;
+    const retry = () => {
+      const now = performance.now();
+      if (now - last < 1000) return;
+      last = now;
+      play();
+    };
+    const onMessage = (event: MessageEvent) => {
+      if (!String(event.origin).includes("youtube")) return;
+      // -1 unstarted, 2 paused, 5 cued — none of them should stick.
+      if (/"playerState":(-1|2|5)\b/.test(String(event.data))) retry();
+    };
+    const onVisible = () => {
+      if (document.visibilityState === "visible") retry();
+    };
+    window.addEventListener("message", onMessage);
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      window.removeEventListener("message", onMessage);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
   }, [shown, dismissed]);
 
   useEffect(() => {
