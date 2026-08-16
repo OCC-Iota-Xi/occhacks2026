@@ -13,7 +13,7 @@
  * survives an email client, so the wordmark has to ship as an image.
  */
 
-const SITE = "https://occhacks.com";
+const SITE = "https://www.occhacks.com";
 const WORDMARK = `${SITE}/email/occhacks-wordmark.png`;
 
 /**
