@@ -5,19 +5,20 @@ import Link from "next/link";
 import { Check } from "lucide-react";
 import { motion } from "motion/react";
 import {
-  saveRegistrationDraft,
-  submitRegistration,
+  saveMentorDraft,
+  saveVolunteerDraft,
+  submitMentor,
+  submitVolunteer,
   type RegistrationState,
 } from "@/app/register/actions";
 import RevealLines from "@/components/motion/RevealLines";
 import Reveal from "@/components/motion/Reveal";
 import FieldRow from "@/components/FieldRow";
 import CheckboxList from "@/components/CheckboxList";
-import Combobox from "@/components/Combobox";
+import ResumeUpload from "@/components/ResumeUpload";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Select } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -31,7 +32,7 @@ import {
   StepperTitle,
   StepperTrigger,
 } from "@/components/ui/stepper";
-import { OCC_CLASSES, SHIRT_SIZES, TRACKS } from "@/lib/form-options";
+import { AVAILABILITY_BLOCKS, OCC_CLASSES, SHIRT_SIZES } from "@/lib/form-options";
 import {
   firstGap,
   formatPhone,
@@ -40,65 +41,66 @@ import {
   type Gap,
 } from "@/lib/form-fields";
 import { applyDraft, many, one, readDraft, type Draft } from "@/lib/form-draft";
+import type { HelperCopy } from "@/lib/helper-roles";
 import { useAutosave } from "@/lib/use-autosave";
 import { isOldEnough, LATEST_DOB, UNDER_18_MESSAGE } from "@/lib/eligibility";
-import { MAJORS, SCHOOLS } from "@/lib/school-options";
 
-export interface RegistrationDefaults {
+export interface HelperDefaults {
   full_name: string;
-  school: string;
-  major: string;
   occ_id: string;
   dob: string;
   email: string;
   phone: string;
-  iota_xi: string;
   shirt: string;
   needs: string;
+  expertise: string;
+  /** Mentors only — see `HelperCopy.details`. */
+  resume_path: string;
+  mentor_reason: string;
+  preferred_time: string;
   email_opt_in: boolean;
   classes: string[];
-  /** Track key -> "1" | "2" | "3" | "", as stored. */
-  ranks: Record<string, string>;
+  availability: string[];
 }
 
 const initialState: RegistrationState = { ok: false, message: "" };
 
-const STEPS = ["you", "contact", "details", "interest and extra credit"] as const;
-const LAST = STEPS.length;
+/** The first three steps are the same either way; the fourth is the role's own. */
+const SHARED_STEPS = ["you", "contact", "details"] as const;
+const LAST = SHARED_STEPS.length + 1;
 
-const DRAFT_KEY = "occhacks:register-draft";
+const SUBMIT = { volunteer: submitVolunteer, mentor: submitMentor };
+const SAVE_DRAFT = { volunteer: saveVolunteerDraft, mentor: saveMentorDraft };
 
-export default function RegisterForm({
+/**
+ * The volunteer and mentor sign-up forms.
+ *
+ * One component, two pages: the person, contact, and logistics questions are
+ * identical, and the role only changes the last step's wording, whether the
+ * expertise question is required, and which row the answers land in. Everything
+ * that differs comes in through `copy` — see lib/helper-roles.ts.
+ */
+export default function HelperForm({
+  copy,
   defaults,
   isUpdate,
 }: {
-  defaults?: Partial<RegistrationDefaults>;
+  copy: HelperCopy;
+  defaults?: Partial<HelperDefaults>;
   isUpdate?: boolean;
 }) {
-  const [state, formAction, pending] = useActionState(submitRegistration, initialState);
-  const [iotaXi, setIotaXi] = useState(defaults?.iota_xi ?? "");
+  const STEPS = [...SHARED_STEPS, copy.lastStep];
+  const DRAFT_KEY = copy.draftKey;
+
+  const [state, formAction, pending] = useActionState(SUBMIT[copy.role], initialState);
   const [shirt, setShirt] = useState(defaults?.shirt ?? "");
+  // Both post through inputs React owns, so they're held here rather than read
+  // off the DOM — same reason as `shirt`.
+  const [resumePath, setResumePath] = useState(defaults?.resume_path ?? "");
+  const [preferredTime, setPreferredTime] = useState(defaults?.preferred_time ?? "");
   const [phone, setPhone] = useState(formatPhone(defaults?.phone ?? ""));
   const [eligible, setEligible] = useState(!!isUpdate);
   const [emailOptIn, setEmailOptIn] = useState(!!defaults?.email_opt_in);
-
-  // Track key -> "1" | "2" | "3" | "". Kept controlled so a number can never be
-  // used twice: picking a taken number hands the picker's old value to whoever
-  // had it, which is always a swap between two tracks.
-  const [ranks, setRanks] = useState<Record<string, string>>(() =>
-    Object.fromEntries(TRACKS.map((t) => [t.key, defaults?.ranks?.[t.key] ?? ""]))
-  );
-
-  function setRank(key: string, value: string) {
-    setRanks((prev) => {
-      const next = { ...prev, [key]: value };
-      const taken = TRACKS.find((t) => t.key !== key && prev[t.key] === value);
-      if (taken) next[taken.key] = prev[key];
-      return next;
-    });
-    for (const t of TRACKS) clearMark(`rank_${t.key}`);
-    autosave.touch();
-  }
 
   const [step, setStep] = useState(1);
   const [error, setError] = useState("");
@@ -114,7 +116,7 @@ export default function RegisterForm({
   const autosave = useAutosave({
     form: formRef,
     storageKey: DRAFT_KEY,
-    save: saveRegistrationDraft,
+    save: SAVE_DRAFT[copy.role],
   });
 
   /**
@@ -140,19 +142,18 @@ export default function RegisterForm({
        server equivalent, so the draft can only be read after hydration. These
        are a one-shot handoff from that read, not a render loop. */
     // The controlled questions can't be restored through the DOM.
-    if (one(saved, "iota_xi")) setIotaXi(one(saved, "iota_xi"));
     if (one(saved, "shirt")) setShirt(one(saved, "shirt"));
+    if (one(saved, "resume_path")) setResumePath(one(saved, "resume_path"));
+    if (one(saved, "preferred_time")) setPreferredTime(one(saved, "preferred_time"));
     if (one(saved, "phone")) setPhone(formatPhone(one(saved, "phone")));
     if (saved.eligibility) setEligible(true);
     if (saved.email_opt_in) setEmailOptIn(true);
-    setRanks((prev) =>
-      Object.fromEntries(
-        TRACKS.map((t) => [t.key, one(saved, `rank_${t.key}`) || prev[t.key]])
-      )
-    );
     setDraft(saved);
     /* eslint-enable react-hooks/set-state-in-effect */
-  }, []);
+    // `DRAFT_KEY` is fixed for a mounted form — the role can't change under it.
+    // It's listed only to satisfy the dependency check; `restored` is what
+    // actually keeps this to one run.
+  }, [DRAFT_KEY]);
 
   useEffect(() => {
     if (state.ok) {
@@ -176,13 +177,9 @@ export default function RegisterForm({
    * first, since those controls come before the ones checked against state.
    */
   function gapsIn(target: number): Gap[] {
-    const native = nativeGaps(stepRefs.current[target - 1]);
-    // The three rank pickers read as one question, so they're flagged as one.
-    const isRank = (name: string) => name.startsWith("rank_");
-    const gaps: Gap[] = native.filter((n) => !isRank(n)).map((name) => ({ fields: [name] }));
-    if (native.some(isRank)) {
-      gaps.push({ fields: TRACKS.map((t) => `rank_${t.key}`) });
-    }
+    const gaps: Gap[] = nativeGaps(stepRefs.current[target - 1]).map((name) => ({
+      fields: [name],
+    }));
 
     if (target === 1) {
       const dob = String(new FormData(formRef.current!).get("dob") ?? "");
@@ -190,19 +187,22 @@ export default function RegisterForm({
     }
 
     if (target === 3) {
-      if (!iotaXi) gaps.push({ fields: ["iota_xi"] });
       if (!shirt) gaps.push({ fields: ["shirt"] });
+      // The résumé posts as a hidden path, and the preferred block through a
+      // Radix radio — neither is something `nativeGaps` can see.
+      if (copy.details) {
+        if (!resumePath) {
+          gaps.push({ fields: ["resume_path"], message: "upload your résumé as a PDF." });
+        }
+        if (!preferredTime) gaps.push({ fields: ["preferred_time"] });
+      }
     }
 
     if (target === LAST) {
-      const data = new FormData(formRef.current!);
-      const ranks = TRACKS.map((t) => String(data.get(`rank_${t.key}`) ?? ""));
-      // Every rank picked, but not all three distinct.
-      if (!ranks.includes("") && new Set(ranks).size !== TRACKS.length) {
-        gaps.push({
-          fields: TRACKS.map((t) => `rank_${t.key}`),
-          message: "rank each track once, using 1, 2, and 3.",
-        });
+      // Checkboxes post nothing at all when none are ticked.
+      const availability = new FormData(formRef.current!).getAll("availability");
+      if (!availability.length) {
+        gaps.push({ fields: ["availability"], message: copy.availability.error });
       }
       if (!eligible) gaps.push({ fields: ["eligibility"] });
       if (!emailOptIn) gaps.push({ fields: ["email_opt_in"] });
@@ -268,15 +268,12 @@ export default function RegisterForm({
           className="font-display text-5xl leading-[1.05] tracking-tight sm:text-6xl"
           lines={[
             <span key="1">
-              see you <span className="text-ring">out there</span>
+              {copy.thanks.lead} <span className="text-ring">{copy.thanks.accent}</span>
             </span>,
           ]}
         />
         <Reveal className="mt-8" delay={0.3}>
-          <p className="text-base text-muted-foreground">
-            You&apos;re registered. We&apos;ll email you closer to the event
-            with everything you need — see you oct 10–11.
-          </p>
+          <p className="text-base text-muted-foreground">{copy.thanks.body}</p>
           <Link href="/" className="mt-8 inline-block text-sm transition-colors hover:text-ring">
             &larr; back to the site
           </Link>
@@ -284,6 +281,12 @@ export default function RegisterForm({
       </div>
     );
   }
+
+  // Question numbers count what this role is actually asked, so a question
+  // the copy leaves out doesn't punch a hole in the sequence. Reset on every
+  // render, and read top to bottom with the JSX below.
+  let asked = 0;
+  const num = () => String(++asked).padStart(2, "0");
 
   return (
     <form
@@ -334,13 +337,26 @@ export default function RegisterForm({
         </StepperNav>
 
         <StepperPanel>
+          {/*
+            The warning sits with the section that raised it rather than under
+            the nav buttons — `flag` always switches to the failing step first,
+            so whatever is showing is the step the message is about.
+          */}
+          {/* It lives and dies with the mark it points at — once the flagged
+              question is answered there's nothing left to fill in. */}
+          {(invalid.length ? error : state.message) && (
+            <p className="pt-2 text-center text-base text-destructive" role="alert">
+              {invalid.length ? error : state.message}
+            </p>
+          )}
+
           <StepperContent value={1} forceMount>
             <div
               ref={(el) => {
                 stepRefs.current[0] = el;
               }}
             >
-              <FieldRow number="01" label="full name" htmlFor="name" invalid={isInvalid("name")}>
+              <FieldRow number={num()} label="full name" htmlFor="name" invalid={isInvalid("name")}>
                 <Input
                   id="name"
                   name="name"
@@ -352,56 +368,24 @@ export default function RegisterForm({
                 />
               </FieldRow>
 
-              <FieldRow
-                number="02"
-                label="what school do you go to?"
-                htmlFor="school"
-                hint="type to search — if yours isn't listed, just type it in."
-                invalid={isInvalid("school")}
-              >
-                <Combobox
-                  key={draft ? "draft-school" : "stored-school"}
-                  name="school"
-                  groups={SCHOOLS}
-                  placeholder="search for your school"
-                  defaultValue={one(draft, "school") || defaults?.school}
-                  onCommit={autosave.touch}
-                  invalid={isInvalid("school")}
-                />
-              </FieldRow>
+              {copy.asksOccId && (
+                <FieldRow
+                  number={num()}
+                  label="OCC student ID (if applicable)"
+                  htmlFor="occ_id"
+                  hint="leave blank if you're not an OCC student."
+                >
+                  <Input
+                    id="occ_id"
+                    name="occ_id"
+                    placeholder="C01234567"
+                    defaultValue={defaults?.occ_id}
+                  />
+                </FieldRow>
+              )}
 
               <FieldRow
-                number="03"
-                label="what's your major?"
-                htmlFor="major"
-                invalid={isInvalid("major")}
-              >
-                <Combobox
-                  key={draft ? "draft-major" : "stored-major"}
-                  name="major"
-                  groups={MAJORS}
-                  placeholder="search for your major"
-                  defaultValue={one(draft, "major") || defaults?.major}
-                  onCommit={autosave.touch}
-                  invalid={isInvalid("major")}
-                />
-              </FieldRow>
-
-              <FieldRow
-                number="04"
-                label="OCC student ID (if applicable)"
-                htmlFor="occ_id"
-              >
-                <Input
-                  id="occ_id"
-                  name="occ_id"
-                  placeholder="C01234567"
-                  defaultValue={defaults?.occ_id}
-                />
-              </FieldRow>
-
-              <FieldRow
-                number="05"
+                number={num()}
                 label="date of birth"
                 htmlFor="dob"
                 hint="you have to be 18 by oct 10, 2026."
@@ -428,7 +412,7 @@ export default function RegisterForm({
                 stepRefs.current[1] = el;
               }}
             >
-              <FieldRow number="06" label="email address" htmlFor="email" invalid={isInvalid("email")}>
+              <FieldRow number={num()} label="email address" htmlFor="email" invalid={isInvalid("email")}>
                 <Input
                   id="email"
                   name="email"
@@ -442,14 +426,11 @@ export default function RegisterForm({
               </FieldRow>
 
               <FieldRow
-                number="07"
-                label={
-                  <>
-                    phone number{" "}
-                    <span className="text-muted-foreground/70">(optional)</span>
-                  </>
-                }
+                number={num()}
+                label="phone number"
                 htmlFor="phone"
+                hint="how we reach you about shift changes on the day."
+                invalid={isInvalid("phone")}
               >
                 <Input
                   id="phone"
@@ -460,6 +441,8 @@ export default function RegisterForm({
                   autoComplete="tel"
                   value={phone}
                   onChange={(event) => setPhone(formatPhone(event.target.value))}
+                  aria-invalid={isInvalid("phone")}
+                  required
                 />
               </FieldRow>
             </div>
@@ -471,41 +454,7 @@ export default function RegisterForm({
                 stepRefs.current[2] = el;
               }}
             >
-              <FieldRow
-                number="08"
-                label={
-                  <>
-                    are you a member of{" "}
-                    <a
-                      href="https://orangecoastcollege.edu/academics/honor-societies/societies/iota-xi.html"
-                      target="_blank"
-                      rel="noreferrer"
-                      className="underline underline-offset-4 transition-colors hover:text-ring"
-                    >
-                      Iota Xi Honor Society
-                    </a>
-                    ?
-                  </>
-                }
-                invalid={isInvalid("iota_xi")}
-              >
-                <RadioGroup
-                  name="iota_xi"
-                  value={iotaXi}
-                  onValueChange={(value) => {
-                    setIotaXi(value);
-                    clearMark("iota_xi");
-                    autosave.touch();
-                  }}
-                  aria-invalid={isInvalid("iota_xi")}
-                  required
-                >
-                  <RadioGroupItem value="yes">yes</RadioGroupItem>
-                  <RadioGroupItem value="no">no</RadioGroupItem>
-                </RadioGroup>
-              </FieldRow>
-
-              <FieldRow number="09" label="t-shirt size" invalid={isInvalid("shirt")}>
+              <FieldRow number={num()} label="t-shirt size" invalid={isInvalid("shirt")}>
                 <RadioGroup
                   name="shirt"
                   value={shirt}
@@ -526,7 +475,7 @@ export default function RegisterForm({
               </FieldRow>
 
               <FieldRow
-                number="10"
+                number={num()}
                 label="any accessibility, dietary, or other needs we should know about?"
                 htmlFor="needs"
                 hint="allergies, mobility, quiet space, anything at all."
@@ -540,6 +489,72 @@ export default function RegisterForm({
                   className="min-h-20"
                 />
               </FieldRow>
+
+              {/* Mentors only. Volunteers finish the step here. */}
+              {copy.details && (
+                <>
+                  <FieldRow
+                    number={num()}
+                    label={copy.details.resume.label}
+                    hint={copy.details.resume.hint}
+                    wide
+                    invalid={isInvalid("resume_path")}
+                  >
+                    <ResumeUpload
+                      name="resume_path"
+                      value={resumePath}
+                      onValueChange={(path) => {
+                        setResumePath(path);
+                        clearMark("resume_path");
+                        autosave.touch();
+                      }}
+                      invalid={isInvalid("resume_path")}
+                    />
+                  </FieldRow>
+
+                  <FieldRow
+                    number={num()}
+                    label={copy.details.reason.label}
+                    htmlFor="mentor_reason"
+                    hint={copy.details.reason.hint}
+                    wide
+                  >
+                    <Textarea
+                      id="mentor_reason"
+                      name="mentor_reason"
+                      placeholder="…"
+                      defaultValue={defaults?.mentor_reason}
+                      className="min-h-20"
+                    />
+                  </FieldRow>
+
+                  <FieldRow
+                    number={num()}
+                    label={copy.details.preferredTime.label}
+                    hint={copy.details.preferredTime.hint}
+                    wide
+                    invalid={isInvalid("preferred_time")}
+                  >
+                    <RadioGroup
+                      name="preferred_time"
+                      value={preferredTime}
+                      onValueChange={(value) => {
+                        setPreferredTime(value);
+                        clearMark("preferred_time");
+                        autosave.touch();
+                      }}
+                      aria-invalid={isInvalid("preferred_time")}
+                      required
+                    >
+                      {AVAILABILITY_BLOCKS.map((block) => (
+                        <RadioGroupItem key={block} value={block}>
+                          {block}
+                        </RadioGroupItem>
+                      ))}
+                    </RadioGroup>
+                  </FieldRow>
+                </>
+              )}
             </div>
           </StepperContent>
 
@@ -550,57 +565,67 @@ export default function RegisterForm({
               }}
             >
               <FieldRow
-                number="11"
-                label="are you currently taking any of these classes at OCC?"
-                hint="extra credit is available — pick one, no double dipping. leave blank if none apply."
+                number={num()}
+                label={copy.availability.label}
+                hint={copy.availability.hint}
                 wide
+                invalid={isInvalid("availability")}
               >
-                <CheckboxList
-                  // Remounts once the browser draft lands, so the boxes can
-                  // re-seed from it rather than from the stored row.
-                  key={draft ? "draft" : "stored"}
-                  name="classes"
-                  options={OCC_CLASSES}
-                  single
-                  other
-                  otherNote="no promises — extra credit for anything else is up to your instructor."
-                  defaultValues={listDefaults("classes", defaults?.classes ?? [])}
-                  onChange={autosave.touch}
-                />
+                {/* Radix's checkbox posts through a hidden input that only
+                    bubbles a click, so the form's onChange never sees it. */}
+                <div onClick={() => clearMark("availability")}>
+                  <CheckboxList
+                    // Remounts once the browser draft lands, so the boxes can
+                    // re-seed from it rather than from the stored row.
+                    key={draft ? "draft" : "stored"}
+                    name="availability"
+                    options={AVAILABILITY_BLOCKS}
+                    defaultValues={listDefaults("availability", defaults?.availability ?? [])}
+                    onChange={autosave.touch}
+                  />
+                </div>
               </FieldRow>
 
               <FieldRow
-                number="12"
-                label="rank the tracks"
-                hint="1 = most interested, 3 = least. use each number once."
+                number={num()}
+                label={copy.expertise.label}
+                htmlFor="expertise"
+                hint={copy.expertise.hint}
                 wide
-                invalid={TRACKS.some((t) => isInvalid(`rank_${t.key}`))}
+                invalid={isInvalid("expertise")}
               >
-                <div className="flex flex-col gap-3 sm:flex-row sm:justify-center sm:gap-5">
-                  {TRACKS.map((t) => (
-                    <div key={t.key} className="flex items-center justify-between gap-3">
-                      <span className="text-sm text-muted-foreground">{t.label}</span>
-                      <Select
-                        name={`rank_${t.key}`}
-                        value={ranks[t.key]}
-                        onChange={(event) => setRank(t.key, event.target.value)}
-                        aria-invalid={isInvalid(`rank_${t.key}`)}
-                        required
-                        className="max-w-24 sm:w-12"
-                      >
-                        <option value="" disabled>
-                          —
-                        </option>
-                        {TRACKS.map((_, i) => (
-                          <option key={i} value={String(i + 1)}>
-                            {i + 1}
-                          </option>
-                        ))}
-                      </Select>
-                    </div>
-                  ))}
-                </div>
+                <Textarea
+                  id="expertise"
+                  name="expertise"
+                  placeholder="…"
+                  defaultValue={defaults?.expertise}
+                  className="min-h-20"
+                  aria-invalid={isInvalid("expertise")}
+                  // A mentor who hasn't said what they can mentor on hasn't
+                  // answered the question the sign-up exists to ask.
+                  required={copy.expertise.required}
+                />
               </FieldRow>
+
+              {copy.asksClasses && (
+                <FieldRow
+                  number={num()}
+                  label="are you currently taking any of these classes at OCC?"
+                  hint="extra credit is available — pick one, no double dipping. leave blank if none apply."
+                  wide
+                >
+                  <CheckboxList
+                    key={draft ? "draft" : "stored"}
+                    name="classes"
+                    options={OCC_CLASSES}
+                    single
+                    other
+                    otherNote="no promises — extra credit for anything else is up to your instructor."
+                    defaultValues={listDefaults("classes", defaults?.classes ?? [])}
+                    onChange={autosave.touch}
+                  />
+                </FieldRow>
+              )}
 
               <div className="py-4">
                 <label className="mx-auto flex max-w-xl cursor-pointer items-center justify-center gap-3 text-left">
@@ -620,8 +645,8 @@ export default function RegisterForm({
                       isInvalid("eligibility") ? "text-destructive" : "text-muted-foreground"
                     }`}
                   >
-                    I&apos;ll be 18 or older by oct 10, 2026, I&apos;m currently enrolled as a
-                    student, and I agree to follow the event code of conduct.
+                    I&apos;ll be 18 or older by oct 10, 2026, and I agree to follow the
+                    event code of conduct.
                   </span>
                 </label>
 
@@ -642,8 +667,8 @@ export default function RegisterForm({
                       isInvalid("email_opt_in") ? "text-destructive" : "text-muted-foreground"
                     }`}
                   >
-                    I allow OCC Hacks 2026 to email me event updates — schedule
-                    changes, logistics, and day-of details.
+                    I allow OCC Hacks 2026 to email me event updates — schedule changes,
+                    logistics, and day-of details.
                   </span>
                 </label>
               </div>
@@ -678,7 +703,7 @@ export default function RegisterForm({
               disabled={pending}
               className="h-auto rounded-full bg-foreground px-6 py-3 text-sm text-background hover:bg-foreground/85 disabled:opacity-60 md:px-8 md:py-4 md:text-base"
             >
-              {pending ? "saving…" : isUpdate ? "update registration" : "submit registration"}
+              {pending ? "saving…" : isUpdate ? "update sign-up" : "submit sign-up"}
             </Button>
           ) : (
             <Button
@@ -691,14 +716,6 @@ export default function RegisterForm({
           )}
         </motion.div>
       </div>
-
-      {/* The prompt lives and dies with the mark it points at — once the
-          flagged question is answered there's nothing left to fill in. */}
-      {(invalid.length ? error : state.message) && (
-        <p className="pb-8 text-center text-base text-destructive" role="alert">
-          {invalid.length ? error : state.message}
-        </p>
-      )}
     </form>
   );
 }

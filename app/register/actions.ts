@@ -3,8 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { after } from "next/server";
-import { sendHackerWelcome, sendVolunteerWelcome } from "@/lib/email/welcome";
-import type { VolunteerRole } from "@/lib/email/templates";
+import { sendHackerWelcome, sendHelperWelcome } from "@/lib/email/welcome";
+import type { HelperRole } from "@/lib/helper-roles";
 import { isOldEnough, UNDER_18_MESSAGE } from "@/lib/eligibility";
 import { createClient } from "@/lib/supabase/server";
 
@@ -22,15 +22,146 @@ const HACKER_REQUIRED = [
   "iota_xi",
   "shirt",
 ] as const;
-const VOLUNTEER_REQUIRED = [
-  "name",
-  "dob",
-  "email",
-  "phone",
-  "iota_xi",
-  "role",
-  "shirt",
-] as const;
+/**
+ * The questions both roles answer. `role` isn't in the list — it comes from the
+ * page, not the form.
+ */
+const HELPER_REQUIRED = ["name", "dob", "email", "phone", "shirt"] as const;
+
+/** The mentor form's own questions — `mentor_reason` is deliberately optional. */
+const MENTOR_REQUIRED = ["resume_path", "preferred_time", "expertise"] as const;
+
+function requiredFor(role: HelperRole): readonly string[] {
+  return role === "mentor" ? [...HELPER_REQUIRED, ...MENTOR_REQUIRED] : HELPER_REQUIRED;
+}
+
+/** Trimmed string, or null — a draft stores an unanswered question as null. */
+function reader(formData: FormData) {
+  const field = (key: string) => String(formData.get(key) ?? "").trim();
+  return {
+    field,
+    nullable: (key: string) => field(key) || null,
+    list: (key: string) =>
+      formData
+        .getAll(key)
+        .map((v) => String(v).trim())
+        .filter(Boolean),
+  };
+}
+
+/**
+ * The row as the form currently stands, complete or not.
+ *
+ * Both the autosave and the final submit write through here, so a half-filled
+ * draft and a finished sign-up round-trip identically — the only difference is
+ * that submit stamps `completed_at` and validates first. Every value is read
+ * from the posted form rather than merged onto the stored row, which is safe
+ * because all four steps stay mounted and post together on every save.
+ */
+function hackerRow(formData: FormData) {
+  const { field, nullable, list } = reader(formData);
+  // Out-of-range or half-picked ranks stay null so a mid-edit autosave can't
+  // trip `registrations_ranks_distinct`.
+  const rank = (key: string) => {
+    const n = Number(field(key));
+    return Number.isInteger(n) && n >= 1 && n <= 3 ? n : null;
+  };
+
+  return {
+    email: nullable("email"),
+    full_name: nullable("name"),
+    school: nullable("school"),
+    major: nullable("major"),
+    occ_id: nullable("occ_id"),
+    dob: nullable("dob"),
+    phone: nullable("phone"),
+    // Unanswered is null, not "no".
+    iota_xi: field("iota_xi") ? field("iota_xi") === "yes" : null,
+    shirt: nullable("shirt"),
+    needs: nullable("needs"),
+    classes: list("classes"),
+    email_opt_in: !!formData.get("email_opt_in"),
+    rank_entertainment: rank("rank_entertainment"),
+    rank_education: rank("rank_education"),
+    rank_productivity: rank("rank_productivity"),
+    updated_at: new Date().toISOString(),
+  };
+}
+
+/**
+ * A volunteer or mentor row. `role` is passed in rather than read from the
+ * form: it's decided by which page the reader is on, so it can't be edited by
+ * hand, and it's half of the row's primary key — writing the wrong one would
+ * overwrite the other sign-up rather than fail.
+ */
+function helperRow(role: HelperRole, formData: FormData) {
+  const { nullable, list } = reader(formData);
+  return {
+    email: nullable("email"),
+    full_name: nullable("name"),
+    occ_id: nullable("occ_id"),
+    dob: nullable("dob"),
+    phone: nullable("phone"),
+    role,
+    availability: list("availability"),
+    expertise: nullable("expertise"),
+    // Mentor-only; a volunteer row just leaves these null. `resume_path` is the
+    // Storage object the browser already uploaded, never the file itself.
+    resume_path: role === "mentor" ? nullable("resume_path") : null,
+    mentor_reason: role === "mentor" ? nullable("mentor_reason") : null,
+    preferred_time: role === "mentor" ? nullable("preferred_time") : null,
+    shirt: nullable("shirt"),
+    needs: nullable("needs"),
+    classes: list("classes"),
+    email_opt_in: !!formData.get("email_opt_in"),
+    updated_at: new Date().toISOString(),
+  };
+}
+
+/**
+ * Autosave. Writes whatever is filled in so far and stops there: no validation,
+ * no `completed_at`, and crucially no welcome email — that stays on the submit
+ * path, or everyone would be welcomed as soon as they typed their name.
+ *
+ * Failures are deliberately quiet. An autosave that can't reach the network
+ * shouldn't interrupt someone mid-sentence, and the browser-side draft is still
+ * holding the same answers.
+ */
+async function saveDraft(
+  table: "registrations" | "volunteers",
+  row: object,
+  onConflict: string
+): Promise<{ ok: boolean }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  // No redirect here: this runs in the background, and bouncing someone to the
+  // sign-in page mid-keystroke would throw away what they were typing.
+  if (!user) return { ok: false };
+
+  const { error } = await supabase
+    .from(table)
+    .upsert({ user_id: user.id, ...row }, { onConflict });
+
+  if (error) console.error(`[draft] ${table} autosave failed:`, error);
+  return { ok: !error };
+}
+
+export async function saveRegistrationDraft(formData: FormData) {
+  return saveDraft("registrations", hackerRow(formData), "user_id");
+}
+
+// One per role rather than a single action taking the role as an argument:
+// a server action is a public endpoint, and the role decides which row gets
+// written. Binding it here keeps it out of reach of the request body.
+export async function saveVolunteerDraft(formData: FormData) {
+  return saveDraft("volunteers", helperRow("volunteer", formData), "user_id,role");
+}
+
+export async function saveMentorDraft(formData: FormData) {
+  return saveDraft("volunteers", helperRow("mentor", formData), "user_id,role");
+}
 
 /** Upserts the signed-in user's registration (one row per account). */
 export async function submitRegistration(
@@ -52,6 +183,9 @@ export async function submitRegistration(
   if (!formData.get("eligibility")) {
     return { ok: false, message: "please confirm the eligibility checkbox." };
   }
+  if (!formData.get("email_opt_in")) {
+    return { ok: false, message: "please agree to receive event updates by email." };
+  }
   if (!isOldEnough(field("dob"))) {
     return { ok: false, message: UNDER_18_MESSAGE };
   }
@@ -69,21 +203,9 @@ export async function submitRegistration(
   const { error } = await supabase.from("registrations").upsert(
     {
       user_id: user.id,
-      email: field("email"),
-      full_name: field("name"),
-      school: field("school"),
-      major: field("major"),
-      occ_id: field("occ_id") || null,
-      dob: field("dob"),
-      phone: field("phone") || null,
-      iota_xi: field("iota_xi") === "yes",
-      shirt: field("shirt"),
-      needs: field("needs") || null,
-      classes: formData.getAll("classes").map(String),
-      rank_entertainment: ranks.entertainment,
-      rank_education: ranks.education,
-      rank_productivity: ranks.productivity,
-      updated_at: new Date().toISOString(),
+      ...hackerRow(formData),
+      // Promotes the row from draft to finished sign-up.
+      completed_at: new Date().toISOString(),
     },
     { onConflict: "user_id" }
   );
@@ -102,9 +224,13 @@ export async function submitRegistration(
   return { ok: true, message: "" };
 }
 
-/** Upserts the signed-in user's volunteer/mentor sign-up (one row per account). */
-export async function submitVolunteer(
-  _prev: RegistrationState,
+/**
+ * Upserts the signed-in user's sign-up for one role — one row per (account,
+ * role). Volunteering and mentoring are separate commitments, so filling in the
+ * other form adds a row rather than replacing this one.
+ */
+async function submitHelper(
+  role: HelperRole,
   formData: FormData
 ): Promise<RegistrationState> {
   const supabase = await createClient();
@@ -115,13 +241,19 @@ export async function submitVolunteer(
 
   const field = (key: string) => String(formData.get(key) ?? "").trim();
 
-  for (const key of VOLUNTEER_REQUIRED) {
+  for (const key of requiredFor(role)) {
     if (!field(key)) {
       return { ok: false, message: "please fill in every required field." };
     }
   }
   if (!formData.get("eligibility")) {
     return { ok: false, message: "please confirm the eligibility checkbox." };
+  }
+  if (!formData.get("email_opt_in")) {
+    return { ok: false, message: "please agree to receive event updates by email." };
+  }
+  if (!isOldEnough(field("dob"))) {
+    return { ok: false, message: UNDER_18_MESSAGE };
   }
 
   const availability = formData.getAll("availability").map(String);
@@ -132,35 +264,38 @@ export async function submitVolunteer(
   const { error } = await supabase.from("volunteers").upsert(
     {
       user_id: user.id,
-      email: field("email"),
-      full_name: field("name"),
-      occ_id: field("occ_id") || null,
-      dob: field("dob"),
-      phone: field("phone"),
-      iota_xi: field("iota_xi") === "yes",
-      role: field("role"),
-      availability,
-      expertise: field("expertise") || null,
-      shirt: field("shirt"),
-      needs: field("needs") || null,
-      classes: formData.getAll("classes").map(String),
-      updated_at: new Date().toISOString(),
+      ...helperRow(role, formData),
+      completed_at: new Date().toISOString(),
     },
-    { onConflict: "user_id" }
+    { onConflict: "user_id,role" }
   );
 
   if (error) {
-    console.error("volunteer upsert failed:", error);
+    console.error(`${role} upsert failed:`, error);
     return { ok: false, message: "something went wrong saving your sign-up — try again." };
   }
 
-  // Same as the hacker flow: fire after the response, first save only.
+  // Same as the hacker flow: fire after the response, first save only. The
+  // claim is per role, so someone who does both gets one email for each.
   const email = field("email");
   const fullName = field("name");
-  const role = field("role") as VolunteerRole;
-  after(() => sendVolunteerWelcome(supabase, user.id, email, fullName, role));
+  after(() => sendHelperWelcome(supabase, role, user.id, email, fullName));
 
   return { ok: true, message: "" };
+}
+
+export async function submitVolunteer(
+  _prev: RegistrationState,
+  formData: FormData
+): Promise<RegistrationState> {
+  return submitHelper("volunteer", formData);
+}
+
+export async function submitMentor(
+  _prev: RegistrationState,
+  formData: FormData
+): Promise<RegistrationState> {
+  return submitHelper("mentor", formData);
 }
 
 /** Adds the signed-in user to the notify-when-registration-opens list. */

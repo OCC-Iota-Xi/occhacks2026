@@ -22,7 +22,7 @@ export default function FieldRow({
   children,
 }: FieldRowProps) {
   return (
-    <div className="py-8 text-center">
+    <div data-field-row className="py-8 text-center">
       <p
         className={`text-sm tabular-nums ${
           invalid ? "text-destructive" : "text-muted-foreground/70"

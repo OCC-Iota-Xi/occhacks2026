@@ -12,6 +12,12 @@ interface ComboboxProps {
   defaultValue?: string;
   invalid?: boolean;
   id?: string;
+  /**
+   * Fired when a value is picked from the list. Typing already reaches the
+   * form's own `onChange` through the visible input, but choosing an option
+   * only moves React state — no native event, so nothing bubbles.
+   */
+  onCommit?: () => void;
 }
 
 /** Flattened matches, keeping the group headings that still have hits. */
@@ -38,6 +44,7 @@ export default function Combobox({
   placeholder,
   defaultValue = "",
   invalid,
+  onCommit,
   id,
 }: ComboboxProps) {
   const [query, setQuery] = useState(defaultValue);
@@ -86,6 +93,7 @@ export default function Combobox({
     setQuery(value);
     setOpen(false);
     setActive(0);
+    onCommit?.();
   }
 
   function onKeyDown(event: React.KeyboardEvent<HTMLInputElement>) {

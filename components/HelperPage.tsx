@@ -1,19 +1,21 @@
-import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import AccountBackdrop from "@/components/AccountBackdrop";
 import AccountSidebar from "@/components/AccountSidebar";
 import FloatingVideo from "@/components/FloatingVideo";
-import RegisterForm, { type RegistrationDefaults } from "@/components/RegisterForm";
+import HelperForm, { type HelperDefaults } from "@/components/HelperForm";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import type { HelperCopy } from "@/lib/helper-roles";
 import { createClient } from "@/lib/supabase/server";
 
-export const metadata: Metadata = {
-  title: "register — OCC Hacks 2026",
-  description:
-    "Register for OCC Hacks 2026 — Oct 10–11 at Orange Coast College. Free to attend, every meal covered.",
-};
-
-export default async function RegisterPage() {
+/**
+ * The volunteer and mentor sign-up pages.
+ *
+ * Both routes render this with their own `copy`; the only thing the route
+ * itself owns is its metadata. The stored row is looked up by (user_id, role),
+ * so someone who has already volunteered still lands on an empty mentor form —
+ * the two sign-ups don't see each other.
+ */
+export default async function HelperPage({ copy }: { copy: HelperCopy }) {
   const supabase = await createClient();
   const {
     data: { user },
@@ -23,41 +25,38 @@ export default async function RegisterPage() {
 
   const { data: existing } = user
     ? await supabase
-        .from("registrations")
+        .from("volunteers")
         .select(
-          "full_name, school, major, occ_id, dob, email, phone, iota_xi, shirt, needs, email_opt_in, classes, rank_entertainment, rank_education, rank_productivity, completed_at"
+          "full_name, occ_id, dob, email, phone, shirt, needs, expertise, email_opt_in, classes, availability, resume_path, mentor_reason, preferred_time, completed_at"
         )
         .eq("user_id", user.id)
+        .eq("role", copy.role)
         .maybeSingle()
     : { data: null };
 
-  const rank = (value: number | null | undefined) => (value == null ? "" : String(value));
-
-  const defaults: Partial<RegistrationDefaults> = {
+  // Columns are nullable now that a half-finished row is a normal state, but
+  // the form's controlled inputs still need strings and arrays.
+  const defaults: Partial<HelperDefaults> = {
     ...existing,
-    // Columns are nullable, but the form's controlled inputs need strings.
     full_name: existing?.full_name ?? "",
-    school: existing?.school ?? "",
-    major: existing?.major ?? "",
     occ_id: existing?.occ_id ?? "",
     dob: existing?.dob ?? "",
     phone: existing?.phone ?? "",
     shirt: existing?.shirt ?? "",
     needs: existing?.needs ?? "",
+    expertise: existing?.expertise ?? "",
+    resume_path: existing?.resume_path ?? "",
+    mentor_reason: existing?.mentor_reason ?? "",
+    preferred_time: existing?.preferred_time ?? "",
     classes: existing?.classes ?? [],
-    iota_xi: existing?.iota_xi == null ? "" : existing.iota_xi ? "yes" : "no",
-    ranks: {
-      entertainment: rank(existing?.rank_entertainment),
-      education: rank(existing?.rank_education),
-      productivity: rank(existing?.rank_productivity),
-    },
+    availability: existing?.availability ?? [],
     email: existing?.email ?? user?.email ?? "",
   };
 
   return (
     <SidebarProvider>
       <AccountSidebar
-        active="register"
+        active={copy.role}
         email={user?.email}
         name={existing?.full_name}
       />
@@ -70,17 +69,17 @@ export default async function RegisterPage() {
         <FloatingVideo />
 
         <section className="relative z-10 mx-auto w-full max-w-2xl px-6 py-16 sm:px-12">
-        <div className="text-center">
-          <h1 className="font-display text-4xl tracking-tight sm:text-5xl">
-            register as a hacker
-          </h1>
-        </div>
+          <div className="text-center">
+            <h1 className="font-display text-4xl tracking-tight sm:text-5xl">
+              {copy.heading}
+            </h1>
+          </div>
 
-        <div className="mt-10">
-          {/* A draft row isn't an update — only a finished registration is. */}
-          <RegisterForm defaults={defaults} isUpdate={!!existing?.completed_at} />
-        </div>
-      </section>
+          <div className="mt-10">
+            {/* A draft row isn't an update — only a finished sign-up is. */}
+            <HelperForm copy={copy} defaults={defaults} isUpdate={!!existing?.completed_at} />
+          </div>
+        </section>
       </SidebarInset>
     </SidebarProvider>
   );

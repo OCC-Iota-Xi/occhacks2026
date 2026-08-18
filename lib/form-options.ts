@@ -1,16 +1,21 @@
 /** Shared option lists for the hacker and volunteer/mentor forms. */
 
 /**
- * PLACEHOLDER — replace with the real OCC course list from the org team.
- * These drive the "extra credit" checkboxes on both forms; the stored value is
+ * The OCC courses whose instructors are giving extra credit for attending.
+ * These drive the "extra credit" picker on both forms; the stored value is
  * the string shown here, so edit freely without touching the schema.
+ *
+ * Codes are the CCCD catalog's. Several of these run more than one section
+ * (C++ 2 and Java 1 are three apiece), but the reader picks the course rather
+ * than the section — the roster is matched against the instructor's list
+ * afterwards. Note the catalog carries two other data-structures courses,
+ * A132 (Python) and A275 (Java); A200 is the one meant here.
  */
 export const OCC_CLASSES = [
-  "CS A150 — Programming Concepts",
-  "CS A170 — Java Programming",
-  "CS A250 — Data Structures",
-  "CIS A111 — Intro to Computer Information Systems",
-  "MATH A170 — Discrete Mathematics",
+  "CS A170 Java 1",
+  "CS A200 Data Structures",
+  "CS A220 Software Engineering",
+  "CS A250 C++ 2",
 ];
 
 export const SHIRT_SIZES = ["xs", "s", "m", "l", "xl", "xxl"];

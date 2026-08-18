@@ -12,7 +12,7 @@ const [year, month, day] = EVENT_START.split("-");
 export const LATEST_DOB = `${Number(year) - 18}-${month}-${day}`;
 
 export const UNDER_18_MESSAGE =
-  "sorry — you have to be 18 by oct 10, 2026 to take part. IDs are checked at check-in.";
+  "sorry — you have to be 18 by oct 10, 2026 to take part.";
 
 /**
  * True when a date of birth clears 18 by the first day of the event, so a
