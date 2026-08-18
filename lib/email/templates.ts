@@ -13,6 +13,8 @@
  * survives an email client, so the wordmark has to ship as an image.
  */
 
+import type { HelperRole } from "@/lib/helper-roles";
+
 const SITE = "https://www.occhacks.com";
 const WORDMARK = `${SITE}/email/occhacks-wordmark.png`;
 
@@ -30,7 +32,7 @@ const WORDMARK_H = 58;
 
 const EVENT = {
   dates: "October 10–11, 2026",
-  venue: "The OCC Ballroom, Orange Coast College",
+  venue: "College Center 3rd floor (ballroom), Orange Coast College",
   checkIn: "8:00 AM Saturday",
   ceremony: "9:00 AM",
   parking: "Free in Lot C, at Merrimac Way and Fairview Road",
@@ -67,11 +69,6 @@ function firstName(fullName: string): string {
   return fullName.trim().split(/\s+/)[0] || "there";
 }
 
-/** Sentence-cases a lowercase label for use as a standalone value. */
-function cap(value: string): string {
-  return value.charAt(0).toUpperCase() + value.slice(1);
-}
-
 interface Detail {
   label: string;
   value: string;
@@ -83,8 +80,8 @@ function detailTable(details: Detail[]): string {
     .map(
       ({ label, value }) => `
                     <tr>
-                      <td style="padding:11px 16px 11px 0;border-top:1px solid ${COLOR.border};font-family:${FONT};font-size:13px;line-height:1.5;color:${COLOR.faint};white-space:nowrap;vertical-align:top;">${label}</td>
-                      <td style="padding:11px 0;border-top:1px solid ${COLOR.border};font-family:${FONT};font-size:14px;line-height:1.5;color:${COLOR.text};vertical-align:top;">${value}</td>
+                      <td class="faint" bgcolor="${COLOR.bg}" style="padding:11px 16px 11px 0;border-top:1px solid ${COLOR.border};font-family:${FONT};font-size:13px;line-height:1.5;color:${COLOR.faint};background-color:${COLOR.bg};white-space:nowrap;vertical-align:top;">${label}</td>
+                      <td class="bright" bgcolor="${COLOR.bg}" style="padding:11px 0;border-top:1px solid ${COLOR.border};font-family:${FONT};font-size:14px;line-height:1.5;color:${COLOR.text};background-color:${COLOR.bg};vertical-align:top;">${value}</td>
                     </tr>`
     )
     .join("");
@@ -101,6 +98,43 @@ interface ShellArgs {
   body: string;
 }
 
+/**
+ * Keeps mobile clients from re-tinting the palette.
+ *
+ * Gmail, Outlook and Yahoo run their own dark-mode pass over incoming mail.
+ * They read `background-color` off the element itself — never an ancestor's,
+ * and never a `background-image` — so a `#ffffff` run with no background of
+ * its own is assumed to sit on white and gets darkened to a mid grey. That
+ * left the headline and the detail-table values unreadable on the starfield
+ * while the `#a3a3a3` body copy, below their remap threshold, came through
+ * untouched. Two defences, because no single one covers every client:
+ *
+ *   1. Every light-on-dark run carries its own `background-color` inline
+ *      (below), which is enough for the clients that only ever look there.
+ *   2. These rules re-assert the palette after the fact — `[data-ogsc]` /
+ *      `[data-ogsb]` are the hooks Outlook's mobile app leaves on rewritten
+ *      elements, and the media query catches Apple Mail. Inline styles are
+ *      what the clients rewrite, so these have to be `!important` to win.
+ *
+ * Declaring both schemes is deliberate: clients skip their forced pass only
+ * for mail that claims to handle dark mode itself, and several don't
+ * recognise a lone `dark`.
+ */
+const DARK_MODE_CSS = `
+      :root { color-scheme: light dark; supported-color-schemes: light dark; }
+      [data-ogsc] .bright, [data-ogsb] .bright { color: ${COLOR.text} !important; }
+      [data-ogsc] .muted,  [data-ogsb] .muted  { color: ${COLOR.muted} !important; }
+      [data-ogsc] .faint,  [data-ogsb] .faint  { color: ${COLOR.faint} !important; }
+      [data-ogsc] .gold,   [data-ogsb] .gold   { color: ${COLOR.gold} !important; }
+      [data-ogsc] .canvas, [data-ogsb] .canvas { background-color: ${COLOR.bg} !important; }
+      @media (prefers-color-scheme: dark) {
+        .bright { color: ${COLOR.text} !important; }
+        .muted  { color: ${COLOR.muted} !important; }
+        .faint  { color: ${COLOR.faint} !important; }
+        .gold   { color: ${COLOR.gold} !important; }
+        .canvas { background-color: ${COLOR.bg} !important; }
+      }`;
+
 /** Outer chrome: wordmark, headline, content, footer rule. */
 function shell({ preheader, heading, body }: ShellArgs): string {
   return `<!doctype html>
@@ -108,13 +142,15 @@ function shell({ preheader, heading, body }: ShellArgs): string {
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="color-scheme" content="dark" />
-    <meta name="supported-color-schemes" content="dark" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="supported-color-schemes" content="light dark" />
     <title>${esc(heading)}</title>
+    <style type="text/css">${DARK_MODE_CSS}
+    </style>
   </head>
-  <body style="margin:0;padding:0;width:100%;background-color:${COLOR.bg};background-image:url('${STARS}');">
+  <body class="canvas" bgcolor="${COLOR.bg}" style="margin:0;padding:0;width:100%;background-color:${COLOR.bg};background-image:url('${STARS}');">
     <div style="display:none;max-height:0;overflow:hidden;opacity:0;">${esc(preheader)}</div>
-    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" background="${STARS}" style="background-color:${COLOR.bg};background-image:url('${STARS}');background-repeat:repeat;">
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" background="${STARS}" bgcolor="${COLOR.bg}" class="canvas" style="background-color:${COLOR.bg};background-image:url('${STARS}');background-repeat:repeat;">
       <tr>
         <td align="center" style="padding:56px 24px 64px;">
           <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="max-width:520px;">
@@ -125,7 +161,7 @@ function shell({ preheader, heading, body }: ShellArgs): string {
             </tr>
             <tr>
               <td style="padding:0 0 24px;">
-                <h1 style="margin:0;font-family:${FONT};font-size:38px;line-height:1.1;letter-spacing:-0.5px;font-weight:500;color:${COLOR.text};">${esc(heading)}</h1>
+                <h1 class="bright" style="margin:0;font-family:${FONT};font-size:38px;line-height:1.1;letter-spacing:-0.5px;font-weight:500;color:${COLOR.text};background-color:${COLOR.bg};">${esc(heading)}</h1>
               </td>
             </tr>
             <tr>
@@ -135,7 +171,7 @@ ${body}
             </tr>
             <tr>
               <td style="padding:8px 0 0;">
-                <p style="margin:0;padding-top:28px;border-top:1px solid ${COLOR.border};font-family:${FONT};font-size:12px;line-height:1.8;color:${COLOR.faint};">
+                <p class="faint" style="margin:0;padding-top:28px;border-top:1px solid ${COLOR.border};font-family:${FONT};font-size:12px;line-height:1.8;color:${COLOR.faint};">
                   OCC Hacks 2026 · Organized by the Iota Xi Society<br />
                   Orange Coast College · Costa Mesa, CA<br />
                   Questions? Just reply — this reaches the organizers.
@@ -151,7 +187,7 @@ ${body}
 }
 
 function paragraph(html: string): string {
-  return `                <p style="margin:0 0 22px;font-family:${FONT};font-size:15px;line-height:1.75;color:${COLOR.muted};">${html}</p>`;
+  return `                <p class="muted" style="margin:0 0 22px;font-family:${FONT};font-size:15px;line-height:1.75;color:${COLOR.muted};">${html}</p>`;
 }
 
 /**
@@ -190,8 +226,8 @@ function buttons(ctas: Cta[]): string {
                       <td style="padding:0 ${i === ctas.length - 1 ? 0 : 10}px 0 0;">
                         <table role="presentation" cellpadding="0" cellspacing="0" border="0">
                           <tr>
-                            <td style="border:1px solid ${border};border-radius:999px;">
-                              <a href="${href}" style="display:inline-block;padding:12px 26px;font-family:${FONT};font-size:14px;line-height:${ICON_SIZE}px;color:${color};text-decoration:none;white-space:nowrap;">${mark}<span style="vertical-align:middle;">${esc(label)}</span></a>
+                            <td bgcolor="${COLOR.bg}" class="canvas" style="border:1px solid ${border};border-radius:999px;background-color:${COLOR.bg};">
+                              <a href="${href}" class="${primary ? "gold" : "bright"}" style="display:inline-block;padding:12px 26px;font-family:${FONT};font-size:14px;line-height:${ICON_SIZE}px;color:${color};text-decoration:none;white-space:nowrap;">${mark}<span style="vertical-align:middle;">${esc(label)}</span></a>
                             </td>
                           </tr>
                         </table>
@@ -206,7 +242,7 @@ function buttons(ctas: Cta[]): string {
 }
 
 const goldLink = (label: string, href: string) =>
-  `<a href="${href}" style="color:${COLOR.gold};text-decoration:underline;">${esc(label)}</a>`;
+  `<a href="${href}" class="gold" style="color:${COLOR.gold};text-decoration:underline;">${esc(label)}</a>`;
 
 /** `EVENT.parking` with the lot linked to its map pin — for HTML bodies only. */
 const PARKING_HTML = `Free in ${goldLink("Lot C", EVENT.parkingUrl)}, at Merrimac Way and Fairview Road`;
@@ -294,70 +330,59 @@ Questions? Just reply — this reaches the organizers.`;
   };
 }
 
-export type VolunteerRole = "volunteer" | "mentor" | "both";
-
-const ROLE_LABEL: Record<VolunteerRole, string> = {
-  volunteer: "volunteer",
-  mentor: "mentor",
-  both: "volunteer and mentor",
-};
-
-/** Confirmation for a volunteer / mentor sign-up. */
-export function volunteerWelcomeEmail(
-  fullName: string,
-  role: VolunteerRole
-): WelcomeEmail {
+/**
+ * Confirmation for a volunteer sign-up.
+ *
+ * Volunteers and mentors get separate letters rather than one with the role
+ * swapped in: the two jobs are nothing alike on the day, and the wording that
+ * actually helps someone — a shift and a place to report, versus a block on the
+ * floor and a team to sit with — differs line by line. Both carry the same
+ * facts: the event details, what the job is, the Discord, and how to edit the
+ * sign-up.
+ */
+export function volunteerWelcomeEmail(fullName: string): WelcomeEmail {
   const name = esc(firstName(fullName));
-  const roleLabel = ROLE_LABEL[role] ?? "volunteer";
-
-  const roleBlurb =
-    role === "volunteer"
-      ? `Volunteers keep the weekend running — check-in, meals, keeping the room stocked, and pointing 130–150 hackers in the right direction.`
-      : `You'll be working alongside our other industry mentors and 130–150 student hackers, most of them at their first hackathon. The best thing you can do is unblock people and ask what they're building.`;
 
   const body = [
     paragraph(
-      `Hi ${name} — thanks for signing up to help run OCC Hacks 2026. We have you down as a ${esc(roleLabel)}, and an organizer will follow up closer to the event with your shift details and where to be.`
+      `Hi ${name} — thank you for offering to help run OCC Hacks 2026. We have your sign-up, and we'll reach out to you soon with the shift you're on and where to report when you arrive.`
     ),
     detailTable([
       { label: "When", value: EVENT.dates },
       { label: "Where", value: EVENT.venue },
-      { label: "Your role", value: esc(cap(roleLabel)) },
+      { label: "Your role", value: "Volunteer" },
       { label: "Parking", value: PARKING_HTML },
-      { label: "Meals", value: "Covered, same as the hackers" },
+      { label: "Meals", value: "Covered on every shift, same as the hackers" },
     ]),
-    paragraph(roleBlurb),
     paragraph(
-      `Please join the Discord if you haven't already — it's where we coordinate ${role === "volunteer" ? "shifts and day-of logistics" : "mentor coverage and day-of logistics"}, and it's the fastest way to reach an organizer.`
+      `Volunteers are what keep the weekend running: check-in at the door, meals, keeping the room stocked, and pointing 130–150 hackers in the right direction. None of it needs a technical background — whoever is running your shift will walk you through it when you get there.`
+    ),
+    paragraph(
+      `Please join the Discord if you haven't already. Shifts and day-of logistics are coordinated there, and it's the fastest way to reach an organizer.`
     ),
     buttons([
       { label: "Join the Discord", href: EVENT.discordUrl, primary: true, icon: DISCORD_ICON },
       { label: "See the schedule", href: `${SITE}/#schedule` },
     ]),
-    paragraph(
-      `Need to change your availability or role? You can ${goldLink("update your sign-up", `${SITE}/volunteer`)} at any time before the event.`
-    ),
     paragraph(`See you out there.`),
   ].join("\n");
 
-  const text = `Thanks for signing up — OCC Hacks 2026
+  const text = `Thank you for offering to help — OCC Hacks 2026
 
-Hi ${firstName(fullName)} — thanks for signing up to help run OCC Hacks 2026. We have you down as a ${roleLabel}, and an organizer will follow up closer to the event with your shift details and where to be.
+Hi ${firstName(fullName)} — thank you for offering to help run OCC Hacks 2026. We have your sign-up, and we'll reach out to you soon with the shift you're on and where to report when you arrive.
 
 When       ${EVENT.dates}
 Where      ${EVENT.venue}
-Your role  ${cap(roleLabel)}
+Your role  Volunteer
 Parking    ${EVENT.parking}
-Meals      Covered, same as the hackers
+Meals      Covered on every shift, same as the hackers
 
-${roleBlurb}
+Volunteers are what keep the weekend running: check-in at the door, meals, keeping the room stocked, and pointing 130-150 hackers in the right direction. None of it needs a technical background — whoever is running your shift will walk you through it when you get there.
 
-Please join the Discord if you haven't already — it's where we coordinate ${role === "volunteer" ? "shifts and day-of logistics" : "mentor coverage and day-of logistics"}, and it's the fastest way to reach an organizer.
+Please join the Discord if you haven't already. Shifts and day-of logistics are coordinated there, and it's the fastest way to reach an organizer.
 
 Join the Discord: ${EVENT.discordUrl}
 See the schedule: ${SITE}/#schedule
-
-Need to change your availability or role? You can update your sign-up at any time before the event: ${SITE}/volunteer
 
 See you out there.
 
@@ -367,12 +392,80 @@ Orange Coast College · Costa Mesa, CA
 Questions? Just reply — this reaches the organizers.`;
 
   return {
-    subject: "Thanks for signing up — OCC Hacks 2026",
+    subject: "Thank you for offering to help — OCC Hacks 2026",
     html: shell({
-      preheader: `You're on the ${roleLabel} roster for ${EVENT.dates}.`,
-      heading: "Thanks for signing up",
+      preheader: `We have your volunteer sign-up — we'll reach out to you soon.`,
+      heading: "Thank you for offering to help",
       body,
     }),
     text,
   };
+}
+
+/** Confirmation for a mentor sign-up — see `volunteerWelcomeEmail`. */
+export function mentorWelcomeEmail(fullName: string): WelcomeEmail {
+  const name = esc(firstName(fullName));
+
+  const body = [
+    paragraph(
+      `Hi ${name} — thank you for offering your time to OCC Hacks 2026. We have your sign-up, and we'll reach out to you soon with the blocks you're covering and how we match mentors to teams on the day.`
+    ),
+    detailTable([
+      { label: "When", value: EVENT.dates },
+      { label: "Where", value: EVENT.venue },
+      { label: "Your role", value: "Mentor" },
+      { label: "Parking", value: PARKING_HTML },
+      { label: "Meals", value: "Covered while you're on the floor, same as the hackers" },
+    ]),
+    paragraph(
+      `You'll be on the floor with our other mentors and 130–150 student hackers, most of them at their first hackathon. Nothing to prepare — the useful thing is to walk the room, ask teams what they're building, and get them unstuck. Saying "I don't know that one either, let's look" is a perfectly good answer.`
+    ),
+    paragraph(
+      `Please join the Discord if you haven't already. Mentor coverage and day-of logistics are coordinated there, and teams post questions between blocks.`
+    ),
+    buttons([
+      { label: "Join the Discord", href: EVENT.discordUrl, primary: true, icon: DISCORD_ICON },
+      { label: "See the schedule", href: `${SITE}/#schedule` },
+    ]),
+    paragraph(`See you on the floor.`),
+  ].join("\n");
+
+  const text = `Thank you for offering your time — OCC Hacks 2026
+
+Hi ${firstName(fullName)} — thank you for offering your time to OCC Hacks 2026. We have your sign-up, and we'll reach out to you soon with the blocks you're covering and how we match mentors to teams on the day.
+
+When       ${EVENT.dates}
+Where      ${EVENT.venue}
+Your role  Mentor
+Parking    ${EVENT.parking}
+Meals      Covered while you're on the floor, same as the hackers
+
+You'll be on the floor with our other mentors and 130-150 student hackers, most of them at their first hackathon. Nothing to prepare — the useful thing is to walk the room, ask teams what they're building, and get them unstuck. Saying "I don't know that one either, let's look" is a perfectly good answer.
+
+Please join the Discord if you haven't already. Mentor coverage and day-of logistics are coordinated there, and teams post questions between blocks.
+
+Join the Discord: ${EVENT.discordUrl}
+See the schedule: ${SITE}/#schedule
+
+See you on the floor.
+
+—
+OCC Hacks 2026 · Organized by the Iota Xi Society
+Orange Coast College · Costa Mesa, CA
+Questions? Just reply — this reaches the organizers.`;
+
+  return {
+    subject: "Thank you for offering your time — OCC Hacks 2026",
+    html: shell({
+      preheader: `We have your mentor sign-up — we'll reach out to you soon.`,
+      heading: "Thank you for offering your time",
+      body,
+    }),
+    text,
+  };
+}
+
+/** Picks the letter for a role — the two share nothing but their shape. */
+export function helperWelcomeEmail(fullName: string, role: HelperRole): WelcomeEmail {
+  return role === "mentor" ? mentorWelcomeEmail(fullName) : volunteerWelcomeEmail(fullName);
 }

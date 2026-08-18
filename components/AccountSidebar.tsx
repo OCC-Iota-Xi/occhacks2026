@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Rocket, HeartHandshake, LogOut } from "lucide-react";
+import { Rocket, HeartHandshake, Compass, LogOut } from "lucide-react";
 import { signOut } from "@/app/register/actions";
 import {
   Sidebar,
@@ -17,18 +17,21 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 
+// Volunteering and mentoring are separate sign-ups, so they're separate
+// entries — someone can be on both rosters.
 const NAV = [
   { href: "/register", label: "register as a hacker", icon: Rocket, key: "register" },
-  { href: "/volunteer", label: "volunteer or mentor", icon: HeartHandshake, key: "volunteer" },
+  { href: "/volunteer", label: "volunteer", icon: HeartHandshake, key: "volunteer" },
+  { href: "/mentor", label: "mentor", icon: Compass, key: "mentor" },
 ] as const;
 
-/** Left-hand navigation for the signed-in pages (register / volunteer). */
+/** Left-hand navigation for the signed-in pages (register / volunteer / mentor). */
 export default function AccountSidebar({
   active,
   email,
   name,
 }: {
-  active: "register" | "volunteer";
+  active: "register" | "volunteer" | "mentor";
   email?: string | null;
   name?: string | null;
 }) {
