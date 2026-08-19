@@ -83,6 +83,7 @@ function hackerRow(formData: FormData) {
     shirt: nullable("shirt"),
     needs: nullable("needs"),
     classes: list("classes"),
+    eligibility_agreed: !!formData.get("eligibility"),
     email_opt_in: !!formData.get("email_opt_in"),
     rank_entertainment: rank("rank_entertainment"),
     rank_education: rank("rank_education"),
@@ -103,6 +104,7 @@ function helperRow(formData: FormData) {
     expertise: nullable("expertise"),
     shirt: nullable("shirt"),
     needs: nullable("needs"),
+    eligibility_agreed: !!formData.get("eligibility"),
     email_opt_in: !!formData.get("email_opt_in"),
     updated_at: new Date().toISOString(),
   };

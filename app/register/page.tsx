@@ -25,7 +25,7 @@ export default async function RegisterPage() {
     ? await supabase
         .from("hackers")
         .select(
-          "full_name, school, major, occ_id, dob, email, phone, iota_xi, shirt, needs, email_opt_in, classes, rank_entertainment, rank_education, rank_productivity, completed_at"
+          "full_name, school, major, occ_id, dob, email, phone, iota_xi, shirt, needs, eligibility_agreed, email_opt_in, classes, rank_entertainment, rank_education, rank_productivity, completed_at"
         )
         .eq("user_id", user.id)
         .maybeSingle()
