@@ -24,12 +24,10 @@ export default function ResumeUpload({
   name,
   value,
   onValueChange,
-  invalid,
 }: {
   name: string;
   value: string;
   onValueChange: (path: string) => void;
-  invalid?: boolean;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
@@ -109,9 +107,9 @@ export default function ResumeUpload({
         type="button"
         onClick={() => inputRef.current?.click()}
         disabled={busy}
-        // `aria-invalid` isn't a valid attribute on a button — the flag is
-        // carried as data and read by the classes below.
-        data-invalid={invalid ? "true" : undefined}
+        // `aria-invalid` isn't a valid attribute on a button — a rejected file
+        // is carried as data and read by the classes below.
+        data-invalid={error ? "true" : undefined}
         className="flex items-center gap-2 rounded-full border border-border px-5 py-2 text-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 disabled:opacity-60 data-[invalid=true]:border-destructive data-[invalid=true]:text-destructive"
       >
         {busy ? (

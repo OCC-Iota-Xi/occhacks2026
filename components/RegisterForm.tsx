@@ -276,6 +276,8 @@ export default function RegisterForm({
           <p className="text-base text-muted-foreground">
             You&apos;re registered. We&apos;ll email you closer to the event
             with everything you need — see you oct 10–11.
+            {/* Only the first submit sends one — an edit doesn't. */}
+            {!isUpdate && " A confirmation email is on its way; check your spam folder if it doesn't turn up."}
           </p>
           <Link href="/" className="mt-8 inline-block text-sm transition-colors hover:text-ring">
             &larr; back to the site

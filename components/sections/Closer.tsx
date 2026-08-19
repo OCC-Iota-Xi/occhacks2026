@@ -53,8 +53,7 @@ const SOCIALS = [
   { label: "Instagram", href: "https://www.instagram.com/cshs_occ/", Icon: InstagramIcon },
   { label: "Discord", href: "https://discord.gg/Qn638vTzp2", Icon: DiscordIcon },
   { label: "LinkedIn", href: "https://www.linkedin.com/company/106461068/", Icon: LinkedinIcon },
-  /* TODO: placeholder — swap for the real Devpost URL once the hackathon page exists. */
-  { label: "Devpost", href: "https://occ-hacks-2026.devpost.com/", Icon: DevpostIcon },
+  { label: "Devpost", href: "https://occhacks-2026.devpost.com/", Icon: DevpostIcon },
 ];
 
 /** The site footer. */

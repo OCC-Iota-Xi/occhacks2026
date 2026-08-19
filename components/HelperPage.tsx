@@ -4,16 +4,52 @@ import AccountSidebar from "@/components/AccountSidebar";
 import FloatingVideo from "@/components/FloatingVideo";
 import HelperForm, { type HelperDefaults } from "@/components/HelperForm";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
-import type { HelperCopy } from "@/lib/helper-roles";
+import { HELPER_TABLE, type HelperCopy } from "@/lib/helper-roles";
 import { createClient } from "@/lib/supabase/server";
+
+/** A stored sign-up from either table, as the form wants to read it. */
+type StoredSignup = Partial<HelperDefaults> & { completed_at: string | null };
+
+/**
+ * The reader's saved sign-up for one role, or null if they haven't started.
+ *
+ * Two spelled-out queries rather than one keyed by the role: the tables hold
+ * different columns, and the Supabase client derives the row type from the
+ * select string, so it only types the result when that string is a literal.
+ * The two shapes meet again as `StoredSignup`, which is the union of both.
+ */
+async function loadSignup(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  copy: HelperCopy,
+  userId: string
+): Promise<StoredSignup | null> {
+  const shared =
+    "full_name, dob, email, phone, shirt, needs, expertise, email_opt_in, availability, completed_at";
+
+  if (copy.role === "mentor") {
+    const { data } = await supabase
+      .from(HELPER_TABLE.mentor)
+      .select(`${shared}, resume_path, mentor_reason, preferred_time`)
+      .eq("user_id", userId)
+      .maybeSingle();
+    return data as StoredSignup | null;
+  }
+
+  const { data } = await supabase
+    .from(HELPER_TABLE.volunteer)
+    .select(`${shared}, occ_id`)
+    .eq("user_id", userId)
+    .maybeSingle();
+  return data as StoredSignup | null;
+}
 
 /**
  * The volunteer and mentor sign-up pages.
  *
  * Both routes render this with their own `copy`; the only thing the route
- * itself owns is its metadata. The stored row is looked up by (user_id, role),
- * so someone who has already volunteered still lands on an empty mentor form —
- * the two sign-ups don't see each other.
+ * itself owns is its metadata. Each role reads its own table, so someone who
+ * has already volunteered still lands on an empty mentor form — the two
+ * sign-ups don't see each other.
  */
 export default async function HelperPage({ copy }: { copy: HelperCopy }) {
   const supabase = await createClient();
@@ -23,16 +59,7 @@ export default async function HelperPage({ copy }: { copy: HelperCopy }) {
   // Dev-only: allow viewing the form without a session (saving still requires auth).
   if (!user && process.env.NODE_ENV !== "development") redirect("/signin");
 
-  const { data: existing } = user
-    ? await supabase
-        .from("volunteers")
-        .select(
-          "full_name, occ_id, dob, email, phone, shirt, needs, expertise, email_opt_in, classes, availability, resume_path, mentor_reason, preferred_time, completed_at"
-        )
-        .eq("user_id", user.id)
-        .eq("role", copy.role)
-        .maybeSingle()
-    : { data: null };
+  const existing = user ? await loadSignup(supabase, copy, user.id) : null;
 
   // Columns are nullable now that a half-finished row is a normal state, but
   // the form's controlled inputs still need strings and arrays.
@@ -48,7 +75,6 @@ export default async function HelperPage({ copy }: { copy: HelperCopy }) {
     resume_path: existing?.resume_path ?? "",
     mentor_reason: existing?.mentor_reason ?? "",
     preferred_time: existing?.preferred_time ?? "",
-    classes: existing?.classes ?? [],
     availability: existing?.availability ?? [],
     email: existing?.email ?? user?.email ?? "",
   };
