@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { FileText, Loader2, Upload } from "lucide-react";
+import { FileText, Loader2, Upload, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
 const BUCKET = "resumes";
@@ -85,6 +85,26 @@ export default function ResumeUpload({
     onValueChange(path);
   }
 
+  /**
+   * Takes the résumé back off the form and out of the bucket.
+   *
+   * The path is cleared either way. Someone who has asked to remove their
+   * résumé shouldn't be left with the form still pointing at it because a
+   * delete didn't go through — the stored path is what organizers read, and a
+   * file nothing references is invisible to them.
+   */
+  async function remove() {
+    setError("");
+    setBusy(true);
+
+    const supabase = createClient();
+    const { error: deleteError } = await supabase.storage.from(BUCKET).remove([value]);
+    if (deleteError) console.error("[resume] delete failed:", deleteError);
+
+    setBusy(false);
+    onValueChange("");
+  }
+
   return (
     <div className="flex flex-col items-center gap-3">
       {/* Deliberately nameless: giving it a name would post the file itself
@@ -124,6 +144,14 @@ export default function ResumeUpload({
         <p className="flex max-w-full items-center gap-2 text-sm text-ring">
           <FileText className="size-4 shrink-0" />
           <span className="truncate">{filename}</span>
+          <button
+            type="button"
+            onClick={() => void remove()}
+            aria-label={`remove ${filename}`}
+            className="shrink-0 rounded-full p-1 text-muted-foreground transition-colors hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
+          >
+            <X className="size-4" />
+          </button>
         </p>
       )}
 

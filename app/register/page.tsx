@@ -23,7 +23,7 @@ export default async function RegisterPage() {
 
   const { data: existing } = user
     ? await supabase
-        .from("registrations")
+        .from("hackers")
         .select(
           "full_name, school, major, occ_id, dob, email, phone, iota_xi, shirt, needs, email_opt_in, classes, rank_entertainment, rank_education, rank_productivity, completed_at"
         )

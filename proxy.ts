@@ -2,8 +2,13 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 /**
- * Guards /register: refreshes the Supabase session cookie and redirects
+ * Guards the sign-up pages: refreshes the Supabase session cookie and redirects
  * signed-out visitors to /signin.
+ *
+ * The refresh is the half that's easy to overlook. A server component can't
+ * write cookies, so this is the only place the access token gets renewed — a
+ * page left out of the matcher below lets someone's session lapse under them
+ * while they're still filling the form in.
  */
 export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request });
@@ -43,5 +48,5 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/register"],
+  matcher: ["/register", "/volunteer", "/mentor"],
 };

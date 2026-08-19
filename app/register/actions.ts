@@ -29,10 +29,10 @@ const HACKER_REQUIRED = [
 const HELPER_REQUIRED = ["name", "dob", "email", "phone", "shirt"] as const;
 
 /**
- * The mentor form's own questions. `resume_path` and `mentor_reason` are
- * deliberately absent — both are optional.
+ * The mentor form's own questions. Only `expertise` is required — the résumé
+ * and the reason for mentoring are both optional.
  */
-const MENTOR_REQUIRED = ["preferred_time", "expertise"] as const;
+const MENTOR_REQUIRED = ["expertise"] as const;
 
 function requiredFor(role: HelperRole): readonly string[] {
   return role === "mentor" ? [...HELPER_REQUIRED, ...MENTOR_REQUIRED] : HELPER_REQUIRED;
@@ -125,7 +125,6 @@ function mentorRow(formData: FormData) {
     ...helperRow(formData),
     resume_path: nullable("resume_path"),
     mentor_reason: nullable("mentor_reason"),
-    preferred_time: nullable("preferred_time"),
   };
 }
 
@@ -139,7 +138,7 @@ function mentorRow(formData: FormData) {
  * holding the same answers.
  */
 async function saveDraft(
-  table: "registrations" | HelperTable,
+  table: "hackers" | HelperTable,
   row: object
 ): Promise<{ ok: boolean }> {
   const supabase = await createClient();
@@ -159,7 +158,7 @@ async function saveDraft(
 }
 
 export async function saveRegistrationDraft(formData: FormData) {
-  return saveDraft("registrations", hackerRow(formData));
+  return saveDraft("hackers", hackerRow(formData));
 }
 
 // One per role rather than a single action taking the role as an argument:
@@ -210,7 +209,7 @@ export async function submitRegistration(
     return { ok: false, message: "rank each track once, using 1, 2, and 3." };
   }
 
-  const { error } = await supabase.from("registrations").upsert(
+  const { error } = await supabase.from("hackers").upsert(
     {
       user_id: user.id,
       ...hackerRow(formData),

@@ -39,7 +39,6 @@ export interface HelperCopy {
   details: {
     resume: { label: string; hint: string };
     reason: { label: string; hint: string };
-    preferredTime: { label: string; hint: string };
   } | null;
   /**
    * Whether to ask for an OCC student ID. Volunteers are mostly OCC students
@@ -104,10 +103,6 @@ export const MENTOR_COPY: HelperCopy = {
     reason: {
       label: "why do you want to mentor with us?",
       hint: "optional, and there's no wrong answer — a sentence or two is plenty.",
-    },
-    preferredTime: {
-      label: "which time would work best for you?",
-      hint: "your first choice. you'll pick everything you're free for on the next step.",
     },
   },
   asksOccId: false,

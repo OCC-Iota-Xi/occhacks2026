@@ -11,14 +11,22 @@ const VIDEO_ID = "952ILTHDgC4";
 const WIDTH = 240;
 const HEIGHT = 360;
 const EDGE = 16;
-/** How far down the page it waits before sliding in. */
-const SHOW_AFTER = 320;
+/**
+ * How close to the foot of the page counts as having reached the end. Enough
+ * slack that the last question and the button under it are fully in view.
+ */
+const END_SLACK = 96;
 const DISMISSED_KEY = "occhacks:video-dismissed";
 
 /**
- * Muted background video in a draggable phone-sized window. Slides in once
- * the page has been scrolled a little — once only, since scrolling back up
+ * Muted background video in a draggable phone-sized window. Slides in once the
+ * reader reaches the end of the page — once only, since scrolling back up
  * shouldn't take it away — and stays gone for the session once closed.
+ *
+ * Every page that shows this is a sign-up form, which is why it waits for the
+ * end rather than for some distance scrolled: a form shows one short step at a
+ * time, so a fixed distance either arrives before the step has been read or,
+ * on a step that fits the window, never arrives at all.
  */
 export default function FloatingVideo() {
   const [shown, setShown] = useState(false);
@@ -52,13 +60,22 @@ export default function FloatingVideo() {
 
   useEffect(() => {
     if (shown) return;
-    const onScroll = () => {
+    const check = () => {
+      const foot = window.scrollY + window.innerHeight;
       // Latches on: this is a one-time entrance, not a scroll-linked toggle.
-      if (window.scrollY > SHOW_AFTER) setShown(true);
+      // A step short enough not to scroll is already at its end, and counts.
+      if (foot >= document.documentElement.scrollHeight - END_SLACK) setShown(true);
     };
-    onScroll();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
+    check();
+    window.addEventListener("scroll", check, { passive: true });
+    // A step change swaps the whole panel without a scroll or a resize, so the
+    // page can end up shorter than the reader has already scrolled.
+    const observer = new ResizeObserver(check);
+    observer.observe(document.documentElement);
+    return () => {
+      window.removeEventListener("scroll", check);
+      observer.disconnect();
+    };
   }, [shown]);
 
   /** Keeps the window on screen when it's dragged or the viewport changes. */
