@@ -29,7 +29,7 @@ async function loadSignup(
   if (copy.role === "mentor") {
     const { data } = await supabase
       .from(HELPER_TABLE.mentor)
-      .select(`${shared}, resume_path, mentor_reason, preferred_time`)
+      .select(`${shared}, resume_path, mentor_reason`)
       .eq("user_id", userId)
       .maybeSingle();
     return data as StoredSignup | null;
@@ -74,7 +74,6 @@ export default async function HelperPage({ copy }: { copy: HelperCopy }) {
     expertise: existing?.expertise ?? "",
     resume_path: existing?.resume_path ?? "",
     mentor_reason: existing?.mentor_reason ?? "",
-    preferred_time: existing?.preferred_time ?? "",
     availability: existing?.availability ?? [],
     email: existing?.email ?? user?.email ?? "",
   };

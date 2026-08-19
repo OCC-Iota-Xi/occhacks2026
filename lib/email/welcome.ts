@@ -4,7 +4,7 @@ import { HELPER_TABLE, type HelperRole, type HelperTable } from "@/lib/helper-ro
 import { hackerWelcomeEmail, helperWelcomeEmail, type WelcomeEmail } from "./templates";
 
 type Supabase = Awaited<ReturnType<typeof createClient>>;
-type Table = "registrations" | HelperTable;
+type Table = "hackers" | HelperTable;
 
 /**
  * Claims the welcome-email slot for a row: flips `welcome_email_sent_at` from
@@ -73,7 +73,7 @@ export async function sendHackerWelcome(
   to: string,
   fullName: string
 ): Promise<void> {
-  await sendWelcome(supabase, "registrations", userId, to, hackerWelcomeEmail(fullName));
+  await sendWelcome(supabase, "hackers", userId, to, hackerWelcomeEmail(fullName));
 }
 
 /**

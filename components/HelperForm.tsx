@@ -57,7 +57,6 @@ export interface HelperDefaults {
   /** Mentors only — see `HelperCopy.details`. */
   resume_path: string;
   mentor_reason: string;
-  preferred_time: string;
   email_opt_in: boolean;
   availability: string[];
 }
@@ -96,7 +95,6 @@ export default function HelperForm({
   // Both post through inputs React owns, so they're held here rather than read
   // off the DOM — same reason as `shirt`.
   const [resumePath, setResumePath] = useState(defaults?.resume_path ?? "");
-  const [preferredTime, setPreferredTime] = useState(defaults?.preferred_time ?? "");
   const [phone, setPhone] = useState(formatPhone(defaults?.phone ?? ""));
   const [eligible, setEligible] = useState(!!isUpdate);
   const [emailOptIn, setEmailOptIn] = useState(!!defaults?.email_opt_in);
@@ -143,7 +141,6 @@ export default function HelperForm({
     // The controlled questions can't be restored through the DOM.
     if (one(saved, "shirt")) setShirt(one(saved, "shirt"));
     if (one(saved, "resume_path")) setResumePath(one(saved, "resume_path"));
-    if (one(saved, "preferred_time")) setPreferredTime(one(saved, "preferred_time"));
     if (one(saved, "phone")) setPhone(formatPhone(one(saved, "phone")));
     if (saved.eligibility) setEligible(true);
     if (saved.email_opt_in) setEmailOptIn(true);
@@ -185,14 +182,9 @@ export default function HelperForm({
       if (!isOldEnough(dob)) gaps.push({ fields: ["dob"], message: UNDER_18_MESSAGE });
     }
 
-    if (target === 3) {
-      if (!shirt) gaps.push({ fields: ["shirt"] });
-      // The preferred block posts through a Radix radio, which `nativeGaps`
-      // can't see. The résumé is optional, so nothing to check there.
-      if (copy.details && !preferredTime) {
-        gaps.push({ fields: ["preferred_time"] });
-      }
-    }
+    // The shirt picker posts through a Radix radio, which `nativeGaps` can't
+    // see. The mentor questions on this step are all optional.
+    if (target === 3 && !shirt) gaps.push({ fields: ["shirt"] });
 
     if (target === LAST) {
       // Checkboxes post nothing at all when none are ticked.
@@ -523,32 +515,6 @@ export default function HelperForm({
                       defaultValue={defaults?.mentor_reason}
                       className="min-h-20"
                     />
-                  </FieldRow>
-
-                  <FieldRow
-                    number={num()}
-                    label={copy.details.preferredTime.label}
-                    hint={copy.details.preferredTime.hint}
-                    wide
-                    invalid={isInvalid("preferred_time")}
-                  >
-                    <RadioGroup
-                      name="preferred_time"
-                      value={preferredTime}
-                      onValueChange={(value) => {
-                        setPreferredTime(value);
-                        clearMark("preferred_time");
-                        autosave.touch();
-                      }}
-                      aria-invalid={isInvalid("preferred_time")}
-                      required
-                    >
-                      {AVAILABILITY_BLOCKS.map((block) => (
-                        <RadioGroupItem key={block} value={block}>
-                          {block}
-                        </RadioGroupItem>
-                      ))}
-                    </RadioGroup>
                   </FieldRow>
                 </>
               )}
