@@ -46,6 +46,12 @@ export interface HelperCopy {
    * the question would be dead weight on that form.
    */
   asksOccId: boolean;
+  /**
+   * Whether the floating video window rides along on the page. Mentors are
+   * mostly professionals filling this in on a work machine, so the page stays
+   * quiet for them.
+   */
+  showsVideo: boolean;
   availability: { label: string; hint: string; error: string };
   expertise: {
     label: string;
@@ -69,6 +75,7 @@ export const VOLUNTEER_COPY: HelperCopy = {
   lastStep: "how you'll help",
   details: null,
   asksOccId: true,
+  showsVideo: true,
   availability: {
     label: "which time periods are you available to help?",
     hint: "check every block that works — we'll build shifts around it.",
@@ -106,6 +113,7 @@ export const MENTOR_COPY: HelperCopy = {
     },
   },
   asksOccId: false,
+  showsVideo: false,
   availability: {
     label: "when can you be on the floor?",
     hint: "most mentors take one or two blocks — check everything that works.",

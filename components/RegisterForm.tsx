@@ -564,8 +564,6 @@ export default function RegisterForm({
                   name="classes"
                   options={OCC_CLASSES}
                   single
-                  other
-                  otherNote="no promises — extra credit for anything else is up to your instructor."
                   defaultValues={listDefaults("classes", defaults?.classes ?? [])}
                   onChange={autosave.touch}
                 />
