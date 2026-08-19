@@ -91,7 +91,7 @@ export default async function HelperPage({ copy }: { copy: HelperCopy }) {
         </header>
 
         <AccountBackdrop />
-        <FloatingVideo />
+        {copy.showsVideo && <FloatingVideo />}
 
         <section className="relative z-10 mx-auto w-full max-w-2xl px-6 py-16 sm:px-12">
           <div className="text-center">
