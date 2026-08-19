@@ -55,6 +55,7 @@ export interface RegistrationDefaults {
   iota_xi: string;
   shirt: string;
   needs: string;
+  eligibility_agreed: boolean;
   email_opt_in: boolean;
   classes: string[];
   /** Track key -> "1" | "2" | "3" | "", as stored. */
@@ -79,7 +80,7 @@ export default function RegisterForm({
   const [iotaXi, setIotaXi] = useState(defaults?.iota_xi ?? "");
   const [shirt, setShirt] = useState(defaults?.shirt ?? "");
   const [phone, setPhone] = useState(formatPhone(defaults?.phone ?? ""));
-  const [eligible, setEligible] = useState(!!isUpdate);
+  const [eligible, setEligible] = useState(!!defaults?.eligibility_agreed);
   const [emailOptIn, setEmailOptIn] = useState(!!defaults?.email_opt_in);
 
   // Track key -> "1" | "2" | "3" | "". Kept controlled so a number can never be

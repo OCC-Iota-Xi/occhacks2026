@@ -57,6 +57,7 @@ export interface HelperDefaults {
   /** Mentors only — see `HelperCopy.details`. */
   resume_path: string;
   mentor_reason: string;
+  eligibility_agreed: boolean;
   email_opt_in: boolean;
   availability: string[];
 }
@@ -96,7 +97,7 @@ export default function HelperForm({
   // off the DOM — same reason as `shirt`.
   const [resumePath, setResumePath] = useState(defaults?.resume_path ?? "");
   const [phone, setPhone] = useState(formatPhone(defaults?.phone ?? ""));
-  const [eligible, setEligible] = useState(!!isUpdate);
+  const [eligible, setEligible] = useState(!!defaults?.eligibility_agreed);
   const [emailOptIn, setEmailOptIn] = useState(!!defaults?.email_opt_in);
 
   const [step, setStep] = useState(1);

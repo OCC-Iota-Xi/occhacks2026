@@ -24,7 +24,7 @@ async function loadSignup(
   userId: string
 ): Promise<StoredSignup | null> {
   const shared =
-    "full_name, dob, email, phone, shirt, needs, expertise, email_opt_in, availability, completed_at";
+    "full_name, dob, email, phone, shirt, needs, expertise, eligibility_agreed, email_opt_in, availability, completed_at";
 
   if (copy.role === "mentor") {
     const { data } = await supabase
