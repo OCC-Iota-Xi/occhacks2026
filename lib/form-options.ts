@@ -2,7 +2,7 @@
 
 /**
  * The OCC courses whose instructors are giving extra credit for attending.
- * These drive the "extra credit" picker on both forms; the stored value is
+ * These drive the "extra credit" picker on the hacker form; the stored value is
  * the string shown here, so edit freely without touching the schema.
  *
  * Codes are the CCCD catalog's. Several of these run more than one section

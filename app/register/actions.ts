@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { after } from "next/server";
 import { sendHackerWelcome, sendHelperWelcome } from "@/lib/email/welcome";
-import type { HelperRole } from "@/lib/helper-roles";
+import { HELPER_TABLE, type HelperRole, type HelperTable } from "@/lib/helper-roles";
 import { isOldEnough, UNDER_18_MESSAGE } from "@/lib/eligibility";
 import { createClient } from "@/lib/supabase/server";
 
@@ -28,8 +28,11 @@ const HACKER_REQUIRED = [
  */
 const HELPER_REQUIRED = ["name", "dob", "email", "phone", "shirt"] as const;
 
-/** The mentor form's own questions — `mentor_reason` is deliberately optional. */
-const MENTOR_REQUIRED = ["resume_path", "preferred_time", "expertise"] as const;
+/**
+ * The mentor form's own questions. `resume_path` and `mentor_reason` are
+ * deliberately absent — both are optional.
+ */
+const MENTOR_REQUIRED = ["preferred_time", "expertise"] as const;
 
 function requiredFor(role: HelperRole): readonly string[] {
   return role === "mentor" ? [...HELPER_REQUIRED, ...MENTOR_REQUIRED] : HELPER_REQUIRED;
@@ -88,33 +91,41 @@ function hackerRow(formData: FormData) {
   };
 }
 
-/**
- * A volunteer or mentor row. `role` is passed in rather than read from the
- * form: it's decided by which page the reader is on, so it can't be edited by
- * hand, and it's half of the row's primary key — writing the wrong one would
- * overwrite the other sign-up rather than fail.
- */
-function helperRow(role: HelperRole, formData: FormData) {
+/** The answers both helper forms ask for, shared by the two builders below. */
+function helperRow(formData: FormData) {
   const { nullable, list } = reader(formData);
   return {
     email: nullable("email"),
     full_name: nullable("name"),
-    occ_id: nullable("occ_id"),
     dob: nullable("dob"),
     phone: nullable("phone"),
-    role,
     availability: list("availability"),
     expertise: nullable("expertise"),
-    // Mentor-only; a volunteer row just leaves these null. `resume_path` is the
-    // Storage object the browser already uploaded, never the file itself.
-    resume_path: role === "mentor" ? nullable("resume_path") : null,
-    mentor_reason: role === "mentor" ? nullable("mentor_reason") : null,
-    preferred_time: role === "mentor" ? nullable("preferred_time") : null,
     shirt: nullable("shirt"),
     needs: nullable("needs"),
-    classes: list("classes"),
     email_opt_in: !!formData.get("email_opt_in"),
     updated_at: new Date().toISOString(),
+  };
+}
+
+/** A `volunteers` row — the shared answers plus the OCC student ID. */
+function volunteerRow(formData: FormData) {
+  const { nullable } = reader(formData);
+  return { ...helperRow(formData), occ_id: nullable("occ_id") };
+}
+
+/**
+ * A `mentors` row. No `occ_id`: that question is on the volunteer form only,
+ * and the column doesn't exist here. `resume_path` is the Storage object the
+ * browser already uploaded, never the file itself.
+ */
+function mentorRow(formData: FormData) {
+  const { nullable } = reader(formData);
+  return {
+    ...helperRow(formData),
+    resume_path: nullable("resume_path"),
+    mentor_reason: nullable("mentor_reason"),
+    preferred_time: nullable("preferred_time"),
   };
 }
 
@@ -128,9 +139,8 @@ function helperRow(role: HelperRole, formData: FormData) {
  * holding the same answers.
  */
 async function saveDraft(
-  table: "registrations" | "volunteers",
-  row: object,
-  onConflict: string
+  table: "registrations" | HelperTable,
+  row: object
 ): Promise<{ ok: boolean }> {
   const supabase = await createClient();
   const {
@@ -142,25 +152,25 @@ async function saveDraft(
 
   const { error } = await supabase
     .from(table)
-    .upsert({ user_id: user.id, ...row }, { onConflict });
+    .upsert({ user_id: user.id, ...row }, { onConflict: "user_id" });
 
   if (error) console.error(`[draft] ${table} autosave failed:`, error);
   return { ok: !error };
 }
 
 export async function saveRegistrationDraft(formData: FormData) {
-  return saveDraft("registrations", hackerRow(formData), "user_id");
+  return saveDraft("registrations", hackerRow(formData));
 }
 
 // One per role rather than a single action taking the role as an argument:
-// a server action is a public endpoint, and the role decides which row gets
+// a server action is a public endpoint, and the role decides which table gets
 // written. Binding it here keeps it out of reach of the request body.
 export async function saveVolunteerDraft(formData: FormData) {
-  return saveDraft("volunteers", helperRow("volunteer", formData), "user_id,role");
+  return saveDraft(HELPER_TABLE.volunteer, volunteerRow(formData));
 }
 
 export async function saveMentorDraft(formData: FormData) {
-  return saveDraft("volunteers", helperRow("mentor", formData), "user_id,role");
+  return saveDraft(HELPER_TABLE.mentor, mentorRow(formData));
 }
 
 /** Upserts the signed-in user's registration (one row per account). */
@@ -225,9 +235,9 @@ export async function submitRegistration(
 }
 
 /**
- * Upserts the signed-in user's sign-up for one role — one row per (account,
- * role). Volunteering and mentoring are separate commitments, so filling in the
- * other form adds a row rather than replacing this one.
+ * Upserts the signed-in user's sign-up for one role. Volunteering and mentoring
+ * are separate commitments in separate tables, so filling in the other form
+ * adds a row there rather than replacing this one.
  */
 async function submitHelper(
   role: HelperRole,
@@ -261,13 +271,13 @@ async function submitHelper(
     return { ok: false, message: "pick at least one time period you're available." };
   }
 
-  const { error } = await supabase.from("volunteers").upsert(
+  const { error } = await supabase.from(HELPER_TABLE[role]).upsert(
     {
       user_id: user.id,
-      ...helperRow(role, formData),
+      ...(role === "mentor" ? mentorRow(formData) : volunteerRow(formData)),
       completed_at: new Date().toISOString(),
     },
-    { onConflict: "user_id,role" }
+    { onConflict: "user_id" }
   );
 
   if (error) {
@@ -276,7 +286,7 @@ async function submitHelper(
   }
 
   // Same as the hacker flow: fire after the response, first save only. The
-  // claim is per role, so someone who does both gets one email for each.
+  // claim is per table, so someone who does both gets one email for each.
   const email = field("email");
   const fullName = field("name");
   after(() => sendHelperWelcome(supabase, role, user.id, email, fullName));

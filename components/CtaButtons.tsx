@@ -6,8 +6,7 @@ import { cn } from "@/lib/utils";
 
 const CTAS = [
   { label: "Become a Hacker", href: "/register", primary: true },
-  { label: "Volunteer", href: "/volunteer" },
-  { label: "Mentor with Us", href: "/mentor" },
+  { label: "Join as a Volunteer/Mentor", href: "/volunteer" },
   {
     label: "Sponsor Us",
     href: "mailto:lnguyen1509@student.cccd.edu?subject=Sponsoring%20OCC%20Hacks%202026",

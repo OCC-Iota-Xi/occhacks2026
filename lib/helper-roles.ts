@@ -6,13 +6,22 @@
  * differ only in what's below. Keeping the differences here rather than in two
  * near-identical components means a change to the shared questions lands on
  * both pages at once, and the role-specific wording stays legible side by side.
- *
- * The role also decides which row the sign-up writes to: the `volunteers` table
- * is keyed by (user_id, role), so someone can hold both without either
- * overwriting the other.
  */
 
 export type HelperRole = "volunteer" | "mentor";
+
+/**
+ * Where each sign-up is stored. The two roles have a table apiece — the forms
+ * ask different enough questions that a shared row left half its columns null
+ * either way — so holding both is two rows in two tables, and neither can
+ * overwrite the other. Both are keyed by `user_id` alone.
+ */
+export const HELPER_TABLE = {
+  volunteer: "volunteers",
+  mentor: "mentors",
+} as const;
+
+export type HelperTable = (typeof HELPER_TABLE)[HelperRole];
 
 export interface HelperCopy {
   role: HelperRole;
@@ -38,8 +47,6 @@ export interface HelperCopy {
    * the question would be dead weight on that form.
    */
   asksOccId: boolean;
-  /** Whether to ask about OCC classes — the extra-credit question. */
-  asksClasses: boolean;
   availability: { label: string; hint: string; error: string };
   expertise: {
     label: string;
@@ -56,14 +63,13 @@ export interface HelperCopy {
 export const VOLUNTEER_COPY: HelperCopy = {
   role: "volunteer",
   navLabel: "volunteer",
-  heading: "volunteer with us",
+  heading: "register as a volunteer",
   metaTitle: "volunteer — OCC Hacks 2026",
   metaDescription:
     "Volunteer at OCC Hacks 2026 — Oct 10–11 at Orange Coast College. Take a shift and help run the weekend.",
   lastStep: "how you'll help",
   details: null,
   asksOccId: true,
-  asksClasses: false,
   availability: {
     label: "which time periods are you available to help?",
     hint: "check every block that works — we'll build shifts around it.",
@@ -85,7 +91,7 @@ export const VOLUNTEER_COPY: HelperCopy = {
 export const MENTOR_COPY: HelperCopy = {
   role: "mentor",
   navLabel: "mentor",
-  heading: "mentor with us",
+  heading: "register as a mentor",
   metaTitle: "mentor — OCC Hacks 2026",
   metaDescription:
     "Mentor at OCC Hacks 2026 — Oct 10–11 at Orange Coast College. Sit with student teams and help them get unstuck.",
@@ -93,7 +99,7 @@ export const MENTOR_COPY: HelperCopy = {
   details: {
     resume: {
       label: "upload your résumé",
-      hint: "PDF only, up to 5 MB. it's how we match you to teams — only organizers see it.",
+      hint: "optional. PDF only, up to 5 MB — it helps us match you to teams, and only organizers see it.",
     },
     reason: {
       label: "why do you want to mentor with us?",
@@ -105,7 +111,6 @@ export const MENTOR_COPY: HelperCopy = {
     },
   },
   asksOccId: false,
-  asksClasses: true,
   availability: {
     label: "when can you be on the floor?",
     hint: "most mentors take one or two blocks — check everything that works.",

@@ -32,7 +32,7 @@ import {
   StepperTitle,
   StepperTrigger,
 } from "@/components/ui/stepper";
-import { AVAILABILITY_BLOCKS, OCC_CLASSES, SHIRT_SIZES } from "@/lib/form-options";
+import { AVAILABILITY_BLOCKS, SHIRT_SIZES } from "@/lib/form-options";
 import {
   firstGap,
   formatPhone,
@@ -59,7 +59,6 @@ export interface HelperDefaults {
   mentor_reason: string;
   preferred_time: string;
   email_opt_in: boolean;
-  classes: string[];
   availability: string[];
 }
 
@@ -188,13 +187,10 @@ export default function HelperForm({
 
     if (target === 3) {
       if (!shirt) gaps.push({ fields: ["shirt"] });
-      // The résumé posts as a hidden path, and the preferred block through a
-      // Radix radio — neither is something `nativeGaps` can see.
-      if (copy.details) {
-        if (!resumePath) {
-          gaps.push({ fields: ["resume_path"], message: "upload your résumé as a PDF." });
-        }
-        if (!preferredTime) gaps.push({ fields: ["preferred_time"] });
+      // The preferred block posts through a Radix radio, which `nativeGaps`
+      // can't see. The résumé is optional, so nothing to check there.
+      if (copy.details && !preferredTime) {
+        gaps.push({ fields: ["preferred_time"] });
       }
     }
 
@@ -273,7 +269,11 @@ export default function HelperForm({
           ]}
         />
         <Reveal className="mt-8" delay={0.3}>
-          <p className="text-base text-muted-foreground">{copy.thanks.body}</p>
+          <p className="text-base text-muted-foreground">
+            {copy.thanks.body}
+            {/* Only the first submit sends one — an edit doesn't. */}
+            {!isUpdate && " A confirmation email is on its way; check your spam folder if it doesn't turn up."}
+          </p>
           <Link href="/" className="mt-8 inline-block text-sm transition-colors hover:text-ring">
             &larr; back to the site
           </Link>
@@ -498,17 +498,14 @@ export default function HelperForm({
                     label={copy.details.resume.label}
                     hint={copy.details.resume.hint}
                     wide
-                    invalid={isInvalid("resume_path")}
                   >
                     <ResumeUpload
                       name="resume_path"
                       value={resumePath}
                       onValueChange={(path) => {
                         setResumePath(path);
-                        clearMark("resume_path");
                         autosave.touch();
                       }}
-                      invalid={isInvalid("resume_path")}
                     />
                   </FieldRow>
 
@@ -606,26 +603,6 @@ export default function HelperForm({
                   required={copy.expertise.required}
                 />
               </FieldRow>
-
-              {copy.asksClasses && (
-                <FieldRow
-                  number={num()}
-                  label="are you currently taking any of these classes at OCC?"
-                  hint="extra credit is available — pick one, no double dipping. leave blank if none apply."
-                  wide
-                >
-                  <CheckboxList
-                    key={draft ? "draft" : "stored"}
-                    name="classes"
-                    options={OCC_CLASSES}
-                    single
-                    other
-                    otherNote="no promises — extra credit for anything else is up to your instructor."
-                    defaultValues={listDefaults("classes", defaults?.classes ?? [])}
-                    onChange={autosave.touch}
-                  />
-                </FieldRow>
-              )}
 
               <div className="py-4">
                 <label className="mx-auto flex max-w-xl cursor-pointer items-center justify-center gap-3 text-left">
