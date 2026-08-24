@@ -9,6 +9,8 @@ const LINKS = [
   { label: "Home", href: "/" },
   { label: "About", href: "/#about" },
   { label: "Tracks", href: "/#tracks" },
+  { label: "Mentors", href: "/#mentors" },
+  // Sponsors sits inside the mentors band, so it follows mentors.
   { label: "Sponsors", href: "/#sponsors" },
   { label: "FAQs", href: "/#faq" },
 ];
