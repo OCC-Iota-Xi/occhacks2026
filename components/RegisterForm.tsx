@@ -39,7 +39,15 @@ import {
   scrollToField,
   type Gap,
 } from "@/lib/form-fields";
-import { applyDraft, many, one, readDraft, type Draft } from "@/lib/form-draft";
+import {
+  applyDraft,
+  many,
+  one,
+  readDraft,
+  snapshotForm,
+  writeDraft,
+  type Draft,
+} from "@/lib/form-draft";
 import { useAutosave } from "@/lib/use-autosave";
 import { isOldEnough, LATEST_DOB, UNDER_18_MESSAGE } from "@/lib/eligibility";
 import { MAJORS, SCHOOLS } from "@/lib/school-options";
@@ -128,6 +136,14 @@ export default function RegisterForm({
    */
   const [draft, setDraft] = useState<Draft | null>(null);
   const restored = useRef(false);
+  /**
+   * The exact answers the last submit posted — see the restore effect below.
+   * Bumped into `draftKeyed` so components seeded off the draft remount when a
+   * failed submit puts the snapshot back.
+   */
+  const submitted = useRef<Draft | null>(null);
+  const [restores, setRestores] = useState(0);
+  const draftKeyed = (label: string) => `${draft ? "draft" : "stored"}-${label}-${restores}`;
 
   useEffect(() => {
     if (restored.current) return;
@@ -161,6 +177,22 @@ export default function RegisterForm({
       window.scrollTo({ top: 0 });
     }
   }, [state.ok, autosave]);
+
+  /**
+   * React resets every uncontrolled field once the action settles, success or
+   * failure alike. Success swaps in the thank-you screen, so only failure
+   * needs the answers back — restored from the snapshot `onSubmit` banked.
+   */
+  useEffect(() => {
+    if (state.ok || !state.message) return;
+    const saved = submitted.current ?? readDraft(DRAFT_KEY);
+    if (!saved) return;
+
+    applyDraft(formRef.current, saved);
+    setDraft(saved);
+    // Remounts the draft-keyed components so checkboxes re-seed from it.
+    setRestores((n) => n + 1);
+  }, [state]);
 
   /** Saved answers for a multi-answer question, newest source first. */
   function listDefaults(key: string, stored: string[]): string[] {
@@ -258,7 +290,13 @@ export default function RegisterForm({
     if (gap) {
       event.preventDefault();
       flag(LAST, gap);
+      return;
     }
+
+    // The submit is going ahead — bank exactly what it posts, in the ref for
+    // the restore effect and in localStorage for a reload.
+    submitted.current = snapshotForm(formRef.current);
+    writeDraft(DRAFT_KEY, submitted.current);
   }
 
   if (state.ok) {
@@ -363,7 +401,7 @@ export default function RegisterForm({
                 invalid={isInvalid("school")}
               >
                 <Combobox
-                  key={draft ? "draft-school" : "stored-school"}
+                  key={draftKeyed("school")}
                   name="school"
                   groups={SCHOOLS}
                   placeholder="search for your school"
@@ -380,7 +418,7 @@ export default function RegisterForm({
                 invalid={isInvalid("major")}
               >
                 <Combobox
-                  key={draft ? "draft-major" : "stored-major"}
+                  key={draftKeyed("major")}
                   name="major"
                   groups={MAJORS}
                   placeholder="search for your major"
@@ -559,9 +597,10 @@ export default function RegisterForm({
                 wide
               >
                 <CheckboxList
-                  // Remounts once the browser draft lands, so the boxes can
-                  // re-seed from it rather than from the stored row.
-                  key={draft ? "draft" : "stored"}
+                  // Remounts once the browser draft lands (or a failed submit
+                  // restores it), so the boxes re-seed from it rather than
+                  // from the stored row.
+                  key={draftKeyed("classes")}
                   name="classes"
                   options={OCC_CLASSES}
                   single
