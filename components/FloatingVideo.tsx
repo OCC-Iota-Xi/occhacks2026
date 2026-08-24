@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { X } from "lucide-react";
 
-const VIDEO_ID = "952ILTHDgC4";
+const VIDEO_ID = "zZ7AimPACzc";
 /**
  * Phone-shaped window — the 16:9 source is cropped to fill it. Kept at 2:3
  * rather than a true 9:16 so the crop keeps more of the frame in view.
