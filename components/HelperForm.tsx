@@ -40,7 +40,15 @@ import {
   scrollToField,
   type Gap,
 } from "@/lib/form-fields";
-import { applyDraft, many, one, readDraft, type Draft } from "@/lib/form-draft";
+import {
+  applyDraft,
+  many,
+  one,
+  readDraft,
+  snapshotForm,
+  writeDraft,
+  type Draft,
+} from "@/lib/form-draft";
 import type { HelperCopy } from "@/lib/helper-roles";
 import { useAutosave } from "@/lib/use-autosave";
 import { isOldEnough, LATEST_DOB, UNDER_18_MESSAGE } from "@/lib/eligibility";
@@ -127,6 +135,14 @@ export default function HelperForm({
    */
   const [draft, setDraft] = useState<Draft | null>(null);
   const restored = useRef(false);
+  /**
+   * The exact answers the last submit posted — see the restore effect below.
+   * Bumped into `draftKeyed` so components seeded off the draft remount when a
+   * failed submit puts the snapshot back.
+   */
+  const submitted = useRef<Draft | null>(null);
+  const [restores, setRestores] = useState(0);
+  const draftKeyed = (label: string) => `${draft ? "draft" : "stored"}-${label}-${restores}`;
 
   useEffect(() => {
     if (restored.current) return;
@@ -158,6 +174,22 @@ export default function HelperForm({
       window.scrollTo({ top: 0 });
     }
   }, [state.ok, autosave]);
+
+  /**
+   * React resets every uncontrolled field once the action settles, success or
+   * failure alike. Success swaps in the thank-you screen, so only failure
+   * needs the answers back — restored from the snapshot `onSubmit` banked.
+   */
+  useEffect(() => {
+    if (state.ok || !state.message) return;
+    const saved = submitted.current ?? readDraft(DRAFT_KEY);
+    if (!saved) return;
+
+    applyDraft(formRef.current, saved);
+    setDraft(saved);
+    // Remounts the draft-keyed components so checkboxes re-seed from it.
+    setRestores((n) => n + 1);
+  }, [state, DRAFT_KEY]);
 
   /** Saved answers for a multi-answer question, newest source first. */
   function listDefaults(key: string, stored: string[]): string[] {
@@ -246,7 +278,13 @@ export default function HelperForm({
     if (gap) {
       event.preventDefault();
       flag(LAST, gap);
+      return;
     }
+
+    // The submit is going ahead — bank exactly what it posts, in the ref for
+    // the restore effect and in localStorage for a reload.
+    submitted.current = snapshotForm(formRef.current);
+    writeDraft(DRAFT_KEY, submitted.current);
   }
 
   if (state.ok) {
@@ -539,9 +577,10 @@ export default function HelperForm({
                     bubbles a click, so the form's onChange never sees it. */}
                 <div onClick={() => clearMark("availability")}>
                   <CheckboxList
-                    // Remounts once the browser draft lands, so the boxes can
-                    // re-seed from it rather than from the stored row.
-                    key={draft ? "draft" : "stored"}
+                    // Remounts once the browser draft lands (or a failed
+                    // submit restores it), so the boxes re-seed from it
+                    // rather than from the stored row.
+                    key={draftKeyed("availability")}
                     name="availability"
                     options={AVAILABILITY_BLOCKS}
                     defaultValues={listDefaults("availability", defaults?.availability ?? [])}
