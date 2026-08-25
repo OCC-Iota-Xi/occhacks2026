@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { FileText, Loader2, Upload, X } from "lucide-react";
+import posthog from "posthog-js";
 import { createClient } from "@/lib/supabase/client";
 
 const BUCKET = "resumes";
@@ -82,6 +83,7 @@ export default function ResumeUpload({
       return;
     }
 
+    posthog.capture("resume_uploaded");
     onValueChange(path);
   }
 

@@ -82,6 +82,7 @@ export default async function HelperPage({ copy }: { copy: HelperCopy }) {
     <SidebarProvider>
       <AccountSidebar
         active={copy.role}
+        userId={user?.id}
         email={user?.email}
         name={existing?.full_name}
       />

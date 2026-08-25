@@ -4,6 +4,7 @@ import { useActionState, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Check } from "lucide-react";
 import { motion } from "motion/react";
+import posthog from "posthog-js";
 import {
   saveRegistrationDraft,
   submitRegistration,
@@ -84,7 +85,14 @@ export default function RegisterForm({
   defaults?: Partial<RegistrationDefaults>;
   isUpdate?: boolean;
 }) {
-  const [state, formAction, pending] = useActionState(submitRegistration, initialState);
+  const [state, formAction, pending] = useActionState(
+    async (previousState: RegistrationState, formData: FormData) => {
+      const nextState = await submitRegistration(previousState, formData);
+      if (nextState.ok) posthog.capture("registration_submitted");
+      return nextState;
+    },
+    initialState
+  );
   const [iotaXi, setIotaXi] = useState(defaults?.iota_xi ?? "");
   const [shirt, setShirt] = useState(defaults?.shirt ?? "");
   const [phone, setPhone] = useState(formatPhone(defaults?.phone ?? ""));

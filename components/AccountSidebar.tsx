@@ -1,7 +1,9 @@
 "use client";
 
+import { useEffect } from "react";
 import Link from "next/link";
 import { Rocket, HeartHandshake, Compass, LogOut } from "lucide-react";
+import posthog from "posthog-js";
 import { signOut } from "@/app/register/actions";
 import {
   Sidebar,
@@ -28,13 +30,29 @@ const NAV = [
 /** Left-hand navigation for the signed-in pages (register / volunteer / mentor). */
 export default function AccountSidebar({
   active,
+  userId,
   email,
   name,
 }: {
   active: "register" | "volunteer" | "mentor";
+  userId?: string;
   email?: string | null;
   name?: string | null;
 }) {
+  useEffect(() => {
+    if (!userId) return;
+
+    posthog.identify(userId, {
+      ...(email ? { email } : {}),
+      ...(name ? { name } : {}),
+    });
+  }, [userId, email, name]);
+
+  const handleSignOut = async () => {
+    posthog.reset();
+    await signOut();
+  };
+
   const initial = (name || email || "?").trim().charAt(0).toUpperCase();
 
   return (
@@ -92,7 +110,7 @@ export default function AccountSidebar({
             </SidebarMenuItem>
           </SidebarMenu>
         )}
-        <form action={signOut}>
+        <form action={handleSignOut}>
           <SidebarMenu>
             <SidebarMenuItem>
               <SidebarMenuButton type="submit" tooltip="sign out">

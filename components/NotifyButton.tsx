@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import posthog from "posthog-js";
 import { optInNotify, optOutNotify } from "@/app/register/actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,6 +28,7 @@ export default function NotifyButton({
       const { ok } = await optInNotify(email);
       setFailed(!ok);
       if (!ok) return;
+      posthog.capture("notification_opted_in");
       setOptedIn(true);
       const confetti = (await import("canvas-confetti")).default;
       confetti({
@@ -42,7 +44,10 @@ export default function NotifyButton({
   const undo = () => {
     startTransition(async () => {
       const { ok } = await optOutNotify();
-      if (ok) setOptedIn(false);
+      if (ok) {
+        posthog.capture("notification_opted_out");
+        setOptedIn(false);
+      }
     });
   };
 
