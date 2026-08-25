@@ -58,6 +58,7 @@ export default async function RegisterPage() {
     <SidebarProvider>
       <AccountSidebar
         active="register"
+        userId={user?.id}
         email={user?.email}
         name={existing?.full_name}
       />

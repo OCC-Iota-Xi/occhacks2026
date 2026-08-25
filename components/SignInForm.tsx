@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import posthog from "posthog-js";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 
@@ -47,6 +48,7 @@ export default function SignInForm() {
   const [error, setError] = useState("");
 
   const signIn = async (provider: Provider) => {
+    posthog.capture("sign_in_started", { provider });
     setPending(provider);
     setError("");
     const supabase = createClient();

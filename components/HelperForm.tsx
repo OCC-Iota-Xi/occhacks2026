@@ -4,6 +4,7 @@ import { useActionState, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Check } from "lucide-react";
 import { motion } from "motion/react";
+import posthog from "posthog-js";
 import {
   saveMentorDraft,
   saveVolunteerDraft,
@@ -99,7 +100,14 @@ export default function HelperForm({
   const STEPS = [...SHARED_STEPS, copy.lastStep];
   const DRAFT_KEY = copy.draftKey;
 
-  const [state, formAction, pending] = useActionState(SUBMIT[copy.role], initialState);
+  const [state, formAction, pending] = useActionState(
+    async (previousState: RegistrationState, formData: FormData) => {
+      const nextState = await SUBMIT[copy.role](previousState, formData);
+      if (nextState.ok) posthog.capture("helper_signup_submitted", { role: copy.role });
+      return nextState;
+    },
+    initialState
+  );
   const [shirt, setShirt] = useState(defaults?.shirt ?? "");
   // Both post through inputs React owns, so they're held here rather than read
   // off the DOM — same reason as `shirt`.
