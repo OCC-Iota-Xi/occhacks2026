@@ -273,6 +273,12 @@ export default function RegisterForm({
           return;
         }
       }
+      // Only a validated forward move counts as finishing a step, so the
+      // funnel measures progress rather than flipping back and forth.
+      posthog.capture("registration_step_completed", {
+        step,
+        step_title: STEPS[step - 1],
+      });
     }
     setError("");
     setInvalid([]);
