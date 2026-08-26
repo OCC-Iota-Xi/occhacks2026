@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { cn } from "@/lib/utils";
-import { formatNumber, formatShortDate } from "@/lib/admin/format";
+import { formatDayLabel, formatNumber } from "@/lib/admin/format";
 import type { TimePoint } from "@/lib/admin/types";
 
 /**
@@ -190,7 +190,7 @@ export default function TrendChart({ points }: { points: TimePoint[] }) {
                 textAnchor="middle"
                 className="fill-[var(--muted-foreground)] text-[9px]"
               >
-                {formatShortDate(`${row.day}T12:00:00`)}
+                {formatDayLabel(row.day)}
               </text>
             ) : null
           )}
@@ -199,7 +199,7 @@ export default function TrendChart({ points }: { points: TimePoint[] }) {
         {hovered && (
           <div className="pointer-events-none absolute top-0 right-0 rounded-lg border border-border bg-popover/95 px-2.5 py-2 text-xs shadow-lg">
             <div className="text-muted-foreground">
-              {formatShortDate(`${hovered.day}T12:00:00`)}
+              {formatDayLabel(hovered.day)}
             </div>
             <div className="mt-1 space-y-0.5">
               {visible.map((series) => (

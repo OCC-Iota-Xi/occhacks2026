@@ -31,12 +31,8 @@ import {
   fetchRecentApplicants,
   fetchTimeseries,
 } from "@/lib/admin/queries";
+import { eventDay, shiftDay } from "@/lib/admin/time";
 import { STATUS_LABEL, type Status } from "@/lib/admin/types";
-
-/** ISO date, for the timeseries RPC's `date` arguments. */
-function isoDay(date: Date) {
-  return date.toISOString().slice(0, 10);
-}
 
 export default async function AdminDashboard({
   searchParams,
@@ -47,7 +43,9 @@ export default async function AdminDashboard({
   const ctx = await adminContext();
   if (!ctx.ready) return <SetupNotice />;
 
-  const today = new Date();
+  // Ranges are counted in California days, so "last 7 days" ends on the day it
+  // is at the venue rather than the day it is in UTC.
+  const today = eventDay();
   const custom = params.from && params.to;
   const days = params.days === "all" ? null : Number(params.days ?? 30) || 30;
 
@@ -55,9 +53,11 @@ export default async function AdminDashboard({
   const from = custom
     ? params.from!
     : days === null
-      ? isoDay(earliest ? new Date(earliest) : new Date(today.getTime() - 90 * 86400000))
-      : isoDay(new Date(today.getTime() - (days - 1) * 86400000));
-  const to = custom ? params.to! : isoDay(today);
+      ? earliest
+        ? eventDay(new Date(earliest))
+        : shiftDay(today, -90)
+      : shiftDay(today, -(days - 1));
+  const to = custom ? params.to! : today;
 
   // One RPC each, all in flight together: the whole dashboard is five round
   // trips regardless of how many applicants there are.

@@ -11,6 +11,7 @@ import {
   fetchOverview,
   fetchTimeseries,
 } from "@/lib/admin/queries";
+import { eventDay, shiftDay } from "@/lib/admin/time";
 import { STATUS_LABEL, type Status } from "@/lib/admin/types";
 
 /**
@@ -31,17 +32,19 @@ export default async function AnalyticsPage({
   if (!ctx.ready) return <SetupNotice />;
 
   const params = await searchParams;
-  const today = new Date();
+  // Same California-day range as the dashboard.
+  const today = eventDay();
   const custom = params.from && params.to;
   const days = params.days === "all" ? null : Number(params.days ?? 30) || 30;
   const earliest = days === null || custom ? await fetchEarliestDate(ctx) : null;
-  const isoDay = (date: Date) => date.toISOString().slice(0, 10);
   const from = custom
     ? params.from!
     : days === null
-      ? isoDay(earliest ? new Date(earliest) : new Date(today.getTime() - 90 * 86400000))
-      : isoDay(new Date(today.getTime() - (days - 1) * 86400000));
-  const to = custom ? params.to! : isoDay(today);
+      ? earliest
+        ? eventDay(new Date(earliest))
+        : shiftDay(today, -90)
+      : shiftDay(today, -(days - 1));
+  const to = custom ? params.to! : today;
 
   const [breakdowns, stats, points] = await Promise.all([
     fetchBreakdowns(ctx),
