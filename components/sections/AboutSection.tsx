@@ -187,12 +187,6 @@ export default function AboutSection() {
               their projects while learning new skills, networking with
               others, and competing for prizes.
             </span>,
-            <span key="2" className="block pt-4">
-              This year, we&apos;ve configured the logistics to accommodate up to 150
-              hackers, secured more funding than ever, and taken every lesson
-              from previous years to make this the biggest and baddest one
-              yet.
-            </span>,
           ]}
         />
 
