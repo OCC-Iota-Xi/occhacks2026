@@ -2,9 +2,10 @@
 
 import { useEffect } from "react";
 import Link from "next/link";
-import { Rocket, HeartHandshake, Compass, LogOut } from "lucide-react";
+import { Rocket, HeartHandshake, Compass, LogOut, Gauge } from "lucide-react";
 import posthog from "posthog-js";
 import { signOut } from "@/app/register/actions";
+import { isAdminEmail } from "@/lib/admin/access";
 import {
   Sidebar,
   SidebarContent,
@@ -55,6 +56,10 @@ export default function AccountSidebar({
 
   const initial = (name || email || "?").trim().charAt(0).toUpperCase();
 
+  // Visibility only — /admin is guarded by the proxy, by the admin layout, and
+  // by RLS. Hiding the link just keeps it out of the way of people it isn't for.
+  const showAdmin = isAdminEmail(email);
+
   return (
     <Sidebar collapsible="icon">
       <SidebarHeader className="px-4 py-4 group-data-[collapsible=icon]:px-2">
@@ -72,7 +77,19 @@ export default function AccountSidebar({
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
-              {NAV.map((item) => (
+              {[
+                ...NAV,
+                ...(showAdmin
+                  ? [
+                      {
+                        href: "/admin",
+                        label: "organizer dashboard",
+                        icon: Gauge,
+                        key: "admin",
+                      } as const,
+                    ]
+                  : []),
+              ].map((item) => (
                 <SidebarMenuItem key={item.key}>
                   <SidebarMenuButton
                     asChild
