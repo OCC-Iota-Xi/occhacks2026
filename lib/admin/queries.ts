@@ -2,6 +2,7 @@ import { cache } from "react";
 import type { PostgrestError, SupabaseClient } from "@supabase/supabase-js";
 import { requireAdmin } from "@/lib/admin/auth";
 import type { ApplicantFilters, Flag } from "@/lib/admin/filters";
+import { dayEnd, dayStart } from "@/lib/admin/time";
 import type {
   ActivityEvent,
   AdminUser,
@@ -129,8 +130,10 @@ function applyFilters<Q>(query: Q, f: ApplicantFilters, viewerId: string): Q {
   const max = Number(f.scoreMax);
   if (f.scoreMax && Number.isFinite(max)) q = q.lte("avg_score", max);
 
-  if (f.from) q = q.gte("completed_at", `${f.from}T00:00:00Z`);
-  if (f.to) q = q.lte("completed_at", `${f.to}T23:59:59Z`);
+  // The organizer picked a California date; turn it into the instants that day
+  // actually spans rather than the UTC day of the same name.
+  if (f.from) q = q.gte("completed_at", dayStart(f.from));
+  if (f.to) q = q.lte("completed_at", dayEnd(f.to));
 
   for (const flag of f.flag as Flag[]) {
     if (flag === "not_checked_in") {

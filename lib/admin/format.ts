@@ -1,12 +1,23 @@
-/** Formatting shared by the organizer pages. */
+import { EVENT_TIME_ZONE } from "@/lib/admin/time";
+
+/**
+ * Formatting shared by the organizer pages.
+ *
+ * Every formatter names the event's time zone. Without it, a date rendered on
+ * the server comes out in the host's zone — UTC on most deployments — so an
+ * evening submission would be dated the following day, and the same row would
+ * read differently once the browser re-rendered it.
+ */
 
 const DATE = new Intl.DateTimeFormat("en-US", {
+  timeZone: EVENT_TIME_ZONE,
   month: "short",
   day: "numeric",
   year: "numeric",
 });
 
 const DATE_TIME = new Intl.DateTimeFormat("en-US", {
+  timeZone: EVENT_TIME_ZONE,
   month: "short",
   day: "numeric",
   year: "numeric",
@@ -14,7 +25,11 @@ const DATE_TIME = new Intl.DateTimeFormat("en-US", {
   minute: "2-digit",
 });
 
-const SHORT_DATE = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric" });
+const SHORT_DATE = new Intl.DateTimeFormat("en-US", {
+  timeZone: EVENT_TIME_ZONE,
+  month: "short",
+  day: "numeric",
+});
 
 export function formatDate(value: string | null | undefined) {
   if (!value) return "—";
@@ -31,6 +46,20 @@ export function formatDateTime(value: string | null | undefined) {
 export function formatShortDate(value: string | Date) {
   const date = typeof value === "string" ? new Date(value) : value;
   return SHORT_DATE.format(date);
+}
+
+/**
+ * A chart axis label for a "YYYY-MM-DD" that is already an event-time day.
+ * Formatted from its parts so it can't be nudged across a boundary on the way
+ * through a Date.
+ */
+export function formatDayLabel(day: string) {
+  const [year, month, date] = day.split("-").map(Number);
+  return new Intl.DateTimeFormat("en-US", {
+    timeZone: "UTC",
+    month: "short",
+    day: "numeric",
+  }).format(new Date(Date.UTC(year, month - 1, date)));
 }
 
 /** "3 min ago" / "2 days ago" — the activity feed's clock. */

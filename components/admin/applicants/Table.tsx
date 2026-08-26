@@ -13,11 +13,22 @@ import { cn } from "@/lib/utils";
 /**
  * The applicant table.
  *
- * A plain `<table>` with a sticky header rather than a virtualized grid: the
- * page size is bounded (25–200 rows) because the filtering and paging happen in
- * Postgres, so there is never a ten-thousand-row DOM to virtualize. Sorting is
- * a link, not a click handler, for the same reason the filters are — the server
- * does the ordering, and the URL says what you're looking at.
+ * A plain `<table>` rather than a virtualized grid: the page size is bounded
+ * (25–200 rows) because the filtering and paging happen in Postgres, so there
+ * is never a ten-thousand-row DOM to virtualize. Sorting goes through the URL
+ * for the same reason the filters do — the server does the ordering.
+ *
+ * The table scrolls inside its own box, both ways, and the column headers stick
+ * to the top of that box. Sticking them to the *viewport* instead is what
+ * doesn't work here: a horizontally scrollable ancestor is itself a scroll
+ * container, so a `position: sticky` header inside one resolves against that
+ * container and ends up drifting over the first row instead of pinning. Its own
+ * scrollport removes the ambiguity — and the filters above stay put while the
+ * rows move, which is the behaviour you want anyway.
+ *
+ * `border-separate` rather than `border-collapse`: with collapsed borders a
+ * browser may decline to paint a background on a sticky header cell, which is
+ * how a "transparent" header showing the row beneath it happens.
  */
 export default function ApplicantTable({
   rows,
@@ -43,13 +54,11 @@ export default function ApplicantTable({
   const allSelected = rows.length > 0 && rows.every((row) => selected.has(row.id));
 
   return (
-    <div className="scroll-soft overflow-x-auto">
-      <table className="w-full min-w-[900px] border-collapse text-sm">
-        {/* Sticks below the admin header, which is 53px tall — the table can
-            be a thousand rows and the column names should never leave. */}
-        <thead className="sticky top-[53px] z-20 bg-background/95 backdrop-blur">
-          <tr className="border-b border-border text-xs text-muted-foreground">
-            <th className="w-9 px-3 py-2">
+    <div className="scroll-soft max-h-[calc(100vh-19rem)] min-h-40 overflow-auto">
+      <table className="w-full min-w-[900px] border-separate border-spacing-0 text-sm">
+        <thead>
+          <tr className="text-xs text-muted-foreground">
+            <th className="sticky top-0 z-20 w-9 border-b border-border bg-background px-3 py-2">
               <button
                 type="button"
                 onClick={onToggleAll}
@@ -66,7 +75,7 @@ export default function ApplicantTable({
               <th
                 key={column.key}
                 className={cn(
-                  "px-3 py-2 text-left font-normal whitespace-nowrap",
+                  "sticky top-0 z-20 border-b border-border bg-background px-3 py-2 text-left font-normal whitespace-nowrap",
                   column.align === "right" && "text-right"
                 )}
               >
@@ -92,7 +101,7 @@ export default function ApplicantTable({
           </tr>
         </thead>
 
-        <tbody className="divide-y divide-border/60">
+        <tbody>
           {rows.map((applicant, index) => {
             const flags = rowFlags(applicant);
             const isSelected = selected.has(applicant.id);
@@ -113,7 +122,7 @@ export default function ApplicantTable({
                 )}
               >
                 <td
-                  className="px-3 py-2"
+                  className="border-b border-border/60 px-3 py-2"
                   onClick={(event) => {
                     event.stopPropagation();
                     onToggleRow(applicant.id, event.shiftKey, index);
@@ -138,7 +147,7 @@ export default function ApplicantTable({
                   <td
                     key={column.key}
                     className={cn(
-                      "px-3 py-2 align-middle",
+                      "border-b border-border/60 px-3 py-2 align-middle",
                       column.align === "right" && "text-right"
                     )}
                   >
