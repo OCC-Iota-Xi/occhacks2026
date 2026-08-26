@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import SignInForm from "@/components/SignInForm";
+import { safeNextPath } from "@/lib/auth-redirect";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
@@ -12,15 +13,18 @@ export const metadata: Metadata = {
 export default async function SignInPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; next?: string }>;
 }) {
+  const { error, next } = await searchParams;
+  // Where they were headed before the redirect — /admin, usually. Validated
+  // here as well as in the proxy, since a link can carry anything.
+  const destination = safeNextPath(next);
+
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (user) redirect("/register");
-
-  const { error } = await searchParams;
+  if (user) redirect(destination);
 
   return (
     <main className="flex min-h-screen flex-col">
@@ -41,7 +45,7 @@ export default async function SignInPage({
               that sign-in didn&apos;t go through — try again.
             </p>
           )}
-          <SignInForm />
+          <SignInForm next={destination} />
         </div>
       </div>
     </main>

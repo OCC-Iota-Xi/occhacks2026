@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import type { EmailOtpType } from "@supabase/supabase-js";
+import { safeNextPath } from "@/lib/auth-redirect";
 import { createClient } from "@/lib/supabase/server";
 
 /**
@@ -8,7 +9,7 @@ import { createClient } from "@/lib/supabase/server";
  */
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
-  const next = searchParams.get("next") ?? "/register";
+  const next = safeNextPath(searchParams.get("next"));
 
   const supabase = await createClient();
 
