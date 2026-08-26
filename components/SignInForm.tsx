@@ -3,6 +3,7 @@
 import { useState } from "react";
 import posthog from "posthog-js";
 import { createClient } from "@/lib/supabase/client";
+import { DEFAULT_NEXT, safeNextPath } from "@/lib/auth-redirect";
 import { Button } from "@/components/ui/button";
 
 type Provider = "google" | "github";
@@ -43,7 +44,7 @@ const PROVIDERS: { id: Provider; label: string; Icon: typeof GitHubIcon }[] = [
   { id: "github", label: "continue with github", Icon: GitHubIcon },
 ];
 
-export default function SignInForm() {
+export default function SignInForm({ next = DEFAULT_NEXT }: { next?: string }) {
   const [pending, setPending] = useState<Provider | null>(null);
   const [error, setError] = useState("");
 
@@ -55,7 +56,14 @@ export default function SignInForm() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider,
       options: {
-        redirectTo: `${window.location.origin}/auth/callback?next=/register`,
+        // `window.location.origin` so a local sign-in comes back to localhost
+        // rather than to production — which also means every origin you sign in
+        // from has to be listed under Authentication → URL Configuration →
+        // Redirect URLs in the Supabase dashboard. Supabase silently falls back
+        // to the project's Site URL for any origin that isn't.
+        redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(
+          safeNextPath(next)
+        )}`,
       },
     });
     // On success the browser navigates away; only errors land back here.
