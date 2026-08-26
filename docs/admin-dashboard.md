@@ -15,6 +15,9 @@ reads zero.
 Supabase dashboard → SQL Editor → New query → paste the file → Run. Every
 statement is idempotent; running it twice is safe.
 
+`0019_event_time_zone.sql` follows it, and is needed too: it re-defines the two
+counting functions to bucket by California days rather than UTC ones.
+
 ## Who can get in
 
 One list, in `lib/admin/access.ts`:
@@ -68,6 +71,15 @@ Nothing here modifies `hackers`, `volunteers` or `mentors` beyond adding
 organizer read policies (and one update policy on `hackers`, for correcting
 typos). An applicant owns their own row, so a decision stored there would be a
 decision they could edit.
+
+## Time zone
+
+Everything an organizer sees is in `America/Los_Angeles` — the formatters in
+`lib/admin/format.ts`, the date-range filters, and the day buckets inside
+`admin_overview_stats` and `admin_timeseries`. Postgres stores `timestamptz`, so
+the instants themselves are unambiguous; naming the zone is about which day an
+instant belongs to. Left to the defaults, a server render would use UTC and
+anything submitted after 4pm local would be dated the following day.
 
 ## Notes on the shape of the data
 
