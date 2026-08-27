@@ -94,6 +94,20 @@ export default function Closer() {
               Orange Coast College
             </a>
           </p>
+          <div className="flex items-center gap-4">
+            <Link
+              href="/legal#privacy"
+              className="underline underline-offset-4 transition-colors hover:text-foreground"
+            >
+              privacy
+            </Link>
+            <Link
+              href="/legal#terms"
+              className="underline underline-offset-4 transition-colors hover:text-foreground"
+            >
+              terms
+            </Link>
+          </div>
           <p className="text-muted-foreground/60">occ hacks 2026 · costa mesa, ca</p>
         </div>
       </footer>
