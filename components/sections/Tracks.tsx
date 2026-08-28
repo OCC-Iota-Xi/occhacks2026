@@ -17,7 +17,7 @@ const TRACKS: { planet: PlanetVariant; name: string; description: string }[] = [
   },
   {
     planet: "pluto",
-    name: "productivity",
+    name: "productivity and utility",
     description: "Apps that save time and make everyday life easier.",
   },
 ];
