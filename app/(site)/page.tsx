@@ -4,6 +4,7 @@ import AboutSection from "@/components/sections/AboutSection";
 import Tracks from "@/components/sections/Tracks";
 import Schedule from "@/components/sections/Schedule";
 import Sponsors from "@/components/sections/Sponsors";
+import Mentors from "@/components/sections/Mentors";
 import FAQ from "@/components/sections/FAQ";
 import Join from "@/components/sections/Join";
 import Closer from "@/components/sections/Closer";
@@ -17,6 +18,7 @@ export default function Home() {
       <Tracks />
       <Schedule />
       <Sponsors />
+      <Mentors />
       <FAQ />
       <Join />
       <Closer />
