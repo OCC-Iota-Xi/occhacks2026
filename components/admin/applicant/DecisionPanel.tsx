@@ -68,7 +68,7 @@ export default function DecisionPanel({
     startTransition(async () => {
       const result = await action();
       if (result.ok) {
-        toast(success);
+        toast(result.message ?? success);
         setConfirm(null);
         if (done) done();
         else router.refresh();

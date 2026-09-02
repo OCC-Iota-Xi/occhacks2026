@@ -238,7 +238,9 @@ export default function ApplicantsWorkspace({
     startTransition(async () => {
       const result = await action();
       if (result.ok) {
-        toast(success.replace("{n}", formatNumber(result.count ?? ids.length)));
+        // An action that succeeded but has something to say — a delete whose
+        // audit row didn't write — says it instead of the cheerful default.
+        toast(result.message ?? success.replace("{n}", formatNumber(result.count ?? ids.length)));
         setSelected(new Set());
         setConfirm(null);
         router.refresh();
@@ -270,7 +272,7 @@ export default function ApplicantsWorkspace({
       label: `Delete ${people}`,
       destructive: true,
       confirmText: "DELETE",
-      success: "Deleted {n} applications",
+      success: `Deleted {n} ${people}`,
       run: () => deleteApplicants(ids),
     });
   };
