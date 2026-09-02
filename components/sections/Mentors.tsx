@@ -3,13 +3,37 @@ import SectionHeading from "@/components/SectionHeading";
 import Reveal from "@/components/motion/Reveal";
 import { Button } from "@/components/ui/button";
 
-const MENTORS: { name: string; role: string; palette: number }[] = [
-  { name: "Ada Lovelace", role: "Software Engineer · Google", palette: 0 },
-  { name: "Grace Hopper", role: "Staff Engineer · Amazon", palette: 1 },
-  { name: "Alan Turing", role: "ML Researcher · OpenAI", palette: 2 },
-  { name: "Katherine Johnson", role: "Data Scientist · NASA JPL", palette: 3 },
-  { name: "Dennis Ritchie", role: "Systems Engineer · Nvidia", palette: 1 },
-  { name: "Margaret Hamilton", role: "CS Faculty · OCC", palette: 0 },
+const MENTORS: { name: string; roles: string[]; palette: number }[] = [
+  {
+    name: "Yash Gupta",
+    roles: ["Senior Software Engineer @ PIMCO"],
+    palette: 0,
+  },
+  {
+    name: "Dailin Hu",
+    roles: ["Senior Applied AI Scientist @ Blizzard"],
+    palette: 1,
+  },
+  {
+    name: "Nada Lahjouji",
+    roles: ["Applied AI Scientist @ Blizzard"],
+    palette: 2,
+  },
+  {
+    name: "Ashwin Colaco",
+    roles: ["PhD Researcher @ UC Irvine"],
+    palette: 3,
+  },
+  {
+    name: "Wesley Wu",
+    roles: ["Senior Software Engineer @ Amazon"],
+    palette: 1,
+  },
+  {
+    name: "Owen Wolf",
+    roles: ["Lead SRE @ PlayStation"],
+    palette: 0,
+  },
 ];
 
 /** Flat-art gradient discs echoing the track planets: earth, saturn, pluto, gold. */
@@ -29,7 +53,7 @@ function initials(name: string) {
 }
 
 /**
- * The mentor crew as a grid of flat-art "planet" avatars — initials on a
+ * The mentors as a grid of flat-art "planet" avatars — initials on a
  * gradient disc with an orbit ring — matching the tracks' planet motif.
  */
 export default function Mentors() {
@@ -37,19 +61,12 @@ export default function Mentors() {
     <section id="mentors" className="scroll-mt-24 px-6 py-16 md:py-24">
       <SectionHeading plain="Mentors" accent="" className="mb-6" />
 
-      <Reveal className="mx-auto max-w-xl text-center" delay={0.1}>
-        <p className="font-body text-base leading-relaxed text-[var(--text-secondary)] sm:text-lg">
-          industry engineers and OCC faculty, on the floor all weekend to help
-          you debug, design, and ship.
-        </p>
-      </Reveal>
-
-      <Reveal className="mx-auto mt-14 max-w-4xl" delay={0.15}>
-        <div className="grid grid-cols-2 gap-x-8 gap-y-12 sm:grid-cols-3">
+      <Reveal className="mx-auto mt-14 max-w-4xl" delay={0.1}>
+        <div className="flex flex-wrap justify-center gap-x-8 gap-y-12">
           {MENTORS.map((mentor) => (
             <div
               key={mentor.name}
-              className="group flex flex-col items-center gap-4 text-center"
+              className="group flex w-[calc(50%-1rem)] flex-col items-center gap-4 text-center sm:w-[calc(33.333%-1.334rem)]"
             >
               <div className="relative flex h-24 w-24 items-center justify-center sm:h-28 sm:w-28">
                 <div
@@ -70,9 +87,14 @@ export default function Mentors() {
                 <h3 className="font-header text-base tracking-wider text-[var(--text-primary)] sm:text-lg">
                   {mentor.name}
                 </h3>
-                <p className="mt-1 text-sm text-muted-foreground/70 transition-colors duration-300 group-hover:text-foreground">
-                  {mentor.role}
-                </p>
+                {mentor.roles.map((role) => (
+                  <p
+                    key={role}
+                    className="mt-1 text-sm text-muted-foreground/80 transition-colors duration-300 group-hover:text-foreground sm:text-base"
+                  >
+                    {role}
+                  </p>
+                ))}
               </div>
             </div>
           ))}
