@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { Dialog } from "radix-ui";
 import { Button } from "@/components/ui/button";
 
@@ -7,6 +8,10 @@ import { Button } from "@/components/ui/button";
  * The check before a decision that moves many rows at once. Deliberately says
  * what will happen and to how many people, because "Accept 34 applicants" and
  * "Accept 3 applicants" are very different clicks.
+ *
+ * `confirmText` adds a word to type before the button works. Reserved for the
+ * one action with no undo — deleting applications — where a mis-aimed click on
+ * a menu item shouldn't be enough on its own.
  */
 export default function ConfirmDialog({
   open,
@@ -14,6 +19,7 @@ export default function ConfirmDialog({
   title,
   body,
   confirmLabel,
+  confirmText,
   destructive,
   onConfirm,
   pending,
@@ -23,10 +29,24 @@ export default function ConfirmDialog({
   title: string;
   body: string;
   confirmLabel: string;
+  confirmText?: string;
   destructive?: boolean;
   onConfirm: () => void;
   pending?: boolean;
 }) {
+  const [typed, setTyped] = useState("");
+
+  // Cleared when the dialog opens or closes, adjusted during render against the
+  // last value seen rather than in an effect — otherwise the next dialog would
+  // paint with the previous one's word still in the box.
+  const [wasOpen, setWasOpen] = useState(open);
+  if (wasOpen !== open) {
+    setWasOpen(open);
+    setTyped("");
+  }
+
+  const armed = !confirmText || typed.trim().toUpperCase() === confirmText.toUpperCase();
+
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
@@ -36,6 +56,22 @@ export default function ConfirmDialog({
           <Dialog.Description className="mt-2 text-sm text-muted-foreground">
             {body}
           </Dialog.Description>
+
+          {confirmText && (
+            <label className="mt-4 block">
+              <span className="text-xs text-muted-foreground">
+                Type <span className="text-foreground">{confirmText}</span> to confirm
+              </span>
+              <input
+                value={typed}
+                onChange={(event) => setTyped(event.target.value)}
+                autoComplete="off"
+                spellCheck={false}
+                className="mt-1 w-full rounded-lg border border-border bg-transparent px-2.5 py-1.5 text-sm outline-none focus:border-[var(--ring)]/50"
+              />
+            </label>
+          )}
+
           <div className="mt-5 flex justify-end gap-2">
             <Dialog.Close asChild>
               <Button variant="ghost" size="sm">
@@ -45,7 +81,7 @@ export default function ConfirmDialog({
             <Button
               size="sm"
               variant={destructive ? "destructive" : "default"}
-              disabled={pending}
+              disabled={pending || !armed}
               onClick={onConfirm}
             >
               {pending ? "Working…" : confirmLabel}
