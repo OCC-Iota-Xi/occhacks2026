@@ -12,11 +12,21 @@ const SPONSORS = [
     href: "https://orangecoastcollege.edu/academics/honor-societies/societies/iota-xi.html",
   },
   {
-    name: "Phi Theta Kappa",
-    logo: "/sponsors/PTK Logo white.svg",
-    width: 85,
-    height: 188,
-    href: "https://orangecoastcollege.edu/academics/honor-societies/societies/phi-theta-kappa/index.html",
+    name: "Community Innovations Foundation",
+    logo: "/sponsors/cif.svg",
+    width: 437,
+    height: 87,
+    wide: true,
+    subtleHover: true,
+    colorOnHover: true,
+    href: "https://cifdn.org",
+  },
+  {
+    name: "Mu Alpha Theta",
+    logo: "/sponsors/MAT Logo.svg",
+    width: 138,
+    height: 150,
+    href: "https://orangecoastcollege.edu/academics/honor-societies/societies/mu-alpha-theta/index.html",
   },
   {
     name: "Alpha Beta Gamma",
@@ -27,13 +37,6 @@ const SPONSORS = [
     href: "https://orangecoastcollege.edu/academics/honor-societies/societies/alpha-beta-gamma.html",
   },
   {
-    name: "Mu Alpha Theta",
-    logo: "/sponsors/MAT Logo.svg",
-    width: 138,
-    height: 150,
-    href: "https://orangecoastcollege.edu/academics/honor-societies/societies/mu-alpha-theta/index.html",
-  },
-  {
     name: "National Technical Honor Society",
     logo: "/sponsors/nths.png",
     width: 515,
@@ -42,6 +45,13 @@ const SPONSORS = [
     subtleHover: true,
     href: "https://orangecoastcollege.edu/academics/honor-societies/societies/nths.html",
   },
+  {
+    name: "Phi Theta Kappa",
+    logo: "/sponsors/PTK Logo white.svg",
+    width: 85,
+    height: 188,
+    href: "https://orangecoastcollege.edu/academics/honor-societies/societies/phi-theta-kappa/index.html",
+  },
 ];
 
 export default function Sponsors() {
@@ -49,7 +59,7 @@ export default function Sponsors() {
     <section id="sponsors" className="scroll-mt-24 px-6 py-16 md:py-24">
       <SectionHeading plain="Sponsors" accent="" className="mb-6" />
       <Reveal className="mx-auto mt-14 max-w-5xl" delay={0.1}>
-        <div className="grid grid-cols-2 gap-x-8 gap-y-12 sm:grid-cols-3 lg:grid-cols-5">
+        <div className="grid grid-cols-2 gap-x-8 gap-y-12 sm:grid-cols-3">
           {SPONSORS.map((sponsor) => (
             <a
               key={sponsor.name}
@@ -64,9 +74,13 @@ export default function Sponsors() {
                 width={sponsor.width}
                 height={sponsor.height}
                 unoptimized
-                className={`h-28 w-auto object-contain transition duration-300 ease-out group-hover:scale-110 sm:h-32 ${
+                className={`object-contain transition duration-300 ease-out group-hover:scale-110 ${
+                  sponsor.wide ? "h-auto w-full max-w-[16rem]" : "h-28 w-auto sm:h-32"
+                } ${
                   sponsor.subtleHover ? "group-hover:brightness-110" : "group-hover:brightness-150"
-                } ${sponsor.grayscale ? "grayscale" : ""}`}
+                } ${sponsor.grayscale ? "grayscale" : ""} ${
+                  sponsor.colorOnHover ? "grayscale group-hover:grayscale-0" : ""
+                }`}
               />
               <span className="text-sm text-muted-foreground/70 transition-colors duration-300 group-hover:text-foreground">
                 {sponsor.name}
