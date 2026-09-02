@@ -18,6 +18,11 @@ statement is idempotent; running it twice is safe.
 `0019_event_time_zone.sql` follows it, and is needed too: it re-defines the two
 counting functions to bucket by California days rather than UTC ones.
 
+`0020_delete_applications.sql` adds the delete policy on `hackers` and the
+append-only log that outlives a deleted row; without it the delete buttons are
+there but every attempt fails. `0021_admin_display_name.sql` renames one
+organizer.
+
 ## Who can get in
 
 One list, in `lib/admin/access.ts`:
@@ -61,6 +66,7 @@ address.
 | `tags` / `applicant_tags` | Shared tag vocabulary and what's applied to whom |
 | `admin_saved_views` | A saved view is a stored applicant-list query string |
 | `application_activity` | Audit log, written by triggers rather than by application code |
+| `application_deletions` | Who deleted which application, and when — the one log a deletion can't erase |
 
 Two views (`admin_applicants`, `admin_activity_feed`) and four RPCs
 (`admin_overview_stats`, `admin_timeseries`, `admin_breakdowns`,
@@ -68,9 +74,26 @@ Two views (`admin_applicants`, `admin_activity_feed`) and four RPCs
 dashboard is a handful of round trips no matter how many applicants there are.
 
 Nothing here modifies `hackers`, `volunteers` or `mentors` beyond adding
-organizer read policies (and one update policy on `hackers`, for correcting
-typos). An applicant owns their own row, so a decision stored there would be a
-decision they could edit.
+organizer read policies (and, on `hackers`, an update policy for correcting
+typos and a delete policy for removing an application outright). An applicant
+owns their own row, so a decision stored there would be a decision they could
+edit.
+
+## Deleting an application
+
+Two places: the **Danger** section of the overflow menu on an applicant's
+profile, and the same section in the bulk-action bar when rows are selected.
+Both ask you to type `DELETE` first, because there is no undo.
+
+Deleting the `hackers` row cascades through the decision, reviews, notes, tags
+and activity log. The applicant's Supabase account survives, so nothing stops
+them registering again. Their name, email and who deleted them is recorded in
+`application_deletions`, which has no foreign key back to `hackers` and so is
+the only thing that outlives the row — no policy allows updating or deleting
+from it, so a true erasure means running the delete by hand in the SQL editor.
+
+For an applicant who has simply pulled out, **withdraw** them instead: the
+status keeps their answers, their reviews and their history.
 
 ## Time zone
 

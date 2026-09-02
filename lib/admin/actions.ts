@@ -353,6 +353,60 @@ export async function updateApplicant(
 }
 
 /* -------------------------------------------------------------------------- */
+/* Deletion                                                                    */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Removes applications for good.
+ *
+ * Not the same thing as a decision: an applicant who pulls out is `withdrawn`
+ * and still counted, still reviewable, still there. This is for the rows that
+ * should never have existed — a duplicate, a test signup, obvious junk — and
+ * for someone who writes in asking to be taken off the list.
+ *
+ * Deleting the `hackers` row cascades through the decision, reviews, notes,
+ * tags and activity log (migration 0018). Their Supabase account is untouched,
+ * so nothing stops them registering again. There is no undo.
+ */
+export async function deleteApplicants(ids: string[]): Promise<ActionResult> {
+  const { supabase, user } = await assertAdmin();
+  const targets = validIds(ids);
+  if (!targets.length) return { ok: false, message: "No applicants selected." };
+
+  // `select()` on a delete returns the rows that actually went, which is both
+  // the honest count and the last chance to read the names for the audit.
+  const { data: removed, error } = await supabase
+    .from("hackers")
+    .delete()
+    .in("user_id", targets)
+    .select("user_id, full_name, email");
+  if (error) return fail(error, "Could not delete those applications.");
+
+  const gone = (removed ?? []) as {
+    user_id: string;
+    full_name: string | null;
+    email: string | null;
+  }[];
+
+  // The activity log cascades away with the applicant, so the only trace of a
+  // deletion is the one written here (migration 0020). Recorded after the fact
+  // rather than before, so the log never claims a delete that didn't happen.
+  if (gone.length) {
+    await supabase.from("application_deletions").insert(
+      gone.map((row) => ({
+        applicant_id: row.user_id,
+        full_name: row.full_name,
+        email: row.email,
+        deleted_by: user.id,
+      }))
+    );
+  }
+
+  refresh();
+  return { ok: true, count: gone.length };
+}
+
+/* -------------------------------------------------------------------------- */
 /* Saved views                                                                 */
 /* -------------------------------------------------------------------------- */
 

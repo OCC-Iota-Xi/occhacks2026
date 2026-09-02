@@ -2,19 +2,20 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Check, ChevronDown, UserPlus } from "lucide-react";
+import { Check, ChevronDown, Trash2, UserPlus } from "lucide-react";
 import ConfirmDialog from "@/components/admin/ConfirmDialog";
 import { ActionMenu, MenuItem, MenuLabel } from "@/components/admin/Menu";
 import { useToast } from "@/components/admin/Toast";
 import { Button } from "@/components/ui/button";
 import {
   assignReviewer,
+  deleteApplicants,
   setAttendance,
   setCheckedIn,
   setStatus,
   type ActionResult,
 } from "@/lib/admin/actions";
-import { formatDateTime } from "@/lib/admin/format";
+import { displayName, formatDateTime } from "@/lib/admin/format";
 import {
   ATTENDANCE,
   ATTENDANCE_LABEL,
@@ -51,16 +52,26 @@ export default function DecisionPanel({
     body: string;
     label: string;
     destructive?: boolean;
+    /** Set only for deletion: a word to type before the button arms. */
+    confirmText?: string;
+    success?: string;
+    /** What to do afterwards, when re-rendering this page is not the answer. */
+    done?: () => void;
     run: () => Promise<ActionResult>;
   } | null>(null);
 
-  const run = (action: () => Promise<ActionResult>, success: string) =>
+  const run = (
+    action: () => Promise<ActionResult>,
+    success: string,
+    done?: () => void
+  ) =>
     startTransition(async () => {
       const result = await action();
       if (result.ok) {
         toast(success);
         setConfirm(null);
-        router.refresh();
+        if (done) done();
+        else router.refresh();
       } else {
         toast(result.message ?? "That didn't work.", "error");
       }
@@ -73,6 +84,22 @@ export default function DecisionPanel({
       label: STATUS_VERB[status],
       destructive: status === "rejected",
       run: () => setStatus([applicant.id], status),
+    });
+
+  // Deleting is not a decision — withdrawing is. This is for a duplicate, a
+  // test signup, or someone who has asked to be taken off the list, and it
+  // takes their reviews, notes, tags and history with it.
+  const remove = () =>
+    setConfirm({
+      title: "Delete this application?",
+      body: `This erases ${displayName(applicant)}'s application, along with every review, note, tag and decision attached to it. It cannot be undone. To take them out of the running without losing their answers, mark them withdrawn instead.`,
+      label: "Delete application",
+      destructive: true,
+      confirmText: "DELETE",
+      success: "Application deleted",
+      run: () => deleteApplicants([applicant.id]),
+      // The profile it was rendered on no longer exists.
+      done: () => router.replace("/admin/applicants"),
     });
 
   const assignee = admins.find((admin) => admin.user_id === applicant.assigned_to);
@@ -120,6 +147,12 @@ export default function DecisionPanel({
               {STATUS_VERB[status as Status]}
             </MenuItem>
           ))}
+
+          <MenuLabel>Danger</MenuLabel>
+          <MenuItem destructive onSelect={remove}>
+            <Trash2 className="size-3.5" />
+            Delete application
+          </MenuItem>
         </ActionMenu>
       </div>
 
@@ -223,9 +256,12 @@ export default function DecisionPanel({
         title={confirm?.title ?? ""}
         body={confirm?.body ?? ""}
         confirmLabel={confirm?.label ?? "Confirm"}
+        confirmText={confirm?.confirmText}
         destructive={confirm?.destructive}
         pending={pending}
-        onConfirm={() => confirm && run(confirm.run, "Status updated")}
+        onConfirm={() =>
+          confirm && run(confirm.run, confirm.success ?? "Status updated", confirm.done)
+        }
       />
     </div>
   );

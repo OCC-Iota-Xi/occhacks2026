@@ -10,6 +10,7 @@ import {
   Download,
   Search,
   SlidersHorizontal,
+  Trash2,
   X,
 } from "lucide-react";
 import { Dialog } from "radix-ui";
@@ -28,6 +29,7 @@ import { Button } from "@/components/ui/button";
 import {
   addTag,
   assignReviewer,
+  deleteApplicants,
   matchingIds,
   removeTag,
   saveView,
@@ -125,6 +127,9 @@ export default function ApplicantsWorkspace({
     body: string;
     label: string;
     destructive?: boolean;
+    /** Set only for deletion: a word to type before the button arms. */
+    confirmText?: string;
+    success?: string;
     run: () => Promise<ActionResult>;
   } | null>(null);
   const [saveOpen, setSaveOpen] = useState(false);
@@ -251,6 +256,22 @@ export default function ApplicantsWorkspace({
       label: `${STATUS_VERB[status]} ${people}`,
       destructive: status === "rejected",
       run: () => setStatus(ids, status),
+    });
+  };
+
+  const confirmDelete = () => {
+    const people = ids.length === 1 ? "application" : "applications";
+    setConfirm({
+      title: `Delete ${formatNumber(ids.length)} ${people}?`,
+      body:
+        `This erases the ${people}, along with every review, note, tag and ` +
+        `decision attached to ${ids.length === 1 ? "it" : "them"}. It cannot be undone. ` +
+        `To take someone out of the running without losing their answers, mark them withdrawn instead.`,
+      label: `Delete ${people}`,
+      destructive: true,
+      confirmText: "DELETE",
+      success: "Deleted {n} applications",
+      run: () => deleteApplicants(ids),
     });
   };
 
@@ -634,6 +655,12 @@ export default function ApplicantsWorkspace({
               >
                 Undo check-in
               </MenuItem>
+
+              <MenuLabel>Danger</MenuLabel>
+              <MenuItem destructive onSelect={confirmDelete}>
+                <Trash2 className="size-3.5" />
+                Delete permanently
+              </MenuItem>
             </ActionMenu>
 
             <ActionMenu
@@ -800,9 +827,12 @@ export default function ApplicantsWorkspace({
         title={confirm?.title ?? ""}
         body={confirm?.body ?? ""}
         confirmLabel={confirm?.label ?? "Confirm"}
+        confirmText={confirm?.confirmText}
         destructive={confirm?.destructive}
         pending={pending}
-        onConfirm={() => confirm && run(confirm.run, "Updated {n} applications")}
+        onConfirm={() =>
+          confirm && run(confirm.run, confirm.success ?? "Updated {n} applications")
+        }
       />
 
       {/* Save current filters as a view */}
