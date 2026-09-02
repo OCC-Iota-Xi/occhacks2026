@@ -388,21 +388,43 @@ export async function deleteApplicants(ids: string[]): Promise<ActionResult> {
     email: string | null;
   }[];
 
+  // A policy that doesn't grant delete doesn't raise — it filters, and Postgres
+  // reports a perfectly successful statement that removed nothing. So the empty
+  // result is the failure case, not a quiet success: without this, running the
+  // dashboard against a database missing migration 0020 would show "deleted"
+  // every time and never delete anything.
+  if (!gone.length) {
+    return {
+      ok: false,
+      message:
+        "Nothing was deleted — either those applications are already gone, or migration 0020 hasn't been run on this database.",
+    };
+  }
+
   // The activity log cascades away with the applicant, so the only trace of a
   // deletion is the one written here (migration 0020). Recorded after the fact
   // rather than before, so the log never claims a delete that didn't happen.
-  if (gone.length) {
-    await supabase.from("application_deletions").insert(
-      gone.map((row) => ({
-        applicant_id: row.user_id,
-        full_name: row.full_name,
-        email: row.email,
-        deleted_by: user.id,
-      }))
-    );
-  }
+  const { error: logError } = await supabase.from("application_deletions").insert(
+    gone.map((row) => ({
+      applicant_id: row.user_id,
+      full_name: row.full_name,
+      email: row.email,
+      deleted_by: user.id,
+    }))
+  );
 
   refresh();
+
+  // The rows are already gone; a failed audit write is worth saying out loud
+  // rather than swallowing, because it's the record nobody can reconstruct.
+  if (logError) {
+    return {
+      ok: true,
+      count: gone.length,
+      message: `Deleted, but the deletion could not be logged: ${logError.message}`,
+    };
+  }
+
   return { ok: true, count: gone.length };
 }
 
