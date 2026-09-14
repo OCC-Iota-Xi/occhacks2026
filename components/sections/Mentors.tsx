@@ -4,72 +4,78 @@ import Reveal from "@/components/motion/Reveal";
 import PersonCard, { type Person } from "@/components/sections/PersonCard";
 import { Button } from "@/components/ui/button";
 
-/**
- * Keynote panelists. First names and titles only, and no "AI" framing
- * anywhere public — both are conditions from the panelists' side. Frame it
- * as a career / industry panel.
+/*
+ * Everyone is defined once. Speaker groups reuse the mentor records with
+ * first names only; the mentors grid keeps full names.
+ *
+ * Keynote panel conditions from the panelists' side: first names and titles
+ * only, and never framed as an AI panel anywhere public.
  */
-const PANELISTS: Person[] = [
-  {
-    name: "Zhen",
-    roles: ["Director of Applied Science @ Blizzard"],
-    palette: 1,
-    photo: "/guest_speakers/zhen_zhai.jpg",
-  },
-  {
-    name: "Mike",
-    roles: ["Formerly Development Director @ Amazon Game Studios"],
-    palette: 0,
-    photo: "/guest_speakers/michael_boccieri.jpeg",
-  },
-];
 
-/** Names and titles as supplied by the mentors themselves. */
-const MENTORS: Person[] = [
-  {
-    name: "Yash Gupta",
-    roles: ["Senior Software Engineer @ PIMCO"],
-    palette: 0,
-  },
-  {
-    name: "Dailin Hu",
-    roles: ["Community Innovations Foundation"],
-    palette: 1,
-    photo: "/guest_speakers/dailin_hu.jpeg",
-  },
-  {
-    name: "Nada Lahjouji",
-    roles: ["Applied Scientist @ Blizzard"],
-    palette: 2,
-    photo: "/guest_speakers/nada_lahjouji.jpeg",
-  },
-  {
-    name: "Ashwin Colaco",
-    roles: ["PhD Researcher @ UC Irvine"],
-    palette: 3,
-  },
-  {
-    name: "Wesley Wu",
-    roles: ["Senior Software Engineer @ Amazon"],
-    palette: 1,
-    photo: "/guest_speakers/wesley_wu.jpeg",
-  },
-  {
-    name: "Owen Wolf",
-    roles: ["Lead SRE @ PlayStation"],
-    palette: 0,
-    photo: "/guest_speakers/owen_wolf.jpeg",
-  },
-  {
-    name: "Kevin Doan",
-    roles: ["Start-up Founder"],
-    palette: 2,
-    photo: "/guest_speakers/kevin_doan.jpeg",
-  },
-];
+const ZHEN: Person = {
+  name: "Zhen",
+  roles: ["Director of Applied Science @ Blizzard"],
+  palette: 1,
+  photo: "/guest_speakers/zhen_zhai.jpg",
+};
+const MIKE: Person = {
+  name: "Mike",
+  roles: ["Former Development Director @ Amazon Game Studios"],
+  palette: 0,
+  photo: "/guest_speakers/michael_boccieri.jpeg",
+};
+
+const YASH: Person = {
+  name: "Yash Gupta",
+  roles: ["Senior Software Engineer @ PIMCO"],
+  palette: 0,
+  photo: "/guest_speakers/yash_gupta.jpeg",
+};
+const DAILIN: Person = {
+  name: "Dailin Hu",
+  roles: ["Senior Applied Scientist @ Blizzard"],
+  palette: 1,
+  photo: "/guest_speakers/dailin_hu.jpeg",
+};
+const NADA: Person = {
+  name: "Nada Lahjouji",
+  roles: ["Applied Scientist @ Blizzard"],
+  palette: 2,
+  photo: "/guest_speakers/nada_lahjouji.jpeg",
+};
+const ASHWIN: Person = {
+  name: "Ashwin Colaco",
+  roles: ["PhD Researcher @ UC Irvine"],
+  palette: 3,
+};
+const WESLEY: Person = {
+  name: "Wesley Wu",
+  roles: ["Senior Software Engineer @ Amazon"],
+  palette: 1,
+  photo: "/guest_speakers/wesley_wu.jpeg",
+};
+const OWEN: Person = {
+  name: "Owen Wolf",
+  roles: ["Lead SRE @ PlayStation"],
+  palette: 0,
+  photo: "/guest_speakers/owen_wolf.jpeg",
+};
+const KEVIN: Person = {
+  name: "Kevin Doan",
+  roles: ["Start-up Founder"],
+  palette: 2,
+  photo: "/guest_speakers/kevin_doan.jpeg",
+};
+
+const firstNameOnly = (person: Person): Person => ({ ...person, name: person.name.split(" ")[0] });
+
+const KEYNOTE_PANEL = [ZHEN, MIKE, DAILIN, NADA].map(firstNameOnly);
+const FIRESIDE_CHAT = [OWEN, WESLEY, YASH].map(firstNameOnly);
 
 /** Mentors with a photo lead; initials-only cards sink to the end, keeping list order within each group. */
-const MENTORS_PHOTOS_FIRST = [...MENTORS].sort((a, b) => Number(!a.photo) - Number(!b.photo));
+const MENTORS = [YASH, DAILIN, NADA, ASHWIN, WESLEY, OWEN, KEVIN].sort(
+  (a, b) => Number(!a.photo) - Number(!b.photo)
+);
 
 /** Sub-group title inside the section: white display face, one size below the section heading. */
 function GroupTitle({ children }: { children: React.ReactNode }) {
@@ -79,38 +85,55 @@ function GroupTitle({ children }: { children: React.ReactNode }) {
 }
 
 /**
- * One section for everyone joining us from industry: the keynote career
- * panel (stacked) beside a four-across mentors grid on
- * desktop, one column on smaller screens. Planet avatars throughout, matching the tracks' planet motif.
+ * Everyone joining us from industry. The keynote panel and fireside chat sit
+ * side by side on wide screens, with the full mentors grid below; every group
+ * stacks on smaller screens. Planet avatars throughout.
  */
 export default function Mentors() {
   return (
     <section id="mentors" className="scroll-mt-24 px-6 py-16 md:py-24">
       <SectionHeading plain="Guest Speakers & Mentors" accent="" className="mb-6" />
 
-      <div className="mx-auto mt-14 grid max-w-[90rem] gap-16 lg:grid-cols-[1fr_2fr] lg:items-start lg:gap-12">
+      <div className="mx-auto mt-14 grid max-w-[90rem] gap-16 xl:grid-cols-[4fr_3fr] xl:items-start xl:gap-12">
         <Reveal className="text-center" delay={0.05}>
-          <GroupTitle>Fireside Chat</GroupTitle>
-          <div className="mt-10 flex flex-col items-center gap-12">
-            {PANELISTS.map((person) => (
-              <PersonCard key={person.name} person={person} className="w-full max-w-xs" />
+          <GroupTitle>Keynote Panel</GroupTitle>
+          <div className="mt-10 flex flex-wrap justify-center gap-x-8 gap-y-12">
+            {KEYNOTE_PANEL.map((person) => (
+              <PersonCard
+                key={person.name}
+                person={person}
+                className="w-[calc(50%-1rem)] sm:w-[calc(25%-1.5rem)]"
+              />
             ))}
           </div>
         </Reveal>
 
-        <Reveal className="text-center lg:border-l lg:border-white/10 lg:pl-12" delay={0.1}>
-          <GroupTitle>Mentors</GroupTitle>
+        <Reveal className="text-center xl:border-l xl:border-white/10 xl:pl-12" delay={0.1}>
+          <GroupTitle>Fireside Chat</GroupTitle>
           <div className="mt-10 flex flex-wrap justify-center gap-x-8 gap-y-12">
-            {MENTORS_PHOTOS_FIRST.map((mentor) => (
+            {FIRESIDE_CHAT.map((person) => (
               <PersonCard
-                key={mentor.name}
-                person={mentor}
-                className="w-[calc(50%-1rem)] sm:w-[calc(33.333%-1.334rem)] md:w-[calc(25%-1.5rem)]"
+                key={person.name}
+                person={person}
+                className="w-[calc(50%-1rem)] sm:w-[calc(33.333%-1.334rem)]"
               />
             ))}
           </div>
         </Reveal>
       </div>
+
+      <Reveal className="mx-auto mt-20 max-w-5xl text-center" delay={0.1}>
+        <GroupTitle>Mentors</GroupTitle>
+        <div className="mt-10 flex flex-wrap justify-center gap-x-8 gap-y-12">
+          {MENTORS.map((mentor) => (
+            <PersonCard
+              key={mentor.name}
+              person={mentor}
+              className="w-[calc(50%-1rem)] sm:w-[calc(33.333%-1.334rem)] md:w-[calc(25%-1.5rem)]"
+            />
+          ))}
+        </div>
+      </Reveal>
 
       <Reveal className="mt-14 text-center" delay={0.2}>
         <Button
