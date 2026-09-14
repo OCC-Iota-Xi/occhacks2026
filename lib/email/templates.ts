@@ -273,7 +273,7 @@ export function hackerWelcomeEmail(fullName: string): WelcomeEmail {
       { label: "When", value: EVENT.dates },
       { label: "Where", value: EVENT.venue },
       { label: "Cost", value: "Free — every meal covered" },
-      { label: "Prizes", value: "$500 per track, plus $500 overall" },
+      { label: "Prizes", value: "$500 per track, plus $250 overall" },
     ]),
     paragraph(
       `In the meantime, join the Discord. That's where we post announcements, run team formation, and where our industry mentors answer questions before and during the event.`
@@ -300,7 +300,7 @@ We're reviewing applications as they come in, and we'll email you as soon as the
 When      ${EVENT.dates}
 Where     ${EVENT.venue}
 Cost      Free — every meal covered
-Prizes    $500 per track, plus $500 overall
+Prizes    $500 per track, plus $250 overall
 
 In the meantime, join the Discord. That's where we post announcements, run team formation, and where our industry mentors answer questions before and during the event.
 

@@ -26,7 +26,7 @@ const FAQS: { question: string; answer: React.ReactNode }[] = [
   {
     question: "Are there prizes?",
     answer:
-      "Yes — $500 for the best project in each track, plus $500 for the overall best.",
+      "Yes — $500 for the best project in each track, plus $250 for the overall best. The LeetCode challenge has its own pot too: $150, $75, and $25 for first through third.",
   },
   {
     question: "What if I'm new, or don't have a team or idea?",
