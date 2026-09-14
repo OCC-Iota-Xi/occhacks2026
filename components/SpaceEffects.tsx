@@ -3,8 +3,9 @@ import styles from "./SpaceEffects.module.css";
 /* Placement of the sparkles and dots, in viewport units. */
 /* The layer spans the whole document, so top values walk down the page
    (the page is roughly 700vh tall). */
-const SPARKS = [
-  { left: "68vw", top: "12vh", scale: 0.8, delay: "0.5s" },
+const SPARKS: { left: string; top: string; scale: number; delay: string; hideOnMobile?: boolean }[] = [
+  // Lands on the hero title on phones, so it only shows from sm up.
+  { left: "68vw", top: "12vh", scale: 0.8, delay: "0.5s", hideOnMobile: true },
   { left: "88vw", top: "58vh", scale: 0.6, delay: "0.3s" },
   { left: "72vw", top: "86vh", scale: 0.5, delay: "0.8s" },
   { left: "10vw", top: "130vh", scale: 0.7, delay: "0.2s" },
@@ -16,8 +17,9 @@ const SPARKS = [
   { left: "35vw", top: "590vh", scale: 0.6, delay: "1.2s" },
 ];
 
-const DOTS = [
-  { left: "40vw", top: "8vh", gold: true, delay: "0.2s" },
+const DOTS: { left: string; top: string; gold: boolean; delay: string; hideOnMobile?: boolean }[] = [
+  // Sits just above the hero title on phones, so it only shows from sm up.
+  { left: "40vw", top: "8vh", gold: true, delay: "0.2s", hideOnMobile: true },
   { left: "76vw", top: "42vh", gold: false, delay: "0s" },
   { left: "56vw", top: "82vh", gold: true, delay: "0.9s" },
   { left: "30vw", top: "160vh", gold: false, delay: "0.5s" },
@@ -52,7 +54,7 @@ export default function SpaceEffects() {
       {SPARKS.map((s, i) => (
         <div
           key={`spark-${i}`}
-          className={styles.spark}
+          className={`${styles.spark} ${s.hideOnMobile ? "hidden sm:block" : ""}`}
           style={
             {
               left: s.left,
@@ -70,7 +72,7 @@ export default function SpaceEffects() {
       {DOTS.map((d, i) => (
         <div
           key={`dot-${i}`}
-          className={`${styles.dot} ${d.gold ? styles.dotGold : styles.dotWhite}`}
+          className={`${styles.dot} ${d.gold ? styles.dotGold : styles.dotWhite} ${d.hideOnMobile ? "hidden sm:block" : ""}`}
           style={{ left: d.left, top: d.top, "--d": d.delay } as React.CSSProperties}
         />
       ))}
