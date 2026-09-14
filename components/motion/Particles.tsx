@@ -132,13 +132,28 @@ export default function Particles({
     const container = containerRef.current;
     if (!container) return;
 
+    // OGL's Renderer assumes getContext() succeeds and does `this.gl.renderer = this`,
+    // which throws "Cannot set properties of null" on browsers without WebGL
+    // (headless crawlers, iOS Safari with WebGL disabled, some low-memory
+    // devices). A throw here unmounts the whole React tree since this is a
+    // layout-level effect, so probe first and just skip the backdrop.
+    const probe = document.createElement("canvas");
+    const hasWebGL = !!(probe.getContext("webgl2") || probe.getContext("webgl"));
+    if (!hasWebGL) return;
+
     const dpr = pixelRatio ?? Math.min(window.devicePixelRatio || 1, 2);
-    const renderer = new Renderer({
-      dpr,
-      depth: false,
-      alpha: true,
-    });
+    let renderer: Renderer;
+    try {
+      renderer = new Renderer({
+        dpr,
+        depth: false,
+        alpha: true,
+      });
+    } catch {
+      return;
+    }
     const gl = renderer.gl;
+    if (!gl) return;
     container.appendChild(gl.canvas);
     gl.clearColor(0, 0, 0, 0);
 
