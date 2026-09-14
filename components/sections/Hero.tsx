@@ -17,7 +17,7 @@ export default function Hero() {
   return (
     <section
       id="top"
-      className="relative isolate overflow-hidden min-h-screen flex flex-col justify-center gap-6 lg:justify-between lg:gap-0"
+      className="relative isolate overflow-hidden min-h-screen flex flex-col justify-center gap-6 pt-24 sm:pt-28 lg:justify-between lg:gap-0 lg:pt-0"
     >
       <HeroAstronaut />
 
@@ -45,7 +45,7 @@ export default function Hero() {
 
           {/* Event Details */}
           <div className="mb-6 md:mb-8 text-left">
-            <p className="flex flex-wrap items-center gap-x-3 gap-y-1 pl-1 sm:flex-nowrap sm:whitespace-nowrap font-body text-base sm:text-lg md:text-xl tracking-wide text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.5)]">
+            <p className="flex flex-col gap-1 pl-1 sm:flex-row sm:items-center sm:gap-3 sm:whitespace-nowrap font-body text-base sm:text-lg md:text-xl tracking-wide text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.5)]">
               <span>
                 October 10-11th, 2026 @{" "}
                 <a
@@ -57,8 +57,8 @@ export default function Hero() {
                   Orange Coast College
                 </a>
               </span>
-              <span aria-hidden className="text-white/40">|</span>
-              <span>Apply by Monday, October 5th, 11:59pm (countdown)</span>
+              <span aria-hidden className="hidden text-white/40 sm:inline">|</span>
+              <span>Apply by Monday, October 5th, 11:59pm</span>
             </p>
           </div>
 
