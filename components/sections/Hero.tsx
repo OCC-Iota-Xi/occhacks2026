@@ -3,6 +3,7 @@
 import { motion, useReducedMotion } from "motion/react";
 import { AnimatedGradientText } from "@/components/ui/animated-gradient-text";
 import CtaButtons from "@/components/CtaButtons";
+import Countdown from "@/components/Countdown";
 import HeroAstronaut from "@/components/HeroAstronaut";
 
 /**
@@ -44,21 +45,30 @@ export default function Hero() {
 
           {/* Event Details */}
           <div className="mb-6 md:mb-8 text-left">
-            <span className="block pl-1 font-body text-base sm:text-lg md:text-xl tracking-wide text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.5)]">
-              October 10-11th, 2026 @{" "}
-              <a
-                href="https://orangecoastcollege.edu/"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="hover:underline underline-offset-2"
-              >
-                Orange Coast College
-              </a>
-            </span>
+            <p className="flex flex-wrap items-center gap-x-3 gap-y-1 pl-1 sm:flex-nowrap sm:whitespace-nowrap font-body text-base sm:text-lg md:text-xl tracking-wide text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.5)]">
+              <span>
+                October 10-11th, 2026 @{" "}
+                <a
+                  href="https://orangecoastcollege.edu/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:underline underline-offset-2"
+                >
+                  Orange Coast College
+                </a>
+              </span>
+              <span aria-hidden className="text-white/40">|</span>
+              <span>Apply by Monday, October 5th, 11:59pm (countdown)</span>
+            </p>
           </div>
 
+          {/* Application deadline countdown */}
+          <Countdown />
+
           {/* CTA Buttons — shared with the join section */}
-          <CtaButtons />
+          <div className="mt-8 md:mt-10">
+            <CtaButtons />
+          </div>
         </motion.div>
       </div>
     </section>
