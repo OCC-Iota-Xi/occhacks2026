@@ -5,8 +5,7 @@ import PersonCard, { type Person } from "@/components/sections/PersonCard";
 import { Button } from "@/components/ui/button";
 
 /*
- * Everyone is defined once. Speaker groups reuse the mentor records with
- * first names only; the mentors grid keeps full names.
+ * Everyone is defined once. Every group on the page shows first names only.
  *
  * Keynote panel conditions from the panelists' side: first names and titles
  * only, and never framed as an AI panel anywhere public.
@@ -73,9 +72,9 @@ const KEYNOTE_PANEL = [ZHEN, MIKE, DAILIN, NADA].map(firstNameOnly);
 const FIRESIDE_CHAT = [OWEN, WESLEY, YASH].map(firstNameOnly);
 
 /** Mentors with a photo lead; initials-only cards sink to the end, keeping list order within each group. */
-const MENTORS = [YASH, DAILIN, NADA, ASHWIN, WESLEY, OWEN, KEVIN].sort(
-  (a, b) => Number(!a.photo) - Number(!b.photo)
-);
+const MENTORS = [YASH, DAILIN, NADA, ASHWIN, WESLEY, OWEN, KEVIN]
+  .sort((a, b) => Number(!a.photo) - Number(!b.photo))
+  .map(firstNameOnly);
 
 /** Sub-group title inside the section: white display face, one size below the section heading. */
 function GroupTitle({ children }: { children: React.ReactNode }) {
