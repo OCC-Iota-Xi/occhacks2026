@@ -24,7 +24,6 @@ const DOTS = [
   { left: "65vw", top: "230vh", gold: true, delay: "1.1s" },
   { left: "8vw", top: "310vh", gold: true, delay: "0.3s" },
   { left: "88vw", top: "395vh", gold: false, delay: "0.8s" },
-  { left: "45vw", top: "470vh", gold: true, delay: "0s" },
   { left: "15vw", top: "560vh", gold: false, delay: "1.3s" },
 ];
 
