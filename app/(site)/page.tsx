@@ -16,9 +16,9 @@ export default function Home() {
       <Hero />
       <AboutSection />
       <Tracks />
-      <Schedule />
-      <Sponsors />
       <Mentors />
+      <Sponsors />
+      <Schedule />
       <FAQ />
       <Join />
       <Closer />
