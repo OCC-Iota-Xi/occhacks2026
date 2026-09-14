@@ -83,3 +83,70 @@ export async function sendEmail({
     return { ok: false, error: err instanceof Error ? err.message : "unknown error" };
   }
 }
+
+/** Resend accepts at most this many messages per batch call. */
+export const BATCH_MAX = 100;
+
+export type SendBatchResult =
+  | { ok: true; results: SendEmailResult[] }
+  | { ok: false; skipped: true }
+  | { ok: false; skipped?: false; error: string };
+
+/**
+ * Sends up to `BATCH_MAX` messages in one request — the organizer broadcasts.
+ *
+ * Permissive validation so one bad address fails alone rather than sinking
+ * the batch. Resend then returns the successful ids in input order with the
+ * failures listed separately by index, which this folds back into one array
+ * aligned with `messages`. `idempotencyKey` lets a retried request reuse the
+ * first attempt's result instead of sending everyone a second copy.
+ */
+export async function sendBatch(
+  messages: SendEmailArgs[],
+  idempotencyKey: string
+): Promise<SendBatchResult> {
+  const resend = getClient();
+  if (!resend) {
+    console.warn(`[email] RESEND_API_KEY not set — skipped a batch of ${messages.length}`);
+    return { ok: false, skipped: true };
+  }
+  if (!messages.length) return { ok: true, results: [] };
+  if (messages.length > BATCH_MAX) {
+    return { ok: false, error: `a batch holds at most ${BATCH_MAX} messages` };
+  }
+
+  try {
+    const { data, error } = await resend.batch.send(
+      messages.map(({ to, subject, html, text }) => ({
+        from: FROM,
+        to,
+        subject,
+        html,
+        text,
+        ...(REPLY_TO ? { replyTo: REPLY_TO } : {}),
+      })),
+      { batchValidation: "permissive", idempotencyKey }
+    );
+
+    if (error) {
+      console.error(`[email] resend rejected the batch from ${FROM}:`, error);
+      return { ok: false, error: error.message };
+    }
+
+    const failed = new Map<number, string>();
+    for (const item of data?.errors ?? []) failed.set(item.index, item.message);
+
+    const ids = data?.data ?? [];
+    let next = 0;
+    const results: SendEmailResult[] = messages.map((_, index) => {
+      const message = failed.get(index);
+      if (message !== undefined) return { ok: false, error: message };
+      return { ok: true, id: ids[next++]?.id ?? null };
+    });
+
+    return { ok: true, results };
+  } catch (err) {
+    console.error("[email] batch send threw:", err);
+    return { ok: false, error: err instanceof Error ? err.message : "unknown error" };
+  }
+}
