@@ -8,6 +8,7 @@ import {
   Gauge,
   HeartHandshake,
   LogOut,
+  Mail,
   QrCode,
   Settings,
   Tags,
@@ -48,6 +49,7 @@ const NAV = [
   { href: "/admin/analytics", label: "Analytics", icon: TrendingUp },
   { href: "/admin/checkin", label: "Check-in", icon: QrCode },
   { href: "/admin/helpers", label: "Volunteers & mentors", icon: HeartHandshake },
+  { href: "/admin/emails", label: "Emails", icon: Mail },
   { href: "/admin/tags", label: "Tags", icon: Tags },
   { href: "/admin/settings", label: "Settings", icon: Settings },
 ];

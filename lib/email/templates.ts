@@ -65,8 +65,8 @@ function esc(value: string): string {
 }
 
 /** First name if we can find one, otherwise a safe stand-in. */
-function firstName(fullName: string): string {
-  return fullName.trim().split(/\s+/)[0] || "there";
+export function firstName(fullName: string | null | undefined): string {
+  return (fullName ?? "").trim().split(/\s+/)[0] || "there";
 }
 
 interface Detail {
@@ -247,6 +247,12 @@ const goldLink = (label: string, href: string) =>
 /** `EVENT.parking` with the lot linked to its map pin — for HTML bodies only. */
 const PARKING_HTML = `Free in ${goldLink("Lot C", EVENT.parkingUrl)}, at Merrimac Way and Fairview Road`;
 
+/** The plain-text twin of the shell's footer rule. */
+const FOOTER_TEXT = `—
+OCC Hacks 2026 · Organized by the Iota Xi Society
+Orange Coast College · Costa Mesa, CA
+Questions? Just reply — this reaches the organizers.`;
+
 export interface WelcomeEmail {
   subject: string;
   html: string;
@@ -314,10 +320,7 @@ FAQ: ${SITE}/#faq
 
 Talk soon.
 
-—
-OCC Hacks 2026 · Organized by the Iota Xi Society
-Orange Coast College · Costa Mesa, CA
-Questions? Just reply — this reaches the organizers.`;
+${FOOTER_TEXT}`;
 
   return {
     subject: "Thanks for registering — OCC Hacks 2026",
@@ -386,10 +389,7 @@ See the schedule: ${SITE}/#schedule
 
 See you out there.
 
-—
-OCC Hacks 2026 · Organized by the Iota Xi Society
-Orange Coast College · Costa Mesa, CA
-Questions? Just reply — this reaches the organizers.`;
+${FOOTER_TEXT}`;
 
   return {
     subject: "Thank you for offering to help — OCC Hacks 2026",
@@ -449,10 +449,7 @@ See the schedule: ${SITE}/#schedule
 
 See you on the floor.
 
-—
-OCC Hacks 2026 · Organized by the Iota Xi Society
-Orange Coast College · Costa Mesa, CA
-Questions? Just reply — this reaches the organizers.`;
+${FOOTER_TEXT}`;
 
   return {
     subject: "Thank you for offering your time — OCC Hacks 2026",
@@ -468,4 +465,65 @@ Questions? Just reply — this reaches the organizers.`;
 /** Picks the letter for a role — the two share nothing but their shape. */
 export function helperWelcomeEmail(fullName: string, role: HelperRole): WelcomeEmail {
   return role === "mentor" ? mentorWelcomeEmail(fullName) : volunteerWelcomeEmail(fullName);
+}
+
+/* -------------------------------------------------------------------------- */
+/* Organizer broadcasts                                                        */
+/* -------------------------------------------------------------------------- */
+
+const FIRST_NAME_TOKEN = /\{\{\s*first_name\s*\}\}/gi;
+
+/** Bare URLs become gold links. Runs on escaped text, so the match can't carry markup. */
+function linkify(escaped: string): string {
+  return escaped.replace(
+    /https?:\/\/[^\s<]+[^\s<.,;:!?)]/g,
+    (url) => `<a href="${url}" class="gold" style="color:${COLOR.gold};text-decoration:underline;">${url}</a>`
+  );
+}
+
+export interface BroadcastArgs {
+  subject: string;
+  /** Plain text. Blank lines separate paragraphs; single newlines are kept. */
+  bodyText: string;
+  /** The recipient's first name, or null when we only have an address. */
+  firstName: string | null;
+}
+
+/**
+ * The letter organizers write themselves on /admin/emails. Same chrome as the
+ * welcome notes, with the organizer's paragraphs where the copy would be.
+ * `{{first_name}}` in the subject or body is replaced per recipient, falling
+ * back to "there" when the address came from a list without names.
+ */
+export function broadcastEmail({ subject, bodyText, firstName: name }: BroadcastArgs): WelcomeEmail {
+  const who = name?.trim() || "there";
+  const fill = (value: string) => value.replace(FIRST_NAME_TOKEN, who);
+
+  const filledSubject = fill(subject).trim();
+  const paragraphs = fill(bodyText)
+    .replace(/\r\n/g, "\n")
+    .trim()
+    .split(/\n{2,}/)
+    .map((p) => p.trim())
+    .filter(Boolean);
+
+  const body = paragraphs
+    .map((p) => paragraph(linkify(esc(p)).replace(/\n/g, "<br />")))
+    .join("\n");
+
+  const text = `${filledSubject}
+
+${paragraphs.join("\n\n")}
+
+${FOOTER_TEXT}`;
+
+  return {
+    subject: filledSubject,
+    html: shell({
+      preheader: (paragraphs[0] ?? filledSubject).replace(/\s+/g, " ").slice(0, 120),
+      heading: filledSubject,
+      body,
+    }),
+    text,
+  };
 }

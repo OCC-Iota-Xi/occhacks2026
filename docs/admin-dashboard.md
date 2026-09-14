@@ -23,6 +23,33 @@ append-only log that outlives a deleted row; without it the delete buttons are
 there but every attempt fails. `0021_admin_display_name.sql` renames one
 organizer.
 
+`0022_email_campaigns.sql` adds the three tables behind `/admin/emails` — the
+contact list, campaigns and their per-recipient send log — plus the
+`admin_email_campaigns` view. Without it the Emails page shows its own setup
+notice and everything else keeps working.
+
+## Emails (`/admin/emails`)
+
+Organizer mail through Resend. The composer picks audiences (hackers by
+status, volunteers, mentors, the notify list, the hand-kept contact list) plus
+any one-off addresses typed into the To field, dedupes them by address, and
+wraps the plain-text message in the same branded shell as the welcome notes.
+`{{first_name}}` is filled per recipient. "Send test to me" mails only the
+organizer pressing it.
+
+A send is chunked: `startSend` writes one `email_campaign_recipients` row per
+address and the browser then calls `sendChunk` until it reports done, one
+Resend batch of up to 100 per call. Rows are claimed (`queued` → `sending`)
+before anything is mailed and the campaign/address pair is unique, so a
+retried request or a second organizer can't double-send. Failures keep the
+Resend error on the row; "Retry failed" re-queues only those. The applicants
+table's bulk bar has an "Email" button that opens a draft aimed at the
+selected rows.
+
+Env: `RESEND_API_KEY`, `RESEND_FROM` (must be on a verified domain),
+`RESEND_REPLY_TO`. Without the key every send is recorded as failed with a
+message saying so.
+
 ## Who can get in
 
 One list, in `lib/admin/access.ts`:

@@ -8,6 +8,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Download,
+  Mail,
   Search,
   SlidersHorizontal,
   Trash2,
@@ -38,6 +39,7 @@ import {
   setStatus,
   type ActionResult,
 } from "@/lib/admin/actions";
+import { draftCampaignForApplicants } from "@/lib/admin/email-actions";
 import {
   activeChips,
   clearFilters,
@@ -246,6 +248,18 @@ export default function ApplicantsWorkspace({
         router.refresh();
       } else {
         toast(result.message ?? "That didn't work.", "error");
+      }
+    });
+  };
+
+  // Hands the selection to the composer as a draft — 2,000 ids won't fit in a URL.
+  const emailSelected = () => {
+    startTransition(async () => {
+      const result = await draftCampaignForApplicants(ids);
+      if (result.ok && result.id) {
+        router.push(`/admin/emails/${result.id}`);
+      } else {
+        toast(result.message ?? "Could not start an email.", "error");
       }
     });
   };
@@ -607,6 +621,10 @@ export default function ApplicantsWorkspace({
             )}
 
           <div className="ml-auto flex flex-wrap items-center gap-1.5">
+            <Button size="sm" variant="outline" onClick={emailSelected} disabled={pending}>
+              <Mail className="size-3.5" />
+              Email
+            </Button>
             <Button size="sm" variant="outline" onClick={() => confirmStatus("accepted")}>
               Accept
             </Button>
