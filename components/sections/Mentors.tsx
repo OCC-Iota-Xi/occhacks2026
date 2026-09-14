@@ -1,9 +1,31 @@
 import Link from "next/link";
 import SectionHeading from "@/components/SectionHeading";
 import Reveal from "@/components/motion/Reveal";
+import PersonCard, { type Person } from "@/components/sections/PersonCard";
 import { Button } from "@/components/ui/button";
 
-const MENTORS: { name: string; roles: string[]; palette: number }[] = [
+/**
+ * Keynote panelists. First names and titles only, and no "AI" framing
+ * anywhere public — both are conditions from the panelists' side. Frame it
+ * as a career / industry panel.
+ */
+const PANELISTS: Person[] = [
+  {
+    name: "Zhen",
+    roles: ["Director of Applied Science @ Blizzard"],
+    palette: 1,
+    photo: "/guest_speakers/zhen_zhai.jpg",
+  },
+  {
+    name: "Mike",
+    roles: ["Formerly Development Director @ Amazon Game Studios"],
+    palette: 0,
+    photo: "/guest_speakers/michael_boccieri.jpeg",
+  },
+];
+
+/** Names and titles as supplied by the mentors themselves. */
+const MENTORS: Person[] = [
   {
     name: "Yash Gupta",
     roles: ["Senior Software Engineer @ PIMCO"],
@@ -11,13 +33,15 @@ const MENTORS: { name: string; roles: string[]; palette: number }[] = [
   },
   {
     name: "Dailin Hu",
-    roles: ["Senior Applied AI Scientist @ Blizzard"],
+    roles: ["Community Innovations Foundation"],
     palette: 1,
+    photo: "/guest_speakers/dailin_hu.jpeg",
   },
   {
     name: "Nada Lahjouji",
-    roles: ["Applied AI Scientist @ Blizzard"],
+    roles: ["Applied Scientist @ Blizzard"],
     palette: 2,
+    photo: "/guest_speakers/nada_lahjouji.jpeg",
   },
   {
     name: "Ashwin Colaco",
@@ -28,78 +52,65 @@ const MENTORS: { name: string; roles: string[]; palette: number }[] = [
     name: "Wesley Wu",
     roles: ["Senior Software Engineer @ Amazon"],
     palette: 1,
+    photo: "/guest_speakers/wesley_wu.jpeg",
   },
   {
     name: "Owen Wolf",
     roles: ["Lead SRE @ PlayStation"],
     palette: 0,
+    photo: "/guest_speakers/owen_wolf.jpeg",
+  },
+  {
+    name: "Kevin Doan",
+    roles: ["Start-up Founder"],
+    palette: 2,
+    photo: "/guest_speakers/kevin_doan.jpeg",
   },
 ];
 
-/** Flat-art gradient discs echoing the track planets: earth, saturn, pluto, gold. */
-const PALETTES = [
-  "radial-gradient(circle at 35% 30%, #4f8fd9, #1e4e8f 70%)",
-  "radial-gradient(circle at 35% 30%, #e8c97a, #a9822f 70%)",
-  "radial-gradient(circle at 35% 30%, #d9c6ae, #8f7a5e 70%)",
-  "radial-gradient(circle at 35% 30%, #fcd34d, #b45309 70%)",
-];
+/** Mentors with a photo lead; initials-only cards sink to the end, keeping list order within each group. */
+const MENTORS_PHOTOS_FIRST = [...MENTORS].sort((a, b) => Number(!a.photo) - Number(!b.photo));
 
-function initials(name: string) {
-  return name
-    .split(" ")
-    .map((part) => part[0])
-    .slice(0, 2)
-    .join("");
+/** Sub-group title inside the section: white display face, one size below the section heading. */
+function GroupTitle({ children }: { children: React.ReactNode }) {
+  return (
+    <h3 className="font-display text-2xl tracking-tight text-foreground sm:text-3xl">{children}</h3>
+  );
 }
 
 /**
- * The mentors as a grid of flat-art "planet" avatars — initials on a
- * gradient disc with an orbit ring — matching the tracks' planet motif.
+ * One section for everyone joining us from industry: the keynote career
+ * panel (stacked) beside a four-across mentors grid on
+ * desktop, one column on smaller screens. Planet avatars throughout, matching the tracks' planet motif.
  */
 export default function Mentors() {
   return (
     <section id="mentors" className="scroll-mt-24 px-6 py-16 md:py-24">
-      <SectionHeading plain="Mentors" accent="" className="mb-6" />
+      <SectionHeading plain="Guest Speakers & Mentors" accent="" className="mb-6" />
 
-      <Reveal className="mx-auto mt-14 max-w-4xl" delay={0.1}>
-        <div className="flex flex-wrap justify-center gap-x-8 gap-y-12">
-          {MENTORS.map((mentor) => (
-            <div
-              key={mentor.name}
-              className="group flex w-[calc(50%-1rem)] flex-col items-center gap-4 text-center sm:w-[calc(33.333%-1.334rem)]"
-            >
-              <div className="relative flex h-24 w-24 items-center justify-center sm:h-28 sm:w-28">
-                <div
-                  aria-hidden
-                  className="pointer-events-none absolute inset-[-10px] rounded-full border border-white/15 transition-transform duration-500 ease-out group-hover:rotate-45"
-                  style={{ transform: "rotate(-12deg) scaleY(0.92)" }}
-                />
-                <div
-                  className="flex h-full w-full items-center justify-center rounded-full transition duration-300 ease-out group-hover:scale-110 group-hover:brightness-110"
-                  style={{ background: PALETTES[mentor.palette] }}
-                >
-                  <span className="font-header text-2xl tracking-wider text-[#0b0d17] sm:text-3xl">
-                    {initials(mentor.name)}
-                  </span>
-                </div>
-              </div>
-              <div>
-                <h3 className="font-header text-base tracking-wider text-[var(--text-primary)] sm:text-lg">
-                  {mentor.name}
-                </h3>
-                {mentor.roles.map((role) => (
-                  <p
-                    key={role}
-                    className="mt-1 text-sm text-muted-foreground/80 transition-colors duration-300 group-hover:text-foreground sm:text-base"
-                  >
-                    {role}
-                  </p>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
-      </Reveal>
+      <div className="mx-auto mt-14 grid max-w-[90rem] gap-16 lg:grid-cols-[1fr_2fr] lg:items-start lg:gap-12">
+        <Reveal className="text-center" delay={0.05}>
+          <GroupTitle>Fireside Chat</GroupTitle>
+          <div className="mt-10 flex flex-col items-center gap-12">
+            {PANELISTS.map((person) => (
+              <PersonCard key={person.name} person={person} className="w-full max-w-xs" />
+            ))}
+          </div>
+        </Reveal>
+
+        <Reveal className="text-center lg:border-l lg:border-white/10 lg:pl-12" delay={0.1}>
+          <GroupTitle>Mentors</GroupTitle>
+          <div className="mt-10 flex flex-wrap justify-center gap-x-8 gap-y-12">
+            {MENTORS_PHOTOS_FIRST.map((mentor) => (
+              <PersonCard
+                key={mentor.name}
+                person={mentor}
+                className="w-[calc(50%-1rem)] sm:w-[calc(33.333%-1.334rem)] md:w-[calc(25%-1.5rem)]"
+              />
+            ))}
+          </div>
+        </Reveal>
+      </div>
 
       <Reveal className="mt-14 text-center" delay={0.2}>
         <Button
