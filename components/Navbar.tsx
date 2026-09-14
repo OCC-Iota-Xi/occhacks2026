@@ -48,6 +48,33 @@ export default function Navbar() {
     };
   }, []);
 
+  // While the mobile menu is open: lock page scroll, close on Escape, and
+  // close if the viewport grows past the mobile breakpoint.
+  useEffect(() => {
+    if (!menuOpen) return;
+    // Lock both <html> and <body>: which one scrolls varies by browser, and
+    // iOS Safari still pans the page when only <body> is locked.
+    const root = document.documentElement;
+    const previousOverflow = { root: root.style.overflow, body: document.body.style.overflow };
+    root.style.overflow = "hidden";
+    document.body.style.overflow = "hidden";
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMenuOpen(false);
+    };
+    const desktop = window.matchMedia("(min-width: 768px)");
+    const onBreakpoint = () => {
+      if (desktop.matches) setMenuOpen(false);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    desktop.addEventListener("change", onBreakpoint);
+    return () => {
+      root.style.overflow = previousOverflow.root;
+      document.body.style.overflow = previousOverflow.body;
+      window.removeEventListener("keydown", onKeyDown);
+      desktop.removeEventListener("change", onBreakpoint);
+    };
+  }, [menuOpen]);
+
   const visible = scrollVisible || hoverVisible || menuOpen;
 
   const handleMouseMove = (e: React.MouseEvent<HTMLButtonElement | HTMLAnchorElement>) => {
@@ -64,9 +91,9 @@ export default function Navbar() {
         backdropFilter: "blur(var(--nav-blur, 0px))",
         WebkitBackdropFilter: "blur(var(--nav-blur, 0px))",
       }}
-      className={`fixed top-0 left-0 right-0 z-50 w-full bg-[var(--nav-bg)] transition-all duration-300 ${
-        visible ? "translate-y-0 opacity-100" : "pointer-events-none -translate-y-full opacity-0"
-      }`}
+      className={`fixed top-0 left-0 right-0 z-50 flex w-full flex-col transition-all duration-300 ${
+        menuOpen ? "h-dvh touch-none overscroll-none bg-background" : "bg-[var(--nav-bg)]"
+      } ${visible ? "translate-y-0 opacity-100" : "pointer-events-none -translate-y-full opacity-0"}`}
     >
       <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between w-full sm:px-8 md:justify-end">
         {/* Mobile menu toggle */}
@@ -74,6 +101,7 @@ export default function Navbar() {
           type="button"
           aria-label={menuOpen ? "Close menu" : "Open menu"}
           aria-expanded={menuOpen}
+          aria-controls="mobile-menu"
           onClick={() => setMenuOpen((open) => !open)}
           className="-ml-2 p-2 text-[var(--text-primary)] md:hidden"
         >
@@ -81,7 +109,7 @@ export default function Navbar() {
         </button>
 
         {/* Links and CTA grouped on the right */}
-        <div className="flex items-center gap-8">
+        <div className="mr-2 flex items-center gap-8 md:mr-0">
           {/* Nav Links */}
           <div className="hidden md:flex items-center gap-8">
             {LINKS.map((link, i) => (
@@ -113,15 +141,18 @@ export default function Navbar() {
         </div>
       </div>
 
-      {/* Mobile dropdown */}
+      {/* Mobile menu: a solid full-height sheet under the bar, so the page never shows through. */}
       {menuOpen && (
-        <nav className="flex flex-col gap-1 border-t border-white/10 bg-black/80 px-6 py-4 backdrop-blur-md md:hidden">
+        <nav
+          id="mobile-menu"
+          className="flex flex-1 flex-col gap-1 overflow-hidden border-t border-white/10 px-6 py-6 md:hidden"
+        >
           {LINKS.map((link) => (
             <Link
               key={link.label}
               href={link.href}
               onClick={() => setMenuOpen(false)}
-              className="rounded-md px-2 py-2.5 text-base text-[var(--text-secondary)] transition-colors hover:bg-white/5 hover:text-[var(--text-primary)]"
+              className="rounded-md px-2 py-3 text-lg text-[var(--text-secondary)] transition-colors hover:bg-white/5 hover:text-[var(--text-primary)]"
             >
               {link.label}
             </Link>
