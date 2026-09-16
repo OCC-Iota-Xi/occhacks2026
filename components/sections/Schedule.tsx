@@ -1,10 +1,10 @@
 "use client";
 
+import { useState } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import SectionHeading from "@/components/SectionHeading";
-import HorizontalScroller from "@/components/motion/HorizontalScroller";
-import { fadeIn, fadeUp, stagger, viewportOnce } from "@/lib/motion";
+import Reveal from "@/components/motion/Reveal";
 
 const DAYS = [
   {
@@ -36,23 +36,117 @@ const DAYS = [
   },
 ];
 
+/* Cards are a fixed height so the stack maths stays arithmetic rather than
+   measured: every offset below is derived from these three numbers. */
+const CARD_HEIGHT = 62;
+const CARD_GAP = 10;
+/** How much of each card behind the top one stays visible. */
+const PEEK = 11;
+/** Cards past this sit exactly behind the last peeking one, fully faded. */
+const VISIBLE_BEHIND = 3;
+
+const SPRING = { type: "spring", stiffness: 420, damping: 38, mass: 0.9 } as const;
+
+const collapsedHeight = (n: number) => CARD_HEIGHT + Math.min(n - 1, VISIBLE_BEHIND) * PEEK;
+const expandedHeight = (n: number) => n * CARD_HEIGHT + (n - 1) * CARD_GAP;
+
 /**
- * The day's run of show as a horizontal flight path you scroll along. Each
- * stop paints its own segment of the rail across its full width, so the
- * segments meet into one continuous line without any hand-tuned offsets.
+ * Collapsed, each card is pulled up onto the one above it, leaving a sliver
+ * showing and shrinking slightly as it goes back. Expanded, everything returns
+ * to where flex already put it.
  *
- * Switching days remounts the list — Radix drops the inactive panel — so the
- * stagger replays for the new day.
+ * Expanding cascades downward and collapsing folds up from the bottom, so the
+ * stack gathers itself in the direction you would expect.
+ */
+function cardVariants(i: number, total: number, reduceMotion: boolean) {
+  const depth = Math.min(i, VISIBLE_BEHIND);
+  const transition = reduceMotion ? { duration: 0 } : SPRING;
+
+  return {
+    collapsed: {
+      y: -i * (CARD_HEIGHT + CARD_GAP) + depth * PEEK,
+      scale: 1 - depth * 0.04,
+      opacity: i <= VISIBLE_BEHIND ? 1 : 0,
+      transition: { ...transition, delay: reduceMotion ? 0 : (total - 1 - i) * 0.02 },
+    },
+    expanded: {
+      y: 0,
+      scale: 1,
+      opacity: 1,
+      transition: { ...transition, delay: reduceMotion ? 0 : i * 0.03 },
+    },
+  };
+}
+
+/**
+ * One day's run of show as a stack of cards that spreads open, after Motion's
+ * iOS notifications stack.
+ *
+ * The container's height is animated explicitly. Transforms do not affect
+ * layout, so flex keeps every card at its full-list position whether the stack
+ * is open or shut — without this the collapsed stack would leave the height of
+ * the whole day empty beneath it.
+ */
+function DayStack({ label, events }: { label: string; events: { time: string; name: string }[] }) {
+  const [open, setOpen] = useState(false);
+  const reduceMotion = useReducedMotion();
+  const total = events.length;
+
+  return (
+    <div className="mx-auto max-w-md">
+      <motion.ul
+        animate={open ? "expanded" : "collapsed"}
+        initial={false}
+        variants={{
+          collapsed: { height: collapsedHeight(total) },
+          expanded: { height: expandedHeight(total) },
+        }}
+        transition={reduceMotion ? { duration: 0 } : SPRING}
+        className="relative flex flex-col"
+        style={{ gap: CARD_GAP }}
+      >
+        {events.map((event, i) => (
+          <motion.li
+            key={`${event.time}-${event.name}`}
+            variants={cardVariants(i, total, Boolean(reduceMotion))}
+            onClick={() => setOpen((o) => !o)}
+            style={{
+              height: CARD_HEIGHT,
+              zIndex: total - i,
+              transformOrigin: "top center",
+            }}
+            className="flex shrink-0 cursor-pointer items-center gap-4 rounded-2xl border border-white/10 bg-card px-5 shadow-lg shadow-black/40 transition-colors duration-300 hover:border-ring/30"
+          >
+            <span className="w-16 shrink-0 text-xs tabular-nums text-muted-foreground sm:w-20">
+              {event.time}
+            </span>
+            <span className="text-sm sm:text-base">{event.name}</span>
+          </motion.li>
+        ))}
+      </motion.ul>
+
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+        className="mx-auto mt-8 block cursor-pointer rounded-full border border-border px-5 py-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
+      >
+        {open ? `collapse ${label}` : `show all ${total} stops`}
+      </button>
+    </div>
+  );
+}
+
+/**
+ * The run of show, one stack per day. Radix drops the inactive panel, so each
+ * day's stack starts collapsed when you switch to it.
  */
 export default function Schedule() {
-  const reduceMotion = useReducedMotion();
-  const item = reduceMotion ? fadeIn : fadeUp;
-
   return (
     <section id="schedule" className="scroll-mt-24 px-6 py-16 md:py-24">
       <SectionHeading plain="Schedule" accent="" className="mb-10" />
 
-      <Tabs defaultValue="day-one" className="mx-auto max-w-6xl">
+      <Tabs defaultValue="day-one">
         <div className="mb-12 text-center">
           <TabsList>
             {DAYS.map((day) => (
@@ -65,47 +159,14 @@ export default function Schedule() {
 
         {DAYS.map((day) => (
           <TabsContent key={day.id} value={day.id}>
-            <HorizontalScroller label={`${day.label} schedule`}>
-              <motion.ol
-                className="flex min-w-max px-2"
-                variants={stagger}
-                initial="hidden"
-                whileInView="visible"
-                viewport={viewportOnce}
-              >
-                {day.events.map((event) => (
-                  <motion.li
-                    key={`${event.time}-${event.name}`}
-                    variants={item}
-                    className="group/stop flex w-36 shrink-0 flex-col items-center px-1 text-center sm:w-44"
-                  >
-                    <span className="text-xs tabular-nums text-muted-foreground transition-colors duration-300 group-hover/stop:text-ring">
-                      {event.time}
-                    </span>
-
-                    <span className="relative my-4 flex h-2.5 w-full items-center justify-center">
-                      <span
-                        aria-hidden
-                        className="absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-ring/20"
-                      />
-                      <span
-                        aria-hidden
-                        className="relative h-2.5 w-2.5 rounded-full bg-ring/60 transition-transform duration-300 ease-out group-hover/stop:scale-150"
-                      />
-                    </span>
-
-                    <span className="text-sm leading-snug transition-colors duration-300 group-hover/stop:text-foreground sm:text-base">
-                      {event.name}
-                    </span>
-                  </motion.li>
-                ))}
-              </motion.ol>
-            </HorizontalScroller>
+            <Reveal>
+              <DayStack label={day.label} events={day.events} />
+            </Reveal>
           </TabsContent>
         ))}
       </Tabs>
 
-      <p className="mt-8 text-center text-xs text-muted-foreground/70">
+      <p className="mt-10 text-center text-xs text-muted-foreground/70">
         schedule is provisional — final times land closer to the event.
       </p>
     </section>
