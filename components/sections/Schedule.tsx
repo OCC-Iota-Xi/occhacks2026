@@ -1,10 +1,10 @@
 "use client";
 
-import { useRef } from "react";
-import { motion, useInView, useReducedMotion } from "motion/react";
+import { motion, useReducedMotion } from "motion/react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import SectionHeading from "@/components/SectionHeading";
-import { EASE, fadeIn, fadeUp, stagger, viewportOnce } from "@/lib/motion";
+import HorizontalScroller from "@/components/motion/HorizontalScroller";
+import { fadeIn, fadeUp, stagger, viewportOnce } from "@/lib/motion";
 
 const DAYS = [
   {
@@ -37,27 +37,23 @@ const DAYS = [
 ];
 
 /**
- * The day's run of show as a flight path: a gold line drawing itself down the
- * column with each event as a stop on it. Switching days remounts the list —
- * Radix drops the inactive panel — so the stagger replays for the new day.
+ * The day's run of show as a horizontal flight path you scroll along. Each
+ * stop paints its own segment of the rail across its full width, so the
+ * segments meet into one continuous line without any hand-tuned offsets.
+ *
+ * Switching days remounts the list — Radix drops the inactive panel — so the
+ * stagger replays for the new day.
  */
 export default function Schedule() {
   const reduceMotion = useReducedMotion();
-  const pathRef = useRef<HTMLDivElement>(null);
-  /* Watched explicitly rather than with whileInView: the line scales from
-     zero, and a zero-area box never reads as in view, so the ref stays on the
-     full-height wrapper while the scaling happens inside it. The margin is
-     vertical-only — the shared "-80px" insets all four sides, and this line is
-     one pixel wide near the left edge, so it would never intersect at all. */
-  const pathInView = useInView(pathRef, { once: true, margin: "-80px 0px" });
   const item = reduceMotion ? fadeIn : fadeUp;
 
   return (
-    <div id="schedule" className="scroll-mt-24">
-      <SectionHeading plain="Schedule" accent="" size="column" className="mb-10" />
+    <section id="schedule" className="scroll-mt-24 px-6 py-16 md:py-24">
+      <SectionHeading plain="Schedule" accent="" className="mb-10" />
 
-      <Tabs defaultValue="day-one">
-        <div className="mb-10 text-center">
+      <Tabs defaultValue="day-one" className="mx-auto max-w-6xl">
+        <div className="mb-12 text-center">
           <TabsList>
             {DAYS.map((day) => (
               <TabsTrigger key={day.id} value={day.id}>
@@ -69,22 +65,9 @@ export default function Schedule() {
 
         {DAYS.map((day) => (
           <TabsContent key={day.id} value={day.id}>
-            <div className="relative pl-6">
-              {/* The path itself, drawn top to bottom as the column arrives. */}
-              <div
-                ref={pathRef}
-                aria-hidden
-                className="absolute left-[3px] top-2 bottom-2 w-px"
-              >
-                <motion.div
-                  className="h-full w-full origin-top bg-gradient-to-b from-ring/50 via-ring/25 to-transparent"
-                  initial={{ scaleY: reduceMotion ? 1 : 0 }}
-                  animate={{ scaleY: pathInView || reduceMotion ? 1 : 0 }}
-                  transition={{ duration: 0.8, ease: EASE }}
-                />
-              </div>
-
-              <motion.ul
+            <HorizontalScroller label={`${day.label} schedule`}>
+              <motion.ol
+                className="flex min-w-max px-2"
                 variants={stagger}
                 initial="hidden"
                 whileInView="visible"
@@ -94,29 +77,37 @@ export default function Schedule() {
                   <motion.li
                     key={`${event.time}-${event.name}`}
                     variants={item}
-                    className="group relative -ml-6 flex items-baseline gap-4 rounded-md py-3 pl-6 pr-3 transition-colors hover:bg-accent"
+                    className="group/stop flex w-36 shrink-0 flex-col items-center px-1 text-center sm:w-44"
                   >
-                    <span
-                      aria-hidden
-                      className="absolute left-0 top-[1.15rem] h-1.5 w-1.5 rounded-full bg-ring/60 transition-colors duration-300 group-hover:bg-ring"
-                    />
-                    <span className="w-20 shrink-0 text-xs tabular-nums text-muted-foreground transition-colors group-hover:text-accent-foreground">
+                    <span className="text-xs tabular-nums text-muted-foreground transition-colors duration-300 group-hover/stop:text-ring">
                       {event.time}
                     </span>
-                    <span className="text-base transition-colors group-hover:text-accent-foreground">
+
+                    <span className="relative my-4 flex h-2.5 w-full items-center justify-center">
+                      <span
+                        aria-hidden
+                        className="absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-ring/20"
+                      />
+                      <span
+                        aria-hidden
+                        className="relative h-2.5 w-2.5 rounded-full bg-ring/60 transition-transform duration-300 ease-out group-hover/stop:scale-150"
+                      />
+                    </span>
+
+                    <span className="text-sm leading-snug transition-colors duration-300 group-hover/stop:text-foreground sm:text-base">
                       {event.name}
                     </span>
                   </motion.li>
                 ))}
-              </motion.ul>
-            </div>
-
-            <p className="mt-6 text-xs text-muted-foreground/70">
-              schedule is provisional — final times land closer to the event.
-            </p>
+              </motion.ol>
+            </HorizontalScroller>
           </TabsContent>
         ))}
       </Tabs>
-    </div>
+
+      <p className="mt-8 text-center text-xs text-muted-foreground/70">
+        schedule is provisional — final times land closer to the event.
+      </p>
+    </section>
   );
 }

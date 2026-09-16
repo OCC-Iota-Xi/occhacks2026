@@ -1,13 +1,8 @@
 "use client";
 
 import { motion, useReducedMotion } from "motion/react";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
 import SectionHeading from "@/components/SectionHeading";
+import HorizontalScroller from "@/components/motion/HorizontalScroller";
 import { fadeIn, fadeUp, stagger, viewportOnce } from "@/lib/motion";
 
 const FAQS: { question: string; answer: React.ReactNode }[] = [
@@ -76,42 +71,44 @@ const FAQS: { question: string; answer: React.ReactNode }[] = [
  * The open/close animation stays with Radix — it already height-animates via
  * the accordion keyframes in globals.css.
  */
+/**
+ * The questions as a row of cards you scroll sideways, matching the schedule's
+ * gesture. Every answer is short enough to sit open on its card, so nothing is
+ * hidden behind a click.
+ */
 export default function FAQ() {
   const reduceMotion = useReducedMotion();
   const item = reduceMotion ? fadeIn : fadeUp;
 
   return (
-    <div id="faq" className="scroll-mt-24">
-      <SectionHeading plain="FAQ" accent="" size="column" className="mb-10" />
+    <section id="faq" className="scroll-mt-24 px-6 py-16 md:py-24">
+      <SectionHeading plain="FAQ" accent="" className="mb-12" />
 
-      <motion.div
-        variants={stagger}
-        initial="hidden"
-        whileInView="visible"
-        viewport={viewportOnce}
-      >
-        <Accordion type="single" collapsible>
+      <HorizontalScroller label="frequently asked questions" className="mx-auto max-w-6xl">
+        <motion.ul
+          className="flex min-w-max items-stretch gap-5 px-2"
+          variants={stagger}
+          initial="hidden"
+          whileInView="visible"
+          viewport={viewportOnce}
+        >
           {FAQS.map((faq, i) => (
-            <motion.div key={faq.question} variants={item}>
-              <AccordionItem value={`faq-${i}`}>
-                <AccordionTrigger className="group justify-start text-left">
-                  <span className="flex-1 text-base">
-                    <span className="mr-3 text-xs tabular-nums text-muted-foreground transition-colors group-data-[state=open]:text-ring">
-                      {String(i + 1).padStart(2, "0")}
-                    </span>
-                    {faq.question}
-                  </span>
-                </AccordionTrigger>
-                <AccordionContent>
-                  <p className="pl-9 text-sm leading-relaxed text-muted-foreground">
-                    {faq.answer}
-                  </p>
-                </AccordionContent>
-              </AccordionItem>
-            </motion.div>
+            <motion.li
+              key={faq.question}
+              variants={item}
+              className="group/card flex w-[17rem] shrink-0 flex-col gap-3 rounded-2xl border border-white/10 bg-white/[0.03] p-6 backdrop-blur-sm transition-colors duration-300 hover:border-ring/25 sm:w-[19rem]"
+            >
+              <span className="text-xs tabular-nums text-muted-foreground transition-colors duration-300 group-hover/card:text-ring">
+                {String(i + 1).padStart(2, "0")}
+              </span>
+              <h3 className="font-header text-base tracking-wider text-[var(--text-primary)]">
+                {faq.question}
+              </h3>
+              <p className="text-sm leading-relaxed text-muted-foreground">{faq.answer}</p>
+            </motion.li>
           ))}
-        </Accordion>
-      </motion.div>
-    </div>
+        </motion.ul>
+      </HorizontalScroller>
+    </section>
   );
 }

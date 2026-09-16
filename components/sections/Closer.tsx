@@ -3,6 +3,10 @@
 import { useRef } from "react";
 import Link from "next/link";
 import { motion, useReducedMotion, useScroll, useTransform } from "motion/react";
+import CtaButtons from "@/components/CtaButtons";
+import SectionHeading from "@/components/SectionHeading";
+import Reveal from "@/components/motion/Reveal";
+import { TrackPlanet } from "@/components/sections/Tracks";
 
 /* lucide-react no longer ships brand icons, so these are drawn in the
    same style (24x24 viewBox, stroke currentColor) as drop-in equivalents. */
@@ -61,10 +65,17 @@ const SOCIALS = [
 ];
 
 /**
- * The site footer, sitting under the page rather than after it: it is pinned
- * to the bottom of the viewport and the main content scrolls up off it, so it
- * is uncovered rather than pushed into view. The contents resolve as that
- * happens, keyed off how much of the footer the page has cleared.
+ * The closing call to action and the footer, as one landing: the page scrolls
+ * up off it rather than pushing it down, and the contents resolve as it is
+ * uncovered.
+ *
+ * It gets its own backdrop — a gold glow rising off the bottom edge like
+ * sunrise over a planet's rim — instead of the starfield, which lives inside
+ * <main> and stops where the page does.
+ *
+ * Static below md: the stacked call-to-action buttons make this taller than a
+ * short phone screen, and a sticky block taller than the viewport would keep
+ * its own top permanently off-screen.
  */
 export default function Closer() {
   const ref = useRef<HTMLElement>(null);
@@ -94,44 +105,83 @@ export default function Closer() {
   const y = useTransform(revealed, [0, 0.8], reduceMotion ? [0, 0] : [28, 0]);
 
   return (
-    <footer ref={ref} className="sticky bottom-0 z-0 flex min-h-[22rem] items-center px-6 pb-10 pt-16">
-      <motion.div
-        style={{ opacity, y }}
-        className="mx-auto flex w-full flex-col items-center gap-5 text-center text-sm text-muted-foreground"
-      >
-        <Link
-          href="/"
-          className="select-none font-header text-lg tracking-wider text-[var(--text-primary)] transition-opacity hover:opacity-85"
-        >
-          OCC<span className="text-amber-500">Hacks</span>
-        </Link>
-        <div className="flex items-center gap-6">
-          {SOCIALS.map(({ label, href, Icon }) => (
+    <footer
+      ref={ref}
+      className="relative z-0 overflow-hidden px-6 pb-12 pt-20 md:sticky md:bottom-0 md:pt-24"
+    >
+      {/* Horizon glow, rising off the bottom edge. */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 -z-10"
+        style={{
+          background:
+            "radial-gradient(120% 90% at 50% 118%, rgba(251, 191, 36, 0.3) 0%, rgba(251, 191, 36, 0.1) 38%, rgba(251, 191, 36, 0.03) 58%, transparent 74%)",
+        }}
+      />
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 bottom-0 -z-10 h-px bg-gradient-to-r from-transparent via-ring/40 to-transparent"
+      />
+
+      {/* Flanking planets, tucked behind the copy on wide screens */}
+      <div className="pointer-events-none absolute left-[4%] top-[34%] hidden -translate-y-1/2 scale-[0.55] opacity-70 lg:block xl:left-[9%]">
+        <TrackPlanet variant="saturn" />
+      </div>
+      <div className="pointer-events-none absolute right-[4%] top-[34%] hidden -translate-y-1/2 scale-[0.45] opacity-70 lg:block xl:right-[9%]">
+        <TrackPlanet variant="pluto" />
+      </div>
+
+      <motion.div style={{ opacity, y }} className="relative">
+        <div id="join" className="scroll-mt-24">
+          <SectionHeading plain="Join Now" accent="" className="mb-6" />
+
+          <Reveal className="mx-auto max-w-xl text-center" delay={0.1}>
+            <p className="font-body text-base leading-relaxed text-[var(--text-secondary)] sm:text-lg">
+              hack all weekend, mentor students, help run the event, or fund the
+              next wave of builders.
+            </p>
+          </Reveal>
+
+          <Reveal className="mt-10" delay={0.2}>
+            <CtaButtons className="justify-center" />
+          </Reveal>
+        </div>
+
+        <div className="mx-auto mt-16 flex w-full max-w-3xl flex-col items-center gap-5 border-t border-white/10 pt-10 text-center text-sm text-muted-foreground">
+          <Link
+            href="/"
+            className="select-none font-header text-lg tracking-wider text-[var(--text-primary)] transition-opacity hover:opacity-85"
+          >
+            OCC<span className="text-amber-500">Hacks</span>
+          </Link>
+          <div className="flex items-center gap-6">
+            {SOCIALS.map(({ label, href, Icon }) => (
+              <a
+                key={label}
+                href={href}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={label}
+                title={label}
+                className="transition-colors hover:text-foreground"
+              >
+                <Icon className="h-5 w-5" />
+              </a>
+            ))}
+          </div>
+          <p>
+            organized by the Iota Xi (ΙΞ) Society at{" "}
             <a
-              key={label}
-              href={href}
+              href="https://orangecoastcollege.edu/"
               target="_blank"
               rel="noopener noreferrer"
-              aria-label={label}
-              title={label}
-              className="transition-colors hover:text-foreground"
+              className="underline underline-offset-4 transition-colors hover:text-foreground"
             >
-              <Icon className="h-5 w-5" />
+              Orange Coast College
             </a>
-          ))}
+          </p>
+          <p className="text-muted-foreground/60">occ hacks 2026 · costa mesa, ca</p>
         </div>
-        <p>
-          organized by the Iota Xi (ΙΞ) Society at{" "}
-          <a
-            href="https://orangecoastcollege.edu/"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="underline underline-offset-4 transition-colors hover:text-foreground"
-          >
-            Orange Coast College
-          </a>
-        </p>
-        <p className="text-muted-foreground/60">occ hacks 2026 · costa mesa, ca</p>
       </motion.div>
     </footer>
   );
