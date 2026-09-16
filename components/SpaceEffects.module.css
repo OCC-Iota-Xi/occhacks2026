@@ -2,7 +2,7 @@
    (codepen.io/maaarj/pen/YZLEBM), recolored to the site's gold-on-space
    palette. Fixed full-viewport layer behind the content. */
 
-/* Spans the whole document (body is relative), so everything in it
+/* Spans the whole page (main is relative), so everything in it
    scrolls away with the page instead of following the viewport. */
 .effects {
   position: absolute;
