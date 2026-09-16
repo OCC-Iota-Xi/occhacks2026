@@ -1,3 +1,6 @@
+"use client";
+
+import { motion, useReducedMotion } from "motion/react";
 import {
   Accordion,
   AccordionContent,
@@ -5,7 +8,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import SectionHeading from "@/components/SectionHeading";
-import Reveal from "@/components/motion/Reveal";
+import { fadeIn, fadeUp, stagger, viewportOnce } from "@/lib/motion";
 
 const FAQS: { question: string; answer: React.ReactNode }[] = [
   {
@@ -68,32 +71,47 @@ const FAQS: { question: string; answer: React.ReactNode }[] = [
   },
 ];
 
+/**
+ * Left-aligned in its column next to the schedule, so the two read as a pair.
+ * The open/close animation stays with Radix — it already height-animates via
+ * the accordion keyframes in globals.css.
+ */
 export default function FAQ() {
-  return (
-    <section id="faq" className="scroll-mt-24 px-6 py-16 md:py-24">
-      <SectionHeading plain="FAQ" accent="" className="mb-12" />
+  const reduceMotion = useReducedMotion();
+  const item = reduceMotion ? fadeIn : fadeUp;
 
-      <Reveal className="mx-auto max-w-2xl">
+  return (
+    <div id="faq" className="scroll-mt-24">
+      <SectionHeading plain="FAQ" accent="" size="column" className="mb-10" />
+
+      <motion.div
+        variants={stagger}
+        initial="hidden"
+        whileInView="visible"
+        viewport={viewportOnce}
+      >
         <Accordion type="single" collapsible>
           {FAQS.map((faq, i) => (
-            <AccordionItem key={faq.question} value={`faq-${i}`}>
-              <AccordionTrigger>
-                <span className="flex-1 text-base sm:text-lg">
-                  <span className="mr-3 text-xs tabular-nums text-muted-foreground">
-                    {String(i + 1).padStart(2, "0")}
+            <motion.div key={faq.question} variants={item}>
+              <AccordionItem value={`faq-${i}`}>
+                <AccordionTrigger className="group justify-start text-left">
+                  <span className="flex-1 text-base">
+                    <span className="mr-3 text-xs tabular-nums text-muted-foreground transition-colors group-data-[state=open]:text-ring">
+                      {String(i + 1).padStart(2, "0")}
+                    </span>
+                    {faq.question}
                   </span>
-                  {faq.question}
-                </span>
-              </AccordionTrigger>
-              <AccordionContent>
-                <p className="mx-auto max-w-xl text-center text-sm leading-relaxed text-muted-foreground">
-                  {faq.answer}
-                </p>
-              </AccordionContent>
-            </AccordionItem>
+                </AccordionTrigger>
+                <AccordionContent>
+                  <p className="pl-9 text-sm leading-relaxed text-muted-foreground">
+                    {faq.answer}
+                  </p>
+                </AccordionContent>
+              </AccordionItem>
+            </motion.div>
           ))}
         </Accordion>
-      </Reveal>
-    </section>
+      </motion.div>
+    </div>
   );
 }

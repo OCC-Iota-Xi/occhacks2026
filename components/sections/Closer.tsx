@@ -1,4 +1,8 @@
+"use client";
+
+import { useRef } from "react";
 import Link from "next/link";
+import { motion, useReducedMotion, useScroll, useTransform } from "motion/react";
 
 /* lucide-react no longer ships brand icons, so these are drawn in the
    same style (24x24 viewBox, stroke currentColor) as drop-in equivalents. */
@@ -56,47 +60,79 @@ const SOCIALS = [
   { label: "Devpost", href: "https://occhacks-2026.devpost.com/", Icon: DevpostIcon },
 ];
 
-/** The site footer. */
+/**
+ * The site footer, sitting under the page rather than after it: it is pinned
+ * to the bottom of the viewport and the main content scrolls up off it, so it
+ * is uncovered rather than pushed into view. The contents resolve as that
+ * happens, keyed off how much of the footer the page has cleared.
+ */
 export default function Closer() {
+  const ref = useRef<HTMLElement>(null);
+  const reduceMotion = useReducedMotion();
+  const { scrollY } = useScroll();
+
+  /*
+   * How much of the footer the page has uncovered, 0 to 1.
+   *
+   * This can't come from useScroll's target offsets: while the footer is stuck
+   * to the bottom of the viewport its rect never moves, so every offset pair
+   * reads as a constant. What does change is the scroll position, and the
+   * footer is uncovered over exactly the last footer-height pixels of it.
+   * Layout is clean during scroll, so reading these two values per frame does
+   * not force a reflow.
+   */
+  const revealed = useTransform(scrollY, (y) => {
+    const el = ref.current;
+    if (!el) return 0;
+    const height = el.offsetHeight;
+    const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
+    if (height <= 0 || maxScroll <= 0) return 1;
+    return Math.min(1, Math.max(0, (y - (maxScroll - height)) / height));
+  });
+
+  const opacity = useTransform(revealed, [0, 0.8], reduceMotion ? [1, 1] : [0, 1]);
+  const y = useTransform(revealed, [0, 0.8], reduceMotion ? [0, 0] : [28, 0]);
+
   return (
-    <section className="px-6 pb-10">
-      <footer className="mt-12 border-t border-border pt-10">
-        <div className="flex flex-col items-center gap-5 text-center text-sm text-muted-foreground">
-          <Link
-            href="/"
-            className="select-none font-header text-lg tracking-wider text-[var(--text-primary)] transition-opacity hover:opacity-85"
-          >
-            OCC<span className="text-amber-500">Hacks</span>
-          </Link>
-          <div className="flex items-center gap-6">
-            {SOCIALS.map(({ label, href, Icon }) => (
-              <a
-                key={label}
-                href={href}
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label={label}
-                title={label}
-                className="transition-colors hover:text-foreground"
-              >
-                <Icon className="h-5 w-5" />
-              </a>
-            ))}
-          </div>
-          <p>
-            organized by the Iota Xi (ΙΞ) Society at{" "}
+    <footer ref={ref} className="sticky bottom-0 z-0 flex min-h-[22rem] items-center px-6 pb-10 pt-16">
+      <motion.div
+        style={{ opacity, y }}
+        className="mx-auto flex w-full flex-col items-center gap-5 text-center text-sm text-muted-foreground"
+      >
+        <Link
+          href="/"
+          className="select-none font-header text-lg tracking-wider text-[var(--text-primary)] transition-opacity hover:opacity-85"
+        >
+          OCC<span className="text-amber-500">Hacks</span>
+        </Link>
+        <div className="flex items-center gap-6">
+          {SOCIALS.map(({ label, href, Icon }) => (
             <a
-              href="https://orangecoastcollege.edu/"
+              key={label}
+              href={href}
               target="_blank"
               rel="noopener noreferrer"
-              className="underline underline-offset-4 transition-colors hover:text-foreground"
+              aria-label={label}
+              title={label}
+              className="transition-colors hover:text-foreground"
             >
-              Orange Coast College
+              <Icon className="h-5 w-5" />
             </a>
-          </p>
-          <p className="text-muted-foreground/60">occ hacks 2026 · costa mesa, ca</p>
+          ))}
         </div>
-      </footer>
-    </section>
+        <p>
+          organized by the Iota Xi (ΙΞ) Society at{" "}
+          <a
+            href="https://orangecoastcollege.edu/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline underline-offset-4 transition-colors hover:text-foreground"
+          >
+            Orange Coast College
+          </a>
+        </p>
+        <p className="text-muted-foreground/60">occ hacks 2026 · costa mesa, ca</p>
+      </motion.div>
+    </footer>
   );
 }
