@@ -220,6 +220,32 @@
   100% { background-position: -80% 0, 0 0; }
 }
 
+/* Travelling spark on the mentor avatar orbits. Rotating the ring rotates its
+   conic gradient with it, so the bright head runs along the line; the tilted
+   parent squashes the path into the ellipse.
+
+   The angle steps are deliberately uneven. A squashed ellipse already slows a
+   constant rotation at the two ends of its long axis, and these stops push
+   that further: roughly a fifth of the sweep is spent on the thirty degrees
+   either side of each end, and the long runs between them are covered at twice
+   the rate. The result reads as a spark braking into each turn and firing out
+   of it.
+
+   The sweep is over inside the first fifth of the cycle and the spark is
+   hidden for the rest, so it reads as an occasional dart rather than something
+   perpetually circling. The remaining duration is the wait between darts. */
+@keyframes orbit-pulse {
+  0% { transform: rotate(0deg); opacity: 0; }
+  2% { transform: rotate(30deg); opacity: 0.5; }
+  4% { opacity: 1; }
+  6.5% { transform: rotate(150deg); }
+  10.5% { transform: rotate(210deg); }
+  15% { transform: rotate(330deg); }
+  17% { transform: rotate(360deg); opacity: 1; }
+  21% { opacity: 0; }
+  100% { transform: rotate(360deg); opacity: 0; }
+}
+
 /* Shifting indicator lights on the hero CTA icons — hover only */
 @keyframes cyber-light-1 {
   0%, 100% { opacity: 0.2; transform: scale(0.9); }

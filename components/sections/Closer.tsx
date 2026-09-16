@@ -133,16 +133,9 @@ export default function Closer() {
 
       <motion.div style={{ opacity, y }} className="relative">
         <div id="join" className="scroll-mt-24">
-          <SectionHeading plain="Join Now" accent="" className="mb-6" />
+          <SectionHeading plain="Join Now" accent="" className="mb-10" />
 
-          <Reveal className="mx-auto max-w-xl text-center" delay={0.1}>
-            <p className="font-body text-base leading-relaxed text-[var(--text-secondary)] sm:text-lg">
-              hack all weekend, mentor students, help run the event, or fund the
-              next wave of builders.
-            </p>
-          </Reveal>
-
-          <Reveal className="mt-10" delay={0.2}>
+          <Reveal delay={0.1}>
             <CtaButtons className="justify-center" />
           </Reveal>
         </div>
