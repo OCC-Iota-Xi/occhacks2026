@@ -125,6 +125,9 @@ export interface SendProgress {
 
 export const SUBJECT_MAX = 200;
 export const BODY_MAX = 20_000;
+
+/** How many addresses the audience preview lists in full; past that it says "and N more". */
+export const PREVIEW_MAX = 1000;
 /** Cap on typed-in addresses per campaign; the audiences carry the real volume. */
 export const EXTRA_MAX = 500;
 

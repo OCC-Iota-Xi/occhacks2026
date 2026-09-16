@@ -9,6 +9,7 @@ import {
   BODY_MAX,
   EMAIL_RE,
   EXTRA_MAX,
+  PREVIEW_MAX,
   SUBJECT_MAX,
   normalizeEmail,
   parseAddresses,
@@ -202,17 +203,18 @@ export interface AudiencePreview {
   count: number;
   /** Rows that had no usable address. */
   skipped: number;
-  sample: string[];
+  /** The first `PREVIEW_MAX` recipients, deduped, in send order. */
+  recipients: Recipient[];
 }
 
-/** The deduped total the composer shows while the organizer picks audiences. */
+/** Who the composer's choices add up to, shown as chips while the organizer picks. */
 export async function previewAudience(audience: AudienceSpec): Promise<AudiencePreview> {
   const session = await assertAdmin();
   try {
     const { recipients, skipped } = await resolveAudience(contextOf(session), cleanAudience(audience));
-    return { count: recipients.length, skipped, sample: recipients.slice(0, 5).map((r) => r.email) };
+    return { count: recipients.length, skipped, recipients: recipients.slice(0, PREVIEW_MAX) };
   } catch {
-    return { count: 0, skipped: 0, sample: [] };
+    return { count: 0, skipped: 0, recipients: [] };
   }
 }
 

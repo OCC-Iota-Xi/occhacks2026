@@ -6,6 +6,7 @@ import { Send } from "lucide-react";
 import ConfirmDialog from "@/components/admin/ConfirmDialog";
 import AudiencePicker from "@/components/admin/emails/AudiencePicker";
 import RecipientChips from "@/components/admin/emails/RecipientChips";
+import RecipientList from "@/components/admin/emails/RecipientList";
 import SendProgress from "@/components/admin/emails/SendProgress";
 import { useToast } from "@/components/admin/Toast";
 import { Panel, PanelHeader } from "@/components/admin/ui";
@@ -96,8 +97,8 @@ export default function Composer({
     };
   }, [spec, specKey, nobodyChosen]);
 
-  const resolved = nobodyChosen
-    ? { count: 0, skipped: 0, sample: [] }
+  const resolved: AudiencePreview | null = nobodyChosen
+    ? { count: 0, skipped: 0, recipients: [] }
     : audience?.key === specKey
       ? audience.result
       : null;
@@ -223,6 +224,22 @@ export default function Composer({
                   </span>
                 )}
               </p>
+            </section>
+
+            <section>
+              <div className="mb-1.5 flex items-baseline justify-between">
+                <span className="text-xs text-muted-foreground">Sending to</span>
+                {count !== null && count > 0 && (
+                  <span className="text-[10px] tabular-nums text-muted-foreground">
+                    {formatNumber(count)} {count === 1 ? "address" : "addresses"}
+                  </span>
+                )}
+              </div>
+              <RecipientList
+                recipients={resolved?.recipients ?? []}
+                total={count ?? 0}
+                loading={!nobodyChosen && resolved === null}
+              />
             </section>
 
             <section>
