@@ -11,11 +11,24 @@ import SpaceEffects from "@/components/SpaceEffects";
  * context as the stars, painted directly beneath them, or it would hide them.
  * Both layers are z-[-10] within <main>, so DOM order alone decides: base,
  * then particles, then effects, then the sections.
+ *
+ * The base fades out over the last stretch of the page so the footer's glow
+ * bleeds up through the bottom of the final section instead of meeting it at a
+ * hard edge. The fade is a fixed length, not a percentage — this layer is as
+ * tall as the whole document, so a percentage would smear it over thousands of
+ * pixels.
  */
 export default function SpaceBackdrop() {
   return (
     <>
-      <div className="absolute inset-0 -z-10 bg-background" aria-hidden="true" />
+      <div
+        className="absolute inset-0 -z-10"
+        aria-hidden="true"
+        style={{
+          background:
+            "linear-gradient(to top, rgba(10, 10, 10, 0) 0px, var(--background) 240px)",
+        }}
+      />
       {/* One drifting particle field spanning the full document, so the stars
           scroll past with the page. pixelRatio is capped at 1 to keep the
           page-tall canvas cheap. */}

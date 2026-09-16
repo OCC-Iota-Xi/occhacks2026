@@ -12,27 +12,62 @@ const PALETTES = [
 ];
 
 /*
- * The orbit rings. Each tilt lives in an inline transform and every hover
- * change is a class touching only inset, opacity and border — never transform,
- * because an inline transform silently beats a utility class that sets one.
- * At rest a single ring shows; hovering opens the outer two.
+ * The spark's trail: a conic gradient with one bright arc and the rest
+ * transparent, masked down to the ring's own line. Rotating the element
+ * carries the gradient with it, so the arc travels; the plain ring underneath
+ * shows through everywhere the arc has left, which is what makes the line
+ * settle back to its own colour behind it.
+ *
+ * It warms from nothing through the site's gold to near-white at the head, so
+ * the leading edge reads as the hot end and the tail as its wake. The last
+ * stop lands exactly on 360deg — the hard seam back to transparent is the
+ * head's leading edge, and softening it would blunt the spark.
  */
-const RINGS = [
-  {
-    tilt: "rotate(-12deg) scaleY(0.92)",
-    className:
-      "border-white/15 transition-[inset,border-color] duration-500 ease-out group-hover:inset-[-15px] group-hover:border-white/30",
-  },
-  {
-    tilt: "rotate(26deg) scaleY(0.7)",
-    className:
-      "border-ring/30 opacity-0 transition-[inset,opacity] duration-500 ease-out group-hover:inset-[-24px] group-hover:opacity-100",
-  },
-  {
-    tilt: "rotate(-48deg) scaleY(0.52)",
-    className:
-      "border-white/12 opacity-0 transition-[inset,opacity] delay-75 duration-700 ease-out group-hover:inset-[-34px] group-hover:opacity-100",
-  },
+const PULSE = [
+  "conic-gradient(from 0deg,",
+  "transparent 0deg 296deg,",
+  "rgba(251, 191, 36, 0) 300deg,",
+  "rgba(251, 191, 36, 0.5) 324deg,",
+  "#fbbf24 340deg,",
+  "#fde68a 352deg,",
+  "#fffbeb 360deg)",
+].join(" ");
+
+/** Keeps only the outer 2px of the box, turning a filled disc into a line. */
+const RING_MASK =
+  "radial-gradient(farthest-side, transparent calc(100% - 2px), #000 calc(100% - 2px))";
+
+/*
+ * The resting ring: always there, never pulsed. On hover it widens, brightens
+ * and swings round, which reads as the ellipse squeezing as its long axis
+ * turns.
+ *
+ * The tilt is an inline transform and the swing is Tailwind's rotate utility,
+ * which in v4 compiles to the standalone `rotate` property. Individual
+ * transform properties apply before `transform`, so the two compose instead of
+ * one clobbering the other — the ring keeps its tilt and squash while it turns.
+ */
+const REST_RING = {
+  tilt: "rotate(-12deg) scaleY(0.94)",
+  className:
+    "inset-[-10px] border-white/15 transition-[inset,border-color,rotate] duration-500 ease-out group-hover:inset-[-15px] group-hover:rotate-45 group-hover:border-white/30 motion-reduce:transition-none",
+};
+
+/** One shape for both orbits, flat enough that the tilt is legible. */
+const ORBIT_CURVE = "scaleY(0.42)";
+
+/*
+ * The orbits that open on hover: the same ellipse at evenly spaced
+ * inclinations. An ellipse repeats every 180 degrees, so two of them sit 90
+ * apart. Each ellipse crosses the avatar twice, so two rings read as four
+ * lobes — three rings made six, which was busier than it needed to be.
+ *
+ * Each pulse gets its own period and its own lead-in, so the darts never fire
+ * together.
+ */
+const ORBITS = [
+  { angle: -45, pulse: "6s", delay: "0.2s", border: "border-ring/30" },
+  { angle: 45, pulse: "9s", delay: "1.8s", border: "border-white/15" },
 ];
 
 function initials(name: string) {
@@ -62,9 +97,10 @@ const isSpeaking = (involvement: Involvement) => involvement !== "mentor";
 
 /**
  * One round "planet" avatar with name, title and tags for what this person is
- * doing. At rest it is just the portrait and a single orbit ring; hovering
- * opens two more rings, pulls the portrait toward the cursor, and pops the
- * tags up underneath — each tag magnetic in its own right.
+ * doing. At rest it is just the portrait and a single plain ring; hovering
+ * opens two orbits at evenly spaced inclinations, sends an occasional
+ * yellow-white spark around each, and pops the tags up underneath — each tag
+ * magnetic in its own right. The portrait itself stays put.
  *
  * The tags only hide on devices that actually have a hover state. On touch
  * there is no way to reveal them, so they stay visible.
@@ -72,55 +108,85 @@ const isSpeaking = (involvement: Involvement) => involvement !== "mentor";
 export default function PersonCard({ person }: { person: Person }) {
   return (
     <div className="group flex h-full flex-col items-center gap-4 text-center">
-      <Magnetic className="block" strength={0.25}>
-        <div className="relative flex h-24 w-24 items-center justify-center sm:h-28 sm:w-28">
-          {RINGS.map((ring) => (
-            <span
-              key={ring.tilt}
-              aria-hidden
-              className={`pointer-events-none absolute inset-[-10px] rounded-full border ${ring.className}`}
-              style={{ transform: ring.tilt }}
-            />
-          ))}
+      <div className="relative flex h-24 w-24 items-center justify-center sm:h-28 sm:w-28">
+        <span
+          aria-hidden
+          className={`pointer-events-none absolute rounded-full border ${REST_RING.className}`}
+          style={{ transform: REST_RING.tilt }}
+        />
 
-          {person.photo ? (
-            <div className="relative h-full w-full overflow-hidden rounded-full transition duration-300 ease-out group-hover:scale-110 group-hover:brightness-110">
-              <Image
-                src={person.photo}
-                alt={person.name}
-                fill
-                sizes="112px"
-                className="object-cover"
-              />
-            </div>
-          ) : (
-            <div
-              className="relative h-full w-full overflow-hidden rounded-full transition duration-300 ease-out group-hover:scale-110 group-hover:brightness-110"
-              style={{ background: PALETTES[person.palette] }}
+        {ORBITS.map((orbit, i) => (
+          <span
+            key={orbit.angle}
+            aria-hidden
+            className={`pointer-events-none absolute inset-[-10px] rounded-full border opacity-0 transition-[inset,opacity] duration-500 ease-out group-hover:inset-[-26px] group-hover:opacity-100 motion-reduce:transition-none ${orbit.border}`}
+            style={{
+              transform: `rotate(${orbit.angle}deg) ${ORBIT_CURVE}`,
+              transitionDelay: `${i * 75}ms`,
+            }}
+          >
+            {/* Named only while hovered, so the dart restarts with the hover
+                instead of resuming wherever it was paused — and so nothing
+                animates on the eight cards nobody is pointing at. Longhands
+                only: the animation shorthand would reset the name set here. */}
+            <span
+              className="absolute inset-0 opacity-0 [animation-iteration-count:infinite] [animation-timing-function:linear] group-hover:[animation-name:orbit-pulse] motion-reduce:group-hover:[animation-name:none]"
+              style={{ animationDuration: orbit.pulse, animationDelay: orbit.delay }}
             >
-              {/* Banded like the track planets rather than speckled — the flat
-                  art on this site has no loose dots on a planet's surface. */}
               <span
-                aria-hidden
-                className="absolute inset-0"
-                style={{ transform: "rotate(-12deg)" }}
-              >
-                <span className="absolute left-[-20%] top-[24%] h-[7%] w-[140%] rounded-full bg-white/25" />
-                <span className="absolute left-[-20%] top-[45%] h-[11%] w-[140%] rounded-full bg-black/10" />
-                <span className="absolute left-[-20%] top-[68%] h-[6%] w-[140%] rounded-full bg-white/15" />
-              </span>
-              <span
-                aria-hidden
                 className="absolute inset-0 rounded-full"
-                style={{ boxShadow: "inset -14px -10px 0 rgba(0, 0, 0, 0.18)" }}
+                style={{
+                  background: PULSE,
+                  WebkitMaskImage: RING_MASK,
+                  maskImage: RING_MASK,
+                }}
               />
-              <span className="absolute inset-0 flex items-center justify-center font-header text-2xl tracking-wider text-[#0b0d17] sm:text-3xl">
-                {initials(person.name)}
-              </span>
-            </div>
-          )}
-        </div>
-      </Magnetic>
+              {/* The head, sitting where the gradient is hottest: the trail
+                  ends on 360deg and a conic gradient starts at twelve
+                  o'clock, so that is the leading edge. It carries the glow —
+                  the trail cannot, because a filter would be applied before
+                  the mask and clipped straight back off. */}
+              <span
+                className="absolute left-1/2 top-0 h-1.5 w-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#fffbeb]"
+                style={{ boxShadow: "0 0 5px 1.5px rgba(253, 230, 138, 0.8)" }}
+              />
+            </span>
+          </span>
+        ))}
+
+        {person.photo ? (
+          <div className="relative h-full w-full overflow-hidden rounded-full transition duration-300 ease-out group-hover:scale-110 group-hover:brightness-110">
+            <Image
+              src={person.photo}
+              alt={person.name}
+              fill
+              sizes="112px"
+              className="object-cover"
+            />
+          </div>
+        ) : (
+          <div
+            className="relative h-full w-full overflow-hidden rounded-full transition duration-300 ease-out group-hover:scale-110 group-hover:brightness-110"
+            style={{ background: PALETTES[person.palette] }}
+          >
+            {/* Banded like the track planets rather than speckled — the flat
+                  art on this site has no loose dots on a planet's surface. */}
+            <span aria-hidden className="absolute inset-0" style={{ transform: "rotate(-12deg)" }}>
+              <span className="absolute left-[-20%] top-[24%] h-[7%] w-[140%] rounded-full bg-white/25" />
+              <span className="absolute left-[-20%] top-[45%] h-[11%] w-[140%] rounded-full bg-black/10" />
+              <span className="absolute left-[-20%] top-[68%] h-[6%] w-[140%] rounded-full bg-white/15" />
+            </span>
+            <span
+              aria-hidden
+              className="absolute inset-0 rounded-full"
+              style={{ boxShadow: "inset -14px -10px 0 rgba(0, 0, 0, 0.18)" }}
+            />
+            <span className="absolute inset-0 flex items-center justify-center font-header text-2xl tracking-wider text-[#0b0d17] sm:text-3xl">
+              {initials(person.name)}
+            </span>
+          </div>
+        )}
+      </div>
 
       <div>
         <h3 className="font-header text-base tracking-wider text-[var(--text-primary)] sm:text-lg">
