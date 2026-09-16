@@ -94,9 +94,6 @@ const PEOPLE: Person[] = [
 
 const firstNameOnly = (person: Person): Person => ({ ...person, name: person.name.split(" ")[0] });
 
-/** Nine orbits at nine slightly different speeds, so they never sync up. */
-const orbitSeconds = (i: number) => 28 + (i % 5) * 3;
-
 /**
  * Everyone joining us from industry, as one roster. Each card carries the
  * tags for what that person is doing, so the people who are both speaking
@@ -117,9 +114,9 @@ export default function Mentors() {
         whileInView="visible"
         viewport={viewportOnce}
       >
-        {PEOPLE.map(firstNameOnly).map((person, i) => (
+        {PEOPLE.map(firstNameOnly).map((person) => (
           <motion.div key={person.id} variants={item} className="h-full">
-            <PersonCard person={person} orbitSeconds={orbitSeconds(i)} />
+            <PersonCard person={person} />
           </motion.div>
         ))}
       </motion.div>

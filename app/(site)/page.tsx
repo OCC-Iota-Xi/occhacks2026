@@ -3,10 +3,10 @@ import SpaceBackdrop from "@/components/SpaceBackdrop";
 import Hero from "@/components/sections/Hero";
 import AboutSection from "@/components/sections/AboutSection";
 import Tracks from "@/components/sections/Tracks";
-import ScheduleFaq from "@/components/sections/ScheduleFaq";
+import Schedule from "@/components/sections/Schedule";
+import FAQ from "@/components/sections/FAQ";
 import Sponsors from "@/components/sections/Sponsors";
 import Mentors from "@/components/sections/Mentors";
-import Join from "@/components/sections/Join";
 import Closer from "@/components/sections/Closer";
 
 export default function Home() {
@@ -23,8 +23,8 @@ export default function Home() {
         <Tracks />
         <Mentors />
         <Sponsors />
-        <ScheduleFaq />
-        <Join />
+        <Schedule />
+        <FAQ />
       </main>
       <Closer />
     </>
