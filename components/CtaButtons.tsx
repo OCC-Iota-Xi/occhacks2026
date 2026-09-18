@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import posthog from "posthog-js";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -16,13 +17,24 @@ const CTAS = [
 /**
  * The site's one CTA set — register / volunteer / mentor / sponsor — as
  * liquid-glass pills, shared by the hero and the join section.
+ *
+ * `location` tags the cta_clicked event, the first step of the registration
+ * funnel in PostHog.
  */
-export default function CtaButtons({ className }: { className?: string }) {
-  const handleMouseMove = (e: React.MouseEvent<HTMLButtonElement | HTMLAnchorElement>) => {
+export default function CtaButtons({
+  className,
+  location,
+}: {
+  className?: string;
+  location: "hero" | "join";
+}) {
+  const handleMouseMove = (e: React.MouseEvent<HTMLElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
     e.currentTarget.style.setProperty("--mouse-x", `${e.clientX - rect.left}px`);
     e.currentTarget.style.setProperty("--mouse-y", `${e.clientY - rect.top}px`);
   };
+
+  const track = (label: string) => posthog.capture("cta_clicked", { cta: label, location });
 
   return (
     <div className={cn("flex flex-wrap items-center gap-4 md:gap-6", className)}>
@@ -42,6 +54,7 @@ export default function CtaButtons({ className }: { className?: string }) {
           {cta.href.startsWith("/") ? (
             <Link
               href={cta.href}
+              onClick={() => track(cta.label)}
               {...(cta.primary
                 ? { target: "_blank", rel: "noopener noreferrer" }
                 : {})}
@@ -49,7 +62,9 @@ export default function CtaButtons({ className }: { className?: string }) {
               {cta.label}
             </Link>
           ) : (
-            <a href={cta.href}>{cta.label}</a>
+            <a href={cta.href} onClick={() => track(cta.label)}>
+              {cta.label}
+            </a>
           )}
         </Button>
       ))}

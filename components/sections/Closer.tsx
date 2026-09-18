@@ -1,4 +1,12 @@
+"use client";
+
+import { useRef } from "react";
 import Link from "next/link";
+import { motion, useReducedMotion, useScroll, useTransform } from "motion/react";
+import CtaButtons from "@/components/CtaButtons";
+import SectionHeading from "@/components/SectionHeading";
+import Reveal from "@/components/motion/Reveal";
+import { TrackPlanet } from "@/components/sections/Tracks";
 
 /* lucide-react no longer ships brand icons, so these are drawn in the
    same style (24x24 viewBox, stroke currentColor) as drop-in equivalents. */
@@ -56,12 +64,83 @@ const SOCIALS = [
   { label: "Devpost", href: "https://occhacks-2026.devpost.com/", Icon: DevpostIcon },
 ];
 
-/** The site footer. */
+/**
+ * The closing call to action and the footer, as one landing: the page scrolls
+ * up off it rather than pushing it down, and the contents resolve as it is
+ * uncovered.
+ *
+ * It gets its own backdrop — a gold glow rising off the bottom edge like
+ * sunrise over a planet's rim — instead of the starfield, which lives inside
+ * <main> and stops where the page does.
+ *
+ * Static below md: the stacked call-to-action buttons make this taller than a
+ * short phone screen, and a sticky block taller than the viewport would keep
+ * its own top permanently off-screen.
+ */
 export default function Closer() {
+  const ref = useRef<HTMLElement>(null);
+  const reduceMotion = useReducedMotion();
+  const { scrollY } = useScroll();
+
+  /*
+   * How much of the footer the page has uncovered, 0 to 1.
+   *
+   * This can't come from useScroll's target offsets: while the footer is stuck
+   * to the bottom of the viewport its rect never moves, so every offset pair
+   * reads as a constant. What does change is the scroll position, and the
+   * footer is uncovered over exactly the last footer-height pixels of it.
+   * Layout is clean during scroll, so reading these two values per frame does
+   * not force a reflow.
+   */
+  const revealed = useTransform(scrollY, (y) => {
+    const el = ref.current;
+    if (!el) return 0;
+    const height = el.offsetHeight;
+    const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
+    if (height <= 0 || maxScroll <= 0) return 1;
+    return Math.min(1, Math.max(0, (y - (maxScroll - height)) / height));
+  });
+
+  const opacity = useTransform(revealed, [0, 0.8], reduceMotion ? [1, 1] : [0, 1]);
+  const y = useTransform(revealed, [0, 0.8], reduceMotion ? [0, 0] : [28, 0]);
+
   return (
-    <section className="px-6 pb-10">
-      <footer className="mt-12 border-t border-border pt-10">
-        <div className="flex flex-col items-center gap-5 text-center text-sm text-muted-foreground">
+    <footer
+      ref={ref}
+      className="relative z-0 overflow-hidden px-6 pb-12 pt-20 md:sticky md:bottom-0 md:pt-24"
+    >
+      {/* Horizon glow, rising off the bottom edge. */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 -z-10"
+        style={{
+          background:
+            "radial-gradient(120% 90% at 50% 118%, rgba(251, 191, 36, 0.3) 0%, rgba(251, 191, 36, 0.1) 38%, rgba(251, 191, 36, 0.03) 58%, transparent 74%)",
+        }}
+      />
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 bottom-0 -z-10 h-px bg-gradient-to-r from-transparent via-ring/40 to-transparent"
+      />
+
+      {/* Flanking planets, tucked behind the copy on wide screens */}
+      <div className="pointer-events-none absolute left-[4%] top-[34%] hidden -translate-y-1/2 scale-[0.55] opacity-70 lg:block xl:left-[9%]">
+        <TrackPlanet variant="saturn" />
+      </div>
+      <div className="pointer-events-none absolute right-[4%] top-[34%] hidden -translate-y-1/2 scale-[0.45] opacity-70 lg:block xl:right-[9%]">
+        <TrackPlanet variant="pluto" />
+      </div>
+
+      <motion.div style={{ opacity, y }} className="relative">
+        <div id="join" className="scroll-mt-24">
+          <SectionHeading plain="Join Now" accent="" className="mb-10" />
+
+          <Reveal delay={0.1}>
+            <CtaButtons location="join" className="justify-center" />
+          </Reveal>
+        </div>
+
+        <div className="mx-auto mt-16 flex w-full max-w-3xl flex-col items-center gap-5 border-t border-white/10 pt-10 text-center text-sm text-muted-foreground">
           <Link
             href="/"
             className="select-none font-header text-lg tracking-wider text-[var(--text-primary)] transition-opacity hover:opacity-85"
@@ -96,7 +175,7 @@ export default function Closer() {
           </p>
           <p className="text-muted-foreground/60">occ hacks 2026 · costa mesa, ca</p>
         </div>
-      </footer>
-    </section>
+      </motion.div>
+    </footer>
   );
 }

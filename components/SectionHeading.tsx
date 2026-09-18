@@ -15,8 +15,7 @@ export default function SectionHeading({ plain, accent, className }: SectionHead
   return (
     <Reveal className={cn("text-center", className)}>
       <h2 className="font-display text-4xl tracking-tight text-foreground sm:text-5xl md:text-6xl">
-        {plain}{" "}
-        <span className="text-ring">{accent}</span>
+        {plain} <span className="text-ring">{accent}</span>
       </h2>
     </Reveal>
   );

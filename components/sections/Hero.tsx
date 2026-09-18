@@ -67,7 +67,7 @@ export default function Hero() {
 
           {/* CTA Buttons — shared with the join section */}
           <div className="mt-8 md:mt-10">
-            <CtaButtons />
+            <CtaButtons location="hero" />
           </div>
         </motion.div>
       </div>
