@@ -2,11 +2,11 @@ import type { MetadataRoute } from "next";
 
 const SITE_URL = "https://occhacks.com";
 
+/*
+ * Only the homepage. /register, /volunteer and /mentor sit behind the auth
+ * proxy, so an anonymous crawler is redirected to /signin (disallowed in
+ * robots.ts) and could never index them.
+ */
 export default function sitemap(): MetadataRoute.Sitemap {
-  return [
-    { url: SITE_URL, changeFrequency: "weekly", priority: 1 },
-    { url: `${SITE_URL}/register`, changeFrequency: "monthly", priority: 0.8 },
-    { url: `${SITE_URL}/volunteer`, changeFrequency: "monthly", priority: 0.5 },
-    { url: `${SITE_URL}/mentor`, changeFrequency: "monthly", priority: 0.5 },
-  ];
+  return [{ url: SITE_URL, changeFrequency: "weekly", priority: 1 }];
 }

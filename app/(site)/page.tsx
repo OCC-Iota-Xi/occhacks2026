@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Navbar from "@/components/Navbar";
 import SpaceBackdrop from "@/components/SpaceBackdrop";
 import Hero from "@/components/sections/Hero";
@@ -11,6 +12,12 @@ import Closer from "@/components/sections/Closer";
 import { faqJsonLd } from "@/lib/faq";
 
 const SITE_URL = "https://occhacks.com";
+
+/* Scoped to the homepage on purpose: set in the root layout, every child
+   route would inherit it and point its canonical at "/". */
+export const metadata: Metadata = {
+  alternates: { canonical: "/" },
+};
 
 /** Branded spellings people search for, so they all resolve to this page. */
 const ALTERNATE_NAMES = ["OCCHacks", "OCC Hack", "OCC Hackathon", "OC Hacks", "Orange Coast College Hackathon"];
