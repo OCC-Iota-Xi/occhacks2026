@@ -6,7 +6,7 @@ import Magnetic from "@/components/motion/Magnetic";
 import RevealLines from "@/components/motion/RevealLines";
 
 const ambient = (id: string) =>
-  `https://www.youtube.com/embed/${id}?autoplay=1&mute=1&loop=1&playlist=${id}&controls=0&rel=0&playsinline=1&modestbranding=1`;
+  `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&mute=1&loop=1&playlist=${id}&controls=0&rel=0&playsinline=1&modestbranding=1`;
 
 const SHOWREEL = {
   name: "Spookathon 2025",
@@ -111,6 +111,7 @@ export default function AboutSection() {
             src={SHOWREEL.embed}
             title={`${SHOWREEL.name} recap`}
             allow="autoplay; encrypted-media; picture-in-picture"
+            loading="lazy"
             allowFullScreen
           />
         </motion.div>
@@ -162,6 +163,7 @@ export default function AboutSection() {
             src={PREVIOUS.embed}
             title={`${PREVIOUS.name} recap`}
             allow="autoplay; encrypted-media; picture-in-picture"
+            loading="lazy"
             allowFullScreen
           />
         </motion.div>

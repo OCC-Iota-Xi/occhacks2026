@@ -85,7 +85,10 @@ export interface Person {
   /** Stable key. Names are shortened to first names on the page, so they collide. */
   id: string;
   name: string;
-  roles: string[];
+  /** Job title, line one under the name. */
+  title: string;
+  /** Always its own line, so every card's text block is the same shape. */
+  company: string;
   involvement: Involvement[];
   palette: number;
   /** Path under /public. Without one the card falls back to an initials planet. */
@@ -192,14 +195,12 @@ export default function PersonCard({ person }: { person: Person }) {
         <h3 className="font-header text-base tracking-wider text-[var(--text-primary)] sm:text-lg">
           {person.name}
         </h3>
-        {person.roles.map((role) => (
-          <p
-            key={role}
-            className="mt-1 text-sm text-muted-foreground/80 transition-colors duration-300 group-hover:text-foreground sm:text-base"
-          >
-            {role}
-          </p>
-        ))}
+        <p className="mt-1 text-balance text-sm text-muted-foreground/80 transition-colors duration-300 group-hover:text-foreground sm:text-base">
+          {person.title}
+        </p>
+        <p className="text-sm text-muted-foreground/80 transition-colors duration-300 group-hover:text-foreground sm:text-base">
+          {person.company}
+        </p>
       </div>
 
       <div className="mt-auto flex flex-wrap justify-center gap-1.5 pt-1 transition-all duration-300 ease-out [@media(hover:hover)]:translate-y-1.5 [@media(hover:hover)]:scale-95 [@media(hover:hover)]:opacity-0 group-hover:translate-y-0 group-hover:scale-100 group-hover:opacity-100">
