@@ -22,7 +22,6 @@ export const metadata: Metadata = {
   // and icons resolve against this.
   metadataBase: new URL("https://occhacks.com"),
   title: "OCC Hacks 2026 (OCCHacks) — Orange Coast College Hackathon, Oct 10–11",
-  alternates: { canonical: "/" },
   description:
     "OCC Hacks is Orange Coast College's official student hackathon, organized by the Iota Xi (ΙΞ) Society. October 10–11, 2026 in the OCC Ballroom. Free to attend, open to all majors and skill levels — food, workshops, mentors, and prizes included.",
   keywords: [
