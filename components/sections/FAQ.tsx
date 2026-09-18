@@ -53,7 +53,7 @@ export default function FAQ() {
           >
             <AccordionItem
               value={`faq-${i}`}
-              className="rounded-2xl border border-white/10 bg-white/[0.03] px-6 py-5 backdrop-blur-sm transition-colors duration-300 hover:border-ring/25"
+              className="rounded-2xl border border-white/10 bg-white/[0.03] px-6 py-5 backdrop-blur-sm transition-colors duration-300 hover:border-white/25"
             >
               <AccordionTrigger className="group/card justify-between gap-4 py-0 text-left">
                 {/* The reserved height is what keeps every closed card the
