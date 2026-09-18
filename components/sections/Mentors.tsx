@@ -22,7 +22,8 @@ const PEOPLE: Person[] = [
   {
     id: "zhen",
     name: "Zhen",
-    roles: ["Director of Applied Science @ Blizzard"],
+    title: "Director of Applied Science",
+    company: "Blizzard",
     involvement: ["keynote panel"],
     palette: 1,
     photo: "/guest_speakers/zhen_zhai.jpg",
@@ -30,7 +31,8 @@ const PEOPLE: Person[] = [
   {
     id: "mike",
     name: "Mike",
-    roles: ["Former Development Director @ Amazon Game Studios"],
+    title: "Former Development Director",
+    company: "Amazon Game Studios",
     involvement: ["keynote panel"],
     palette: 0,
     photo: "/guest_speakers/michael_boccieri.jpeg",
@@ -38,7 +40,8 @@ const PEOPLE: Person[] = [
   {
     id: "dailin",
     name: "Dailin Hu",
-    roles: ["Senior Applied Scientist @ Blizzard"],
+    title: "Senior Applied Scientist",
+    company: "Blizzard",
     involvement: ["keynote panel", "mentor"],
     palette: 1,
     photo: "/guest_speakers/dailin_hu.jpeg",
@@ -46,7 +49,8 @@ const PEOPLE: Person[] = [
   {
     id: "nada",
     name: "Nada Lahjouji",
-    roles: ["Applied Scientist @ Blizzard"],
+    title: "Applied Scientist",
+    company: "Blizzard",
     involvement: ["keynote panel", "mentor"],
     palette: 2,
     photo: "/guest_speakers/nada_lahjouji.jpeg",
@@ -54,7 +58,8 @@ const PEOPLE: Person[] = [
   {
     id: "owen",
     name: "Owen Wolf",
-    roles: ["Lead SRE @ PlayStation"],
+    title: "Lead SRE",
+    company: "PlayStation",
     involvement: ["fireside chat", "mentor"],
     palette: 0,
     photo: "/guest_speakers/owen_wolf.jpeg",
@@ -62,7 +67,8 @@ const PEOPLE: Person[] = [
   {
     id: "wesley",
     name: "Wesley Wu",
-    roles: ["Senior Software Engineer @ Amazon"],
+    title: "Senior Software Engineer",
+    company: "Amazon",
     involvement: ["fireside chat", "mentor"],
     palette: 1,
     photo: "/guest_speakers/wesley_wu.jpeg",
@@ -70,7 +76,8 @@ const PEOPLE: Person[] = [
   {
     id: "yash",
     name: "Yash Gupta",
-    roles: ["Senior Software Engineer @ PIMCO"],
+    title: "Senior Software Engineer",
+    company: "PIMCO",
     involvement: ["fireside chat", "mentor"],
     palette: 0,
     photo: "/guest_speakers/yash_gupta.jpeg",
@@ -78,7 +85,8 @@ const PEOPLE: Person[] = [
   {
     id: "kevin",
     name: "Kevin Doan",
-    roles: ["Start-up Founder"],
+    title: "Start-up Founder",
+    company: "Plethora",
     involvement: ["mentor"],
     palette: 2,
     photo: "/guest_speakers/kevin_doan.jpeg",
@@ -86,7 +94,8 @@ const PEOPLE: Person[] = [
   {
     id: "ashwin",
     name: "Ashwin Colaco",
-    roles: ["PhD Researcher @ UC Irvine"],
+    title: "PhD Researcher",
+    company: "UC Irvine",
     involvement: ["mentor"],
     palette: 3,
   },

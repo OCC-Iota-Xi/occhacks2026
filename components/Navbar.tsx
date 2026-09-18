@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Menu, X } from "lucide-react";
+import posthog from "posthog-js";
 import { Button } from "@/components/ui/button";
 
 const LINKS = [
@@ -166,7 +167,12 @@ export default function Navbar() {
             onMouseMove={handleMouseMove}
             asChild
           >
-            <Link href="/register" target="_blank" rel="noopener noreferrer">
+            <Link
+              href="/register"
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => posthog.capture("cta_clicked", { cta: "Register Now", location: "nav" })}
+            >
               Register Now
             </Link>
           </Button>

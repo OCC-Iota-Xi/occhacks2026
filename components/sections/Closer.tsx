@@ -136,7 +136,7 @@ export default function Closer() {
           <SectionHeading plain="Join Now" accent="" className="mb-10" />
 
           <Reveal delay={0.1}>
-            <CtaButtons className="justify-center" />
+            <CtaButtons location="join" className="justify-center" />
           </Reveal>
         </div>
 
