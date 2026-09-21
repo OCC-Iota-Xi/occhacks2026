@@ -72,8 +72,8 @@ export const FAQS: { question: string; answer: string; rich?: React.ReactNode }[
   },
 ];
 
+/** A node for the homepage's `@graph`, which supplies the shared `@context`. */
 export const faqJsonLd = {
-  "@context": "https://schema.org",
   "@type": "FAQPage",
   mainEntity: FAQS.map((faq) => ({
     "@type": "Question",
