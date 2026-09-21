@@ -24,10 +24,17 @@ if (!posthogKey || !posthogHost) {
     // 2026-01-30 defaults onward; set explicitly so bumping `defaults` above
     // is a decision about pageview behaviour and nothing else.
     external_scripts_inject_target: "head",
-    capture_exceptions: {
-      capture_unhandled_errors: true,
-      capture_unhandled_rejections: true,
-      capture_console_errors: false,
-    },
+    // Error tracking is about the deployed site. A dev server reports things
+    // no visitor can hit — the build-error overlay, stale Turbopack chunks
+    // after a hot reload, Next.js' own internal invariants — and those
+    // localhost exceptions outnumbered the real ones in the weekly digest.
+    capture_exceptions:
+      process.env.NODE_ENV === "production"
+        ? {
+            capture_unhandled_errors: true,
+            capture_unhandled_rejections: true,
+            capture_console_errors: false,
+          }
+        : false,
   });
 }
