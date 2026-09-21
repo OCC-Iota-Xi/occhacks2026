@@ -2,10 +2,9 @@
 
 import { useEffect } from "react";
 import Link from "next/link";
-import { Rocket, HeartHandshake, Compass, LogOut, Gauge } from "lucide-react";
+import { Rocket, LogOut } from "lucide-react";
 import posthog from "posthog-js";
 import { signOut } from "@/app/register/actions";
-import { isAdminEmail } from "@/lib/admin/access";
 import {
   Sidebar,
   SidebarContent,
@@ -20,15 +19,15 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 
-// Volunteering and mentoring are separate sign-ups, so they're separate
-// entries — someone can be on both rosters.
 const NAV = [
   { href: "/register", label: "register as a hacker", icon: Rocket, key: "register" },
-  { href: "/volunteer", label: "volunteer", icon: HeartHandshake, key: "volunteer" },
-  { href: "/mentor", label: "mentor", icon: Compass, key: "mentor" },
 ] as const;
 
-/** Left-hand navigation for the signed-in pages (register / volunteer / mentor). */
+/**
+ * Left-hand navigation for the signed-in pages. The volunteer and mentor
+ * sign-ups and the organizer dashboard are reachable by URL but deliberately
+ * unlisted, so `active` still names pages with no entry here.
+ */
 export default function AccountSidebar({
   active,
   userId,
@@ -56,10 +55,6 @@ export default function AccountSidebar({
 
   const initial = (name || email || "?").trim().charAt(0).toUpperCase();
 
-  // Visibility only — /admin is guarded by the proxy, by the admin layout, and
-  // by RLS. Hiding the link just keeps it out of the way of people it isn't for.
-  const showAdmin = isAdminEmail(email);
-
   return (
     <Sidebar collapsible="icon">
       <SidebarHeader className="px-4 py-4 group-data-[collapsible=icon]:px-2">
@@ -77,19 +72,7 @@ export default function AccountSidebar({
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
-              {[
-                ...NAV,
-                ...(showAdmin
-                  ? [
-                      {
-                        href: "/admin",
-                        label: "organizer dashboard",
-                        icon: Gauge,
-                        key: "admin",
-                      } as const,
-                    ]
-                  : []),
-              ].map((item) => (
+              {NAV.map((item) => (
                 <SidebarMenuItem key={item.key}>
                   <SidebarMenuButton
                     asChild

@@ -1,13 +1,6 @@
 "use client";
 
-import { useState } from "react";
 import { motion, useReducedMotion } from "motion/react";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
 import SectionHeading from "@/components/SectionHeading";
 import { fadeIn, fadeUp, viewportOnce } from "@/lib/motion";
 
@@ -43,20 +36,14 @@ const DAYS = [
 
 /**
  * The run of show: the heading on the left, and the two days side by side on
- * the right as cards that drop open, styled like the FAQ cards. Both start
- * open so the pair reads level; items-start keeps closing one from stretching
- * it to its neighbour's height.
- *
- * The whole card is the click target: the trigger carries the card's padding
- * so the header strip is all trigger, and clicking the open list closes it.
- * That needs the open state controlled here rather than left to Radix. Below sm the days stack, below md the heading
+ * the right as static cards — both always fully listed, nothing to open or
+ * close. The pair stretches to a shared height so they bottom-align despite
+ * Day 1 having the longer list. Below sm the days stack, below md the heading
  * sits above them.
  */
 export default function Schedule() {
   const reduceMotion = useReducedMotion();
   const item = reduceMotion ? fadeIn : fadeUp;
-  const [open, setOpen] = useState(["day-1", "day-2"]);
-  const close = (id: string) => setOpen((ids) => ids.filter((d) => d !== id));
 
   return (
     <section id="schedule" className="scroll-mt-24 px-6 py-16 md:py-24">
@@ -64,52 +51,44 @@ export default function Schedule() {
         <SectionHeading plain="Schedule" accent="" className="text-left md:sticky md:top-28" />
 
         <div>
-          <Accordion type="multiple" value={open} onValueChange={setOpen} className="grid items-start gap-5 sm:grid-cols-2">
+          <div className="grid gap-5 sm:grid-cols-2">
             {DAYS.map((day, i) => (
               <motion.div
                 key={day.id}
+                className="h-full"
                 variants={item}
                 initial="hidden"
                 whileInView="visible"
                 viewport={viewportOnce}
                 transition={{ delay: i * 0.08 }}
               >
-                <AccordionItem
-                  value={day.id}
-                  className="rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-sm transition-colors duration-300 hover:border-white/25"
-                >
-                  <AccordionTrigger className="cursor-pointer items-center justify-between gap-4 px-6 py-5 text-left">
-                    <span className="font-header text-base tracking-wider text-[var(--text-primary)] sm:text-lg">
-                      {day.label}
-                    </span>
-                  </AccordionTrigger>
-                  <AccordionContent
-                    className="cursor-pointer px-6 pb-5"
-                    onClick={() => close(day.id)}
-                  >
-                    <ul className="divide-y divide-white/10">
-                      {day.events.map((event) => (
-                        <li
-                          key={`${event.time}-${event.name}`}
-                          className="flex items-baseline gap-4 py-3 first:pt-1 last:pb-0"
-                        >
-                          <span className="w-20 shrink-0 text-xs tabular-nums text-muted-foreground">
-                            {event.time}
-                          </span>
-                          <span className="text-sm text-[var(--text-primary)] sm:text-base">
-                            {event.name}
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
-                  </AccordionContent>
-                </AccordionItem>
+                <div className="h-full rounded-2xl border border-white/10 bg-white/[0.03] px-6 py-5 backdrop-blur-sm">
+                  <h3 className="font-header text-base tracking-wider text-[var(--text-primary)] sm:text-lg">
+                    {day.label}
+                  </h3>
+                  <ul className="mt-4 divide-y divide-white/10">
+                    {day.events.map((event) => (
+                      <li
+                        key={`${event.time}-${event.name}`}
+                        className="flex items-baseline gap-4 py-3 first:pt-1 last:pb-0"
+                      >
+                        <span className="w-20 shrink-0 text-xs tabular-nums text-muted-foreground">
+                          {event.time}
+                        </span>
+                        <span className="text-sm text-[var(--text-primary)] sm:text-base">
+                          {event.name}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
               </motion.div>
             ))}
-          </Accordion>
+          </div>
 
           <p className="mt-6 text-center text-xs text-muted-foreground/70">
-            schedule is provisional — final times land closer to the event.
+            schedule is provisional — final times land closer to the event. you do not need to
+            stay for the whole time.
           </p>
         </div>
       </div>
