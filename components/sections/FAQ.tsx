@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import {
   Accordion,
@@ -29,10 +30,22 @@ import { FAQS } from "@/lib/faq";
  * The grid stays items-start on purpose. Stretching the row would even the
  * cards out too, but then opening one card would inflate every card beside it
  * into a mostly empty box.
+ *
+ * The whole card is the click target: the trigger carries the card's padding
+ * rather than the item, so the gutters and the strip above and below the
+ * question are all trigger, and clicking an open answer closes it again. That
+ * needs the open state controlled here rather than left to Radix.
  */
 export default function FAQ() {
   const reduceMotion = useReducedMotion();
   const item = reduceMotion ? fadeIn : fadeUp;
+  const [open, setOpen] = useState<string[]>([]);
+
+  // Everything but a link in the answer, which has its own job to do.
+  const closeUnlessLink = (id: string) => (e: React.MouseEvent<HTMLElement>) => {
+    if ((e.target as HTMLElement).closest("a")) return;
+    setOpen((ids) => ids.filter((v) => v !== id));
+  };
 
   return (
     <section id="faq" className="scroll-mt-24 px-6 py-16 md:py-24">
@@ -40,6 +53,8 @@ export default function FAQ() {
 
       <Accordion
         type="multiple"
+        value={open}
+        onValueChange={setOpen}
         className="mx-auto grid max-w-6xl items-start gap-5 sm:grid-cols-2 lg:grid-cols-3"
       >
         {FAQS.map((faq, i) => (
@@ -53,9 +68,9 @@ export default function FAQ() {
           >
             <AccordionItem
               value={`faq-${i}`}
-              className="rounded-2xl border border-white/10 bg-white/[0.03] px-6 py-5 backdrop-blur-sm transition-colors duration-300 hover:border-white/25"
+              className="rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-sm transition-colors duration-300 hover:border-white/25"
             >
-              <AccordionTrigger className="group/card justify-between gap-4 py-0 text-left">
+              <AccordionTrigger className="group/card w-full cursor-pointer justify-between gap-4 px-6 py-5 text-left">
                 {/* The reserved height is what keeps every closed card the
                     same size: questions wrap to one line or two, and without
                     it the grid comes out ragged. */}
@@ -68,7 +83,10 @@ export default function FAQ() {
                   </span>
                 </span>
               </AccordionTrigger>
-              <AccordionContent className="pb-0 pt-4">
+              <AccordionContent
+                className="cursor-pointer px-6 pb-5 pt-0"
+                onClick={closeUnlessLink(`faq-${i}`)}
+              >
                 <p className="text-sm leading-relaxed text-muted-foreground">{faq.rich ?? faq.answer}</p>
               </AccordionContent>
             </AccordionItem>

@@ -7,7 +7,6 @@ import { cn } from "@/lib/utils";
 
 const CTAS = [
   { label: "Become a Hacker", href: "/register", primary: true },
-  { label: "Join as a Volunteer/Mentor", href: "/volunteer" },
   {
     label: "Sponsor Us",
     href: "mailto:lnguyen1509@student.cccd.edu?subject=Sponsoring%20OCC%20Hacks%202026",
@@ -15,8 +14,8 @@ const CTAS = [
 ];
 
 /**
- * The site's one CTA set — register / volunteer / mentor / sponsor — as
- * liquid-glass pills, shared by the hero and the join section.
+ * The site's one CTA set — register / sponsor — as liquid-glass pills,
+ * shared by the hero and the join section.
  *
  * `location` tags the cta_clicked event, the first step of the registration
  * funnel in PostHog.
@@ -43,7 +42,7 @@ export default function CtaButtons({
           key={cta.label}
           variant="ghost"
           className={cn(
-            "h-auto cursor-pointer rounded-full px-6 py-3 text-sm font-medium transition-transform hover:scale-[1.03] md:px-8 md:py-4 md:text-base",
+            "h-auto cursor-pointer rounded-full px-8 py-4 text-base font-medium transition-transform hover:scale-[1.03] md:px-10 md:py-5 md:text-lg",
             cta.primary
               ? "liquid-glass glass-gold text-[#fcd34d]"
               : "liquid-glass glass-visible text-[var(--text-primary)]"
