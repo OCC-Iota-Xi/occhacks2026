@@ -1,0 +1,14 @@
+version: '3'
+services:
+  docuseal:
+    image: docuseal/docuseal:latest
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - SECRET_KEY_BASE=occhacks_super_secret_key_123456789
+    volumes:
+      - docuseal_data:/data
+
+volumes:
+  docuseal_data:
