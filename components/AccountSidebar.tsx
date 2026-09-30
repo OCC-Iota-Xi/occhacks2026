@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import Link from "next/link";
-import { Rocket, LogOut } from "lucide-react";
+import { Rocket, ClipboardCheck, LogOut } from "lucide-react";
 import posthog from "posthog-js";
 import { signOut } from "@/app/register/actions";
 import {
@@ -21,6 +21,7 @@ import {
 
 const NAV = [
   { href: "/register", label: "register as a hacker", icon: Rocket, key: "register" },
+  { href: "/status", label: "application status", icon: ClipboardCheck, key: "status" },
 ] as const;
 
 /**
@@ -34,7 +35,7 @@ export default function AccountSidebar({
   email,
   name,
 }: {
-  active: "register" | "volunteer" | "mentor";
+  active: "register" | "status" | "volunteer" | "mentor";
   userId?: string;
   email?: string | null;
   name?: string | null;
