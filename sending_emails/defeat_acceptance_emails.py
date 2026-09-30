@@ -11,7 +11,7 @@ load_dotenv()
 resend.api_key = os.getenv("RESEND_API_KEY")
 reply_to_email = os.getenv("RESEND_REPLY_TO")
 
-CSV_FILE = "defeated_email_list_oct5.csv"
+CSV_FILE = "defeated__acceptance_email.csv"
 PDF_FILE_PATH = "Waivers.pdf"  
 
 def load_pdf_attachment(file_path):
