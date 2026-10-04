@@ -4,8 +4,10 @@ import { redirect } from "next/navigation";
 import { Download } from "lucide-react";
 import AccountBackdrop from "@/components/AccountBackdrop";
 import AccountSidebar from "@/components/AccountSidebar";
+import CheckInQr from "@/components/CheckInQr";
 import WaiversSentButton from "@/components/WaiversSentButton";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { applicantStage, type ApplicantStage } from "@/lib/applicant-stage";
 import { WAIVER_REPLY_TO } from "@/lib/email/templates";
 import { createClient } from "@/lib/supabase/server";
 
@@ -21,76 +23,53 @@ type View = {
   details?: boolean;
   /** Show the waiver packet and the addresses to send it to. */
   waivers?: boolean;
+  /** Show the check-in QR. */
+  qr?: boolean;
   link?: { href: string; label: string };
 };
 
 /**
- * What an applicant sees for each state. Only accepted is shown as-is;
- * everything else an organizer can set — `submitted`, `in_review`, `withdrawn`,
- * and for now `waitlisted` and `rejected` — reads as "under review" here.
- *
- * Accepted has three steps: waivers still to send, sent and waiting on an
- * organizer (`waivers_sent_at`, set by the applicant's own button), and
- * confirmed — attendance, which an organizer sets once they've reviewed the
- * forms. Confirmed wins, so someone whose emailed waivers were reviewed without
- * them ever pressing the button still lands on "you're in".
+ * What an applicant sees at each stage (`applicantStage` decides which one
+ * they're at). Waitlisted and rejected aren't shown to applicants for now: both
+ * read as "under review", and the wording for them is kept under the rejected
+ * preview below.
  */
-function viewFor(
-  completed: boolean,
-  status: string | undefined,
-  attendance: string | undefined,
-  waiversSent: boolean
-): View {
-  switch (status) {
-    case "accepted":
-      if (attendance === "confirmed") {
-        return {
-          label: "confirmed",
-          accent: true,
-          details: true,
-          body: "Your waivers are reviewed and your spot is confirmed. You're in, see you there.",
-        };
-      }
-      if (waiversSent) {
-        return {
-          label: "under review",
-          details: true,
-          body: "Thanks for sending your waivers. An organizer is reviewing them, and your spot will show as confirmed here once they're done.",
-        };
-      }
-      return {
-        label: "accepted",
-        accent: true,
-        details: true,
-        waivers: true,
-        body: "You're accepted. To confirm your spot, fill out the waiver packet and email your signed copy to both organizers below by October 5 at 11:59 PM. Once it's sent, let us know with the button below.",
-      };
-    // Not shown to applicants for now: both fall through to "under review".
-    // case "waitlisted":
-    //   return {
-    //     label: "waitlisted",
-    //     body: "you're on the waitlist. we'll email you if a spot opens up before the event.",
-    //   };
-    // case "rejected":
-    //   return {
-    //     label: "not accepted",
-    //     body: "we weren't able to offer you a spot this year. thank you for applying, and we hope to see you at a future OCC Hacks.",
-    //   };
-  }
-
-  if (!completed) {
-    return {
-      label: "not submitted",
-      body: "Your application is still a draft. Finish and submit it to be considered.",
-      link: { href: "/register", label: "finish your application" },
-    };
-  }
-
-  return {
+const VIEWS: Record<ApplicantStage, View> = {
+  not_submitted: {
+    label: "not submitted",
+    body: "Your application is still a draft. Finish and submit it to be considered.",
+    link: { href: "/register", label: "finish your application" },
+  },
+  under_review: {
     label: "under review",
     body: "We've got your application and are still reviewing it. Your decision will show up here.",
-  };
-}
+  },
+  accepted: {
+    label: "accepted",
+    accent: true,
+    details: true,
+    waivers: true,
+    body: "You're accepted. To confirm your spot, fill out the waiver packet and email your signed copy to both organizers below by October 5 at 11:59 PM. Once it's sent, let us know with the button below.",
+  },
+  waivers_review: {
+    label: "under review",
+    details: true,
+    body: "Thanks for sending your waivers. An organizer is reviewing them, and your spot will show as confirmed here once they're done.",
+  },
+  confirmed: {
+    label: "confirmed",
+    accent: true,
+    details: true,
+    qr: true,
+    body: "Your waivers are reviewed and your spot is confirmed. You're in, see you there.",
+  },
+  checked_in: {
+    label: "checked in",
+    accent: true,
+    details: true,
+    body: "You're checked in. Welcome to OCC Hacks.",
+  },
+};
 
 /**
  * Temporary: every state the page can show, listed in the sidebar so each one
@@ -98,11 +77,12 @@ function viewFor(
  * that state in place of the caller's own. Development only.
  */
 const PREVIEWS = [
-  { key: "not-submitted", label: "not submitted", view: viewFor(false, undefined, undefined, false) },
-  { key: "under-review", label: "under review", view: viewFor(true, "submitted", undefined, false) },
-  { key: "accepted", label: "accepted", view: viewFor(true, "accepted", "pending", false) },
-  { key: "waivers-sent", label: "waivers sent", view: viewFor(true, "accepted", "pending", true) },
-  { key: "confirmed", label: "confirmed", view: viewFor(true, "accepted", "confirmed", true) },
+  { key: "not-submitted", label: "not submitted", view: VIEWS.not_submitted },
+  { key: "under-review", label: "under review", view: VIEWS.under_review },
+  { key: "accepted", label: "accepted", view: VIEWS.accepted },
+  { key: "waivers-sent", label: "waivers sent", view: VIEWS.waivers_review },
+  { key: "confirmed", label: "confirmed", view: VIEWS.confirmed },
+  { key: "checked-in", label: "checked in", view: VIEWS.checked_in },
   // Preview only: a rejected applicant still reads as "under review" above.
   {
     key: "rejected",
@@ -110,7 +90,7 @@ const PREVIEWS = [
     view: {
       label: "not accepted",
       body: "We weren't able to offer you a spot this year. Thank you for applying, and we hope to see you at a future OCC Hacks.",
-    },
+    } as View,
   },
 ] as const;
 
@@ -118,7 +98,11 @@ interface Decision {
   status: string;
   attendance: string;
   waivers_sent_at?: string | null;
+  checked_in_at?: string | null;
 }
+
+/** Stands in for the caller's id when a preview is drawn without a session. */
+const PREVIEW_USER_ID = "00000000-0000-4000-8000-000000000000";
 
 /**
  * `waivers_sent_at` arrives with migration 0024. Against a database that hasn't
@@ -136,9 +120,9 @@ async function readDecision(
       .eq("user_id", userId)
       .maybeSingle<Decision>();
 
-  const first = await read("status, attendance, waivers_sent_at");
+  const first = await read("status, attendance, waivers_sent_at, checked_in_at");
   if (first.error?.code !== "42703") return first.data;
-  return (await read("status, attendance")).data;
+  return (await read("status, attendance, checked_in_at")).data;
 }
 
 export default async function StatusPage({
@@ -172,12 +156,15 @@ export default async function StatusPage({
 
   const view: View =
     preview?.view ??
-    viewFor(
-      !!hacker?.completed_at,
-      decision?.status,
-      decision?.attendance,
-      !!decision?.waivers_sent_at
-    );
+    VIEWS[
+      applicantStage({
+        completed: !!hacker?.completed_at,
+        status: decision?.status,
+        attendance: decision?.attendance,
+        waiversSent: !!decision?.waivers_sent_at,
+        checkedIn: !!decision?.checked_in_at,
+      })
+    ];
 
   return (
     <SidebarProvider>
@@ -245,6 +232,8 @@ export default async function StatusPage({
                 <WaiversSentButton />
               </>
             )}
+
+            {view.qr && <CheckInQr userId={user?.id ?? PREVIEW_USER_ID} />}
 
             {view.details && (
               <dl className="mt-6 grid grid-cols-[auto_1fr] gap-x-6 gap-y-2 border-t border-border pt-6 text-sm">

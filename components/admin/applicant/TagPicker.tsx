@@ -86,7 +86,7 @@ export default function TagPicker({
 
       {!applied.length && !available.length && (
         <span className="text-xs text-muted-foreground">
-          No tags exist yet — create some on the Tags page.
+          No tags exist yet.
         </span>
       )}
     </div>

@@ -6,7 +6,6 @@ import {
   ATTENDANCE,
   DECISION_STATUSES,
   REVIEW_CRITERIA,
-  TAG_COLORS,
   type Attendance,
   type Status,
 } from "@/lib/admin/types";
@@ -125,6 +124,145 @@ export async function setCheckedIn(
   return { ok: true, count: targets.length };
 }
 
+/**
+ * Sends waivers back: clears "the applicant says they're sent", so their status
+ * page shows the packet and the button again instead of "under review". For a
+ * packet that arrived unsigned, incomplete, or not at all. Anyone already
+ * confirmed is left alone — their waivers were reviewed.
+ */
+export async function clearWaiversSent(id: string): Promise<ActionResult> {
+  const { supabase } = await assertAdmin();
+  if (typeof id !== "string" || !UUID.test(id)) {
+    return { ok: false, message: "No applicant selected." };
+  }
+
+  const { data, error } = await supabase
+    .from("application_status")
+    .update({ waivers_sent_at: null })
+    .eq("user_id", id)
+    .neq("attendance", "confirmed")
+    .select("user_id");
+  if (error) return fail(error, "Could not send the waivers back.");
+  if (!data?.length) return { ok: false, message: "Nothing to send back." };
+
+  refresh();
+  return { ok: true, count: 1 };
+}
+
+/* -------------------------------------------------------------------------- */
+/* Check-in desk                                                               */
+/* -------------------------------------------------------------------------- */
+
+/** Who a check-in was about, for the desk to read back before waving them in. */
+export interface CheckInPerson {
+  id: string;
+  name: string;
+  email: string | null;
+  shirt: string | null;
+  needs: string | null;
+  status: Status;
+  attendance: Attendance;
+}
+
+export type CheckInResult =
+  /** Checked in by this call. */
+  | { outcome: "checked_in"; person: CheckInPerson; at: string }
+  /** Was already checked in; nothing changed, `at` is the original time. */
+  | { outcome: "already"; person: CheckInPerson; at: string }
+  /** A real applicant who isn't accepted and confirmed. Nothing changed. */
+  | { outcome: "not_confirmed"; person: CheckInPerson }
+  /** The code isn't an applicant's. */
+  | { outcome: "not_found" }
+  /** Nothing changed and trying again won't help until `message` is dealt with. */
+  | { outcome: "error"; message: string };
+
+/**
+ * Checks one person in from a scanned code, a typed code, or the list.
+ *
+ * Unlike the other actions this one reports rather than throws, and it is safe
+ * to repeat: the desk retries it over bad wifi, and two organizers can scan the
+ * same person, so a second call must neither fail nor move the time they
+ * arrived. The write only touches a row that isn't checked in yet, which makes
+ * "already checked in" the answer to a repeat instead of an overwrite.
+ *
+ * Someone who isn't accepted and confirmed is refused unless `force` is set —
+ * the desk's "check in anyway", for a waiver handed over in person.
+ */
+export async function checkIn(
+  id: string,
+  options: { force?: boolean } = {}
+): Promise<CheckInResult> {
+  let supabase: Awaited<ReturnType<typeof assertAdmin>>["supabase"];
+  try {
+    ({ supabase } = await assertAdmin());
+  } catch {
+    return { outcome: "error", message: "You're signed out. Sign in again to check people in." };
+  }
+  if (typeof id !== "string" || !UUID.test(id)) return { outcome: "not_found" };
+
+  const read = () =>
+    supabase
+      .from("admin_applicants")
+      .select("id, full_name, email, shirt, needs, status, attendance, checked_in_at")
+      .eq("id", id)
+      .maybeSingle<{
+        id: string;
+        full_name: string | null;
+        email: string | null;
+        shirt: string | null;
+        needs: string | null;
+        status: Status;
+        attendance: Attendance;
+        checked_in_at: string | null;
+      }>();
+
+  const found = await read();
+  if (found.error) return { outcome: "error", message: found.error.message };
+  if (!found.data) return { outcome: "not_found" };
+
+  const row = found.data;
+  const person: CheckInPerson = {
+    id: row.id,
+    name: row.full_name?.trim() || row.email || "Unnamed applicant",
+    email: row.email,
+    shirt: row.shirt,
+    needs: row.needs,
+    status: row.status,
+    attendance: row.attendance,
+  };
+
+  if (row.checked_in_at) return { outcome: "already", person, at: row.checked_in_at };
+
+  const expected = row.status === "accepted" && row.attendance === "confirmed";
+  if (!expected && !options.force) return { outcome: "not_confirmed", person };
+
+  const at = new Date().toISOString();
+  const updated = await supabase
+    .from("application_status")
+    .update({ checked_in_at: at })
+    .eq("user_id", id)
+    .is("checked_in_at", null)
+    .select("checked_in_at");
+  if (updated.error) return { outcome: "error", message: updated.error.message };
+
+  if (!updated.data?.length) {
+    // Nothing matched: either someone else checked them in between the read and
+    // the write, or (only with `force`) they have no decision row to update yet.
+    const again = await read();
+    if (again.error) return { outcome: "error", message: again.error.message };
+    if (again.data?.checked_in_at) {
+      return { outcome: "already", person, at: again.data.checked_in_at };
+    }
+    const inserted = await supabase
+      .from("application_status")
+      .upsert({ user_id: id, checked_in_at: at }, { onConflict: "user_id" });
+    if (inserted.error) return { outcome: "error", message: inserted.error.message };
+  }
+
+  refresh();
+  return { outcome: "checked_in", person, at };
+}
+
 /** `reviewerId` of null unassigns. */
 export async function assignReviewer(
   ids: string[],
@@ -199,37 +337,6 @@ export async function removeTag(ids: string[], tagId: string): Promise<ActionRes
 
   refresh();
   return { ok: true, count: targets.length };
-}
-
-export async function createTag(name: string, color: string): Promise<ActionResult> {
-  const { supabase, user } = await assertAdmin();
-  const clean = name.trim().slice(0, 40);
-  if (!clean) return { ok: false, message: "Give the tag a name." };
-  const swatch = (TAG_COLORS as readonly string[]).includes(color) ? color : "slate";
-
-  const { error } = await supabase
-    .from("tags")
-    .insert({ name: clean, color: swatch, created_by: user.id });
-  if (error) {
-    return {
-      ok: false,
-      message: error.code === "23505" ? "That tag already exists." : error.message,
-    };
-  }
-
-  refresh();
-  return { ok: true };
-}
-
-export async function deleteTag(tagId: string): Promise<ActionResult> {
-  const { supabase } = await assertAdmin();
-  if (!UUID.test(tagId)) return { ok: false, message: "Unknown tag." };
-
-  const { error } = await supabase.from("tags").delete().eq("id", tagId);
-  if (error) return fail(error, "Could not delete that tag.");
-
-  refresh();
-  return { ok: true };
 }
 
 /* -------------------------------------------------------------------------- */

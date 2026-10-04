@@ -73,7 +73,7 @@ welcome email to the address the account signed in with, once.
 `?code=` flow and the `?token_hash=` template flow.
 
 **Organizer** — `/admin`, plus Applicants, Review queue, Analytics, Check-in,
-Volunteers & mentors, Emails, Tags and Settings under it. `/admin/export`
+Volunteers & mentors, Emails and Settings under it. `/admin/export`
 streams the roster as CSV, taking the applicant list's own query string so
 "export what I'm looking at" needs no second filter implementation. Who can open it is one list in
 `lib/admin/access.ts`, checked in three places — the proxy, the admin layout

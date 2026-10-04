@@ -51,7 +51,8 @@ An accepted applicant's `/status` page walks three steps:
 | --- | --- | --- |
 | accepted, with the packet and where to email it | `status = accepted`, `waivers_sent_at` null | organizer accepts |
 | under review | `waivers_sent_at` set | applicant presses "i've sent my waivers" |
-| confirmed, you're in | `attendance = confirmed` | organizer presses Mark reviewed |
+| confirmed, with their check-in QR | `attendance = confirmed` | organizer presses Mark reviewed |
+| checked in | `checked_in_at` set | organizer scans or checks them in |
 
 Mark reviewed is the Waivers row on an applicant's profile; it sets attendance
 to confirmed, the same as the Attendance menu. For a batch, open the "Waivers to
@@ -59,8 +60,49 @@ review" view (`flag=waivers_to_review`), select the rows, and set attendance to
 Confirmed from the bulk menu. `waivers_sent_at` is the applicant's word, not
 proof — check the inbox before confirming.
 
+None of these is a stored value. `status` and `attendance` are text columns
+with check constraints, and the stage is read off them and the timestamps by
+`applicantStage` (`lib/applicant-stage.ts`), which the status page and the
+profile's "Applicant sees" row both use.
+
+Send back, next to Mark reviewed, clears `waivers_sent_at`: the applicant's page
+returns to accepted with the packet and the button. Nobody is emailed. Only an
+organizer can write `attendance`, so only an organizer can produce the confirmed
+page; the applicant's sole write is `mark_waivers_sent()`.
+
 Waitlisted, rejected and withdrawn are not shown to applicants: all three read
 as "under review" on `/status`.
+
+## Check-in (`/admin/checkin`)
+
+A confirmed applicant's `/status` page shows a QR, drawn on the server
+(`components/CheckInQr.tsx`). It encodes `https://occhacks.com/admin/checkin?code=<user id>`
+(`lib/checkin.ts`), and under it is a backup code: the first eight characters of
+that id.
+
+Ways to check someone in, each a fallback for the one before:
+
+1. **Scan QR** on the check-in page. Uses the browser's `BarcodeDetector` where
+   it reads QR, and jsQR (bundled, no worker or wasm) everywhere else.
+2. **The phone's own camera.** It opens the link in the code, which lands on the
+   check-in page leading with that person. Nothing is written until Check in is
+   tapped.
+3. **Search** by name, email, school, student ID, or backup code. The list is
+   already on the page, so this needs no network.
+
+All three end in the `checkIn` action, which is safe to repeat: a second scan
+reports "already checked in" and leaves the original time alone. Anyone who
+isn't accepted and confirmed is refused, with a Check in anyway override for a
+waiver handed over at the desk.
+
+If a check-in gets no answer within 10 seconds it is saved in that browser's
+localStorage (`occhacks:checkin-queue`) and retried every 5 seconds until it
+lands. Only people the loaded list shows as confirmed, or an explicit override,
+are queued. The queue lives on the device that scanned: keep that page open
+until the banner clears.
+
+The camera only opens on https (or localhost) and needs camera permission for
+the site.
 
 ## Emails (`/admin/emails`)
 

@@ -351,17 +351,6 @@ export async function fetchTags(ctx: AdminContext): Promise<Tag[]> {
   return (data ?? []) as Tag[];
 }
 
-/** Tag usage counts, for the tag admin page. */
-export async function fetchTagUsage(ctx: AdminContext): Promise<Record<string, number>> {
-  const { data, error } = await ctx.supabase.from("applicant_tags").select("tag_id");
-  if (error) return {};
-  const counts: Record<string, number> = {};
-  for (const row of (data ?? []) as { tag_id: string }[]) {
-    counts[row.tag_id] = (counts[row.tag_id] ?? 0) + 1;
-  }
-  return counts;
-}
-
 export async function fetchAdmins(ctx: AdminContext): Promise<AdminUser[]> {
   const { data, error } = await ctx.supabase
     .from("admin_users")
