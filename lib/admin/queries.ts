@@ -161,15 +161,26 @@ export async function fetchApplicants(
 ): Promise<ApplicantPage> {
   const from = (filters.page - 1) * filters.per;
 
-  const base = ctx.supabase.from("admin_applicants").select("*", { count: "exact" });
-  const query = applyFilters(base, filters, ctx.userId)
-    // A second key on every sort: rows with equal timestamps would otherwise be
-    // free to swap places between pages and appear twice, or not at all.
-    .order(filters.sort, { ascending: filters.dir === "asc", nullsFirst: false })
-    .order("id", { ascending: true })
-    .range(from, from + filters.per - 1);
+  const run = (sort: string) => {
+    const base = ctx.supabase.from("admin_applicants").select("*", { count: "exact" });
+    return (
+      applyFilters(base, filters, ctx.userId)
+        // A second key on every sort: rows with equal timestamps would otherwise
+        // be free to swap places between pages and appear twice, or not at all.
+        .order(sort, { ascending: filters.dir === "asc", nullsFirst: false })
+        .order("id", { ascending: true })
+        .range(from, from + filters.per - 1)
+    );
+  };
 
-  const { data, error, count } = await query;
+  let { data, error, count } = await run(filters.sort);
+
+  // `timeline_at` arrives with migration 0023. Against a database that hasn't
+  // had it yet, fall back to the old order — drafts last — rather than showing
+  // an error where the list should be.
+  if (error?.code === "42703" && filters.sort === "timeline_at") {
+    ({ data, error, count } = await run("completed_at"));
+  }
 
   if (error) {
     return {

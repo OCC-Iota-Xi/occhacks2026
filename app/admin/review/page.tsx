@@ -36,7 +36,7 @@ export default async function ReviewQueuePage({
   if (Array.from(params.keys()).length === 0) {
     params.append("status", "submitted");
     params.append("status", "in_review");
-    params.set("sort", "completed_at");
+    params.set("sort", "timeline_at");
     params.set("dir", "asc");
   }
   const filters = parseFilters(params);

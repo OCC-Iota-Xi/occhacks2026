@@ -28,6 +28,35 @@ contact list, campaigns and their per-recipient send log — plus the
 `admin_email_campaigns` view. Without it the Emails page shows its own setup
 notice and everything else keeps working.
 
+`0023_applicant_timeline.sql` adds `timeline_at` to the `admin_applicants` view
+— the submit time, or the start time for a draft — which is what the applicant
+list sorts by. Without it the list still loads, but drafts sort to the end.
+
+`0024_waivers_sent.sql` adds `application_status.waivers_sent_at`, the
+`mark_waivers_sent()` function the applicant's status page calls, and the
+`flag_waivers_to_review` column on `admin_applicants`. Without it the status
+page still loads, but the "i've sent my waivers" button fails and the "Waivers
+to review" view errors.
+
+## Waivers
+
+An accepted applicant's `/status` page walks three steps:
+
+| Applicant sees | Stored as | Who moves it |
+| --- | --- | --- |
+| accepted, with the packet and where to email it | `status = accepted`, `waivers_sent_at` null | organizer accepts |
+| under review | `waivers_sent_at` set | applicant presses "i've sent my waivers" |
+| confirmed, you're in | `attendance = confirmed` | organizer presses Mark reviewed |
+
+Mark reviewed is the Waivers row on an applicant's profile; it sets attendance
+to confirmed, the same as the Attendance menu. For a batch, open the "Waivers to
+review" view (`flag=waivers_to_review`), select the rows, and set attendance to
+Confirmed from the bulk menu. `waivers_sent_at` is the applicant's word, not
+proof — check the inbox before confirming.
+
+Waitlisted and rejected are not shown to applicants: both read as "under
+review" on `/status`.
+
 ## Emails (`/admin/emails`)
 
 Organizer mail through Resend. The composer picks audiences (hackers by

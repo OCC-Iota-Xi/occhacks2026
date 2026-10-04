@@ -89,6 +89,7 @@ const BUILT_IN_VIEWS: { name: string; query: string }[] = [
   { name: "Rejected", query: "status=rejected" },
   { name: "Confirmed", query: "attendance=confirmed" },
   { name: "Missing confirmation", query: "flag=unconfirmed" },
+  { name: "Waivers to review", query: "flag=waivers_to_review" },
   { name: "Drafts", query: "status=draft" },
   { name: "Data problems", query: "flag=missing_info&flag=duplicate_email" },
 ];

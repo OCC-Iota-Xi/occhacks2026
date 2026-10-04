@@ -1,11 +1,15 @@
 /**
- * Welcome emails for the two sign-up forms.
+ * Welcome emails for the two sign-up forms, the acceptance letters, and the
+ * shell organizer broadcasts are wrapped in.
  *
  * Hand-written table markup with inline styles — email clients strip <style>
  * blocks, external CSS, and most modern layout. The design follows the site
- * rather than the usual boxed-card email: full-bleed deep space, no panel,
- * hairline rules between rows, gold as the only accent. Copy is written in
- * sentence case, unlike the site's lowercase UI text.
+ * rather than the usual boxed-card email: full-bleed deep space, hairline
+ * rules between rows, gold as the only accent. The starfield stays clear of
+ * the copy — the column the text sits in is flat, borderless deep space, so
+ * the stars show behind the masthead and in the margins and nothing has to be
+ * read through them. Copy is written in sentence case, unlike the site's
+ * lowercase UI text.
  *
  * The masthead is `public/email/occhacks-wordmark.png` — the real hero
  * lockup (Bruno Ace SC + the gold gradient sweep), cropped from the headless
@@ -45,8 +49,8 @@ const COLOR = {
   bg: "#0a0a0a",
   border: "#262626",
   text: "#ffffff",
-  muted: "#a3a3a3",
-  faint: "#6b6b6b",
+  muted: "#d4d4d4",
+  faint: "#8a8a8a",
   gold: "#fcd34d",
 } as const;
 
@@ -105,9 +109,8 @@ interface ShellArgs {
  * They read `background-color` off the element itself — never an ancestor's,
  * and never a `background-image` — so a `#ffffff` run with no background of
  * its own is assumed to sit on white and gets darkened to a mid grey. That
- * left the headline and the detail-table values unreadable on the starfield
- * while the `#a3a3a3` body copy, below their remap threshold, came through
- * untouched. Two defences, because no single one covers every client:
+ * left the headline and the detail-table values unreadable while the body
+ * copy, below their remap threshold, came through untouched. Two defences, because no single one covers every client:
  *
  *   1. Every light-on-dark run carries its own `background-color` inline
  *      (below), which is enough for the clients that only ever look there.
@@ -135,8 +138,16 @@ const DARK_MODE_CSS = `
         .canvas { background-color: ${COLOR.bg} !important; }
       }`;
 
-/** Outer chrome: wordmark, headline, content, footer rule. */
+/**
+ * Outer chrome: wordmark, headline, content, footer rule.
+ *
+ * A headline that is a full sentence — an instruction, or an organizer's
+ * subject line — drops a size, so it wraps to two or three lines rather than
+ * filling a phone screen.
+ */
 function shell({ preheader, heading, body }: ShellArgs): string {
+  const headingSize = heading.length > 28 ? 28 : 38;
+  const headingLeading = heading.length > 28 ? 1.25 : 1.1;
   return `<!doctype html>
 <html lang="en">
   <head>
@@ -152,25 +163,25 @@ function shell({ preheader, heading, body }: ShellArgs): string {
     <div style="display:none;max-height:0;overflow:hidden;opacity:0;">${esc(preheader)}</div>
     <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" background="${STARS}" bgcolor="${COLOR.bg}" class="canvas" style="background-color:${COLOR.bg};background-image:url('${STARS}');background-repeat:repeat;">
       <tr>
-        <td align="center" style="padding:56px 24px 64px;">
-          <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="max-width:520px;">
+        <td align="center" style="padding:48px 12px 56px;">
+          <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="max-width:568px;">
             <tr>
-              <td style="padding:0 0 40px;">
+              <td style="padding:0 24px 36px;">
                 <img src="${WORDMARK}" width="${WORDMARK_W}" height="${WORDMARK_H}" alt="OCCHacks" style="display:block;width:${WORDMARK_W}px;max-width:100%;height:auto;border:0;font-family:${FONT};font-size:24px;letter-spacing:2px;color:${COLOR.gold};" />
               </td>
             </tr>
             <tr>
-              <td style="padding:0 0 24px;">
-                <h1 class="bright" style="margin:0;font-family:${FONT};font-size:38px;line-height:1.1;letter-spacing:-0.5px;font-weight:500;color:${COLOR.text};background-color:${COLOR.bg};">${esc(heading)}</h1>
+              <td class="canvas" bgcolor="${COLOR.bg}" style="padding:36px 24px 24px;background-color:${COLOR.bg};">
+                <h1 class="bright" style="margin:0;font-family:${FONT};font-size:${headingSize}px;line-height:${headingLeading};letter-spacing:-0.5px;font-weight:500;color:${COLOR.text};background-color:${COLOR.bg};">${esc(heading)}</h1>
               </td>
             </tr>
             <tr>
-              <td>
+              <td class="canvas" bgcolor="${COLOR.bg}" style="padding:0 24px;background-color:${COLOR.bg};">
 ${body}
               </td>
             </tr>
             <tr>
-              <td style="padding:8px 0 0;">
+              <td class="canvas" bgcolor="${COLOR.bg}" style="padding:8px 24px 36px;background-color:${COLOR.bg};">
                 <p class="faint" style="margin:0;padding-top:28px;border-top:1px solid ${COLOR.border};font-family:${FONT};font-size:12px;line-height:1.8;color:${COLOR.faint};">
                   OCC Hacks 2026 · Organized by the Iota Xi Society<br />
                   Orange Coast College · Costa Mesa, CA<br />
@@ -465,6 +476,194 @@ ${FOOTER_TEXT}`;
 /** Picks the letter for a role — the two share nothing but their shape. */
 export function helperWelcomeEmail(fullName: string, role: HelperRole): WelcomeEmail {
   return role === "mentor" ? mentorWelcomeEmail(fullName) : volunteerWelcomeEmail(fullName);
+}
+
+/* -------------------------------------------------------------------------- */
+/* Acceptance                                                                  */
+/* -------------------------------------------------------------------------- */
+
+/** Check-in has a closing time too, which only the accepted need to know. */
+const CHECK_IN_WINDOW = "8:00–8:40 AM Saturday";
+
+/** Where an applicant reads their decision — app/status/page.tsx. */
+const STATUS_URL = `${SITE}/status`;
+
+/**
+ * White against the muted body copy — the one line that can't be skimmed past.
+ * Carries its own background for the same reason the headline does: see
+ * `DARK_MODE_CSS`.
+ */
+const bright = (html: string) =>
+  `<span class="bright" style="color:${COLOR.text};background-color:${COLOR.bg};">${html}</span>`;
+
+/**
+ * The waiver packet both letters below ask people to sign and send back —
+ * `public/email/OCCHacksWaivers.pdf`. Shaped for Resend's `attachments`, which
+ * fetches `path` itself, so a send doesn't need the file on disk.
+ */
+export const WAIVER_ATTACHMENT = {
+  filename: "OCCHacksWaivers.pdf",
+  path: `${SITE}/email/OCCHacksWaivers.pdf`,
+} as const;
+
+/**
+ * The organizers collecting signed waivers. Whatever sends these letters sets
+ * both as the reply-to, so a plain reply reaches the two of them. The letters
+ * name them as well — some clients ignore reply-to, and people do send the
+ * forms from a different account than the one we wrote to.
+ */
+export const WAIVER_REPLY_TO = [
+  "nngo62@student.cccd.edu",
+  "lnguyen1509@student.cccd.edu",
+] as const;
+
+/** Its own paragraph in both letters, so it isn't lost mid-sentence. */
+const REPLY_NOTE_HTML = `Replies to this email go to two of our organizers: ${WAIVER_REPLY_TO.map((to) =>
+  goldLink(to, `mailto:${to}`)
+).join(" and ")}. If your reply isn't addressed to both, add them before you send.`;
+const REPLY_NOTE_TEXT = `Replies to this email go to two of our organizers: ${WAIVER_REPLY_TO.join(" and ")}. If your reply isn't addressed to both, add them before you send.`;
+
+const MEDICAL_NOTE = `The packet includes a Medical Consent Form, which is required only for Orange Coast College students. If you're not an OCC student, skip it.`;
+
+/**
+ * Tells an applicant they're in and what confirms the spot: the signed waiver
+ * packet, sent back as a reply. The packet is an attachment and the reply has
+ * to land with the right people, so whatever sends this passes
+ * `WAIVER_ATTACHMENT` and `WAIVER_REPLY_TO` along — nothing here can.
+ *
+ * `confirmBy` is the day the forms are due ("Wednesday, October 7th"); each
+ * wave of acceptances gets its own.
+ */
+export function acceptanceEmail(fullName: string, confirmBy: string): WelcomeEmail {
+  const name = esc(firstName(fullName));
+  const due = `${confirmBy}, at 11:59 PM`;
+
+  const body = [
+    paragraph(
+      `Hi ${name} — congratulations. You've been accepted to OCC Hacks 2026, and we're excited to have you join us.`
+    ),
+    detailTable([
+      { label: "When", value: EVENT.dates },
+      { label: "Where", value: EVENT.venue },
+      { label: "Check-in", value: CHECK_IN_WINDOW },
+      { label: "Kickoff", value: EVENT.ceremony },
+      { label: "Parking", value: PARKING_HTML },
+    ]),
+    paragraph(
+      `To confirm your spot, sign the attached waiver forms and reply to this email with your signed copy by ${bright(esc(due))}. Once we have your forms, your spot is officially confirmed.`
+    ),
+    paragraph(REPLY_NOTE_HTML),
+    paragraph(MEDICAL_NOTE),
+    paragraph(
+      `Then get ready for a weekend of $2,000 in prizes, free food, and guest speakers you won't want to miss.`
+    ),
+    paragraph(
+      `Join the Discord if you haven't already. That's where we post announcements, run team formation, and where our industry mentors answer questions before and during the event.`
+    ),
+    buttons([
+      { label: "Join the Discord", href: EVENT.discordUrl, primary: true, icon: DISCORD_ICON },
+      { label: "See the schedule", href: `${SITE}/#schedule` },
+    ]),
+    paragraph(`See you at OCC Hacks.`),
+  ].join("\n");
+
+  const subject = `You're in — sign and return your OCC Hacks waivers by ${confirmBy}`;
+
+  const text = `${subject}
+
+Hi ${firstName(fullName)} — congratulations. You've been accepted to OCC Hacks 2026, and we're excited to have you join us.
+
+When      ${EVENT.dates}
+Where     ${EVENT.venue}
+Check-in  ${CHECK_IN_WINDOW}
+Kickoff   ${EVENT.ceremony}
+Parking   ${EVENT.parking}
+
+To confirm your spot, sign the attached waiver forms and reply to this email with your signed copy by ${due}. Once we have your forms, your spot is officially confirmed.
+
+${REPLY_NOTE_TEXT}
+
+${MEDICAL_NOTE}
+
+Then get ready for a weekend of $2,000 in prizes, free food, and guest speakers you won't want to miss.
+
+Join the Discord if you haven't already. That's where we post announcements, run team formation, and where our industry mentors answer questions before and during the event.
+
+Join the Discord: ${EVENT.discordUrl}
+See the schedule: ${SITE}/#schedule
+
+See you at OCC Hacks.
+
+${FOOTER_TEXT}`;
+
+  return {
+    subject,
+    html: shell({
+      preheader: `You've been accepted. Reply with your signed waiver forms by ${confirmBy} to confirm your spot.`,
+      heading: "You're in — confirm your spot by signing the waivers and replying to this email",
+      body,
+    }),
+    text,
+  };
+}
+
+/**
+ * The morning-of nudge for the first wave, whose forms are due October 5th:
+ * accepted, but nothing signed has come back yet. Written to be sent that day
+ * — "tonight" is literal — so it isn't reusable for a later wave as it stands.
+ *
+ * Kept to what someone needs to act on: the deadline, the packet (attached
+ * again, same as `acceptanceEmail`, so nobody has to dig for the first one),
+ * and where the reply lands. It goes to everyone accepted, including people
+ * whose forms are already in, which is why it ends by telling them they can
+ * ignore it.
+ */
+export function acceptanceReminderEmail(fullName: string): WelcomeEmail {
+  const name = esc(firstName(fullName));
+  const due = "tonight, Monday, October 5th, at 11:59 PM";
+
+  const body = [
+    paragraph(
+      `Hi ${name} — you're accepted to OCC Hacks 2026, but we still need your signed waiver forms. Reply to this email with them by ${bright(due)}, or your spot may be jeopardized.`
+    ),
+    paragraph(
+      `The waiver packet is attached. Its Medical Consent Form is only for Orange Coast College students.`
+    ),
+    paragraph(REPLY_NOTE_HTML),
+    paragraph(
+      `You can also now check your application status at any time — it shows your spot as confirmed once we've processed your forms.`
+    ),
+    buttons([{ label: "Check your status", href: STATUS_URL, primary: true }]),
+    paragraph(`Already sent your forms? You're all set.`),
+  ].join("\n");
+
+  const subject = "Reminder — confirm your OCC Hacks spot by tonight";
+
+  const text = `${subject}
+
+Hi ${firstName(fullName)} — you're accepted to OCC Hacks 2026, but we still need your signed waiver forms. Reply to this email with them by ${due}, or your spot may be jeopardized.
+
+The waiver packet is attached. Its Medical Consent Form is only for Orange Coast College students.
+
+${REPLY_NOTE_TEXT}
+
+You can also now check your application status at any time — it shows your spot as confirmed once we've processed your forms.
+
+Check your status: ${STATUS_URL}
+
+Already sent your forms? You're all set.
+
+${FOOTER_TEXT}`;
+
+  return {
+    subject,
+    html: shell({
+      preheader: `Reply with your signed waiver forms by 11:59 PM tonight to keep your spot.`,
+      heading: "Confirm your spot tonight",
+      body,
+    }),
+    text,
+  };
 }
 
 /* -------------------------------------------------------------------------- */

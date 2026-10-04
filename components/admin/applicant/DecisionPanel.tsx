@@ -186,6 +186,38 @@ export default function DecisionPanel({
           </ActionMenu>
         </Row>
 
+        {applicant.status === "accepted" && (
+          <Row label="Waivers">
+            {applicant.attendance === "confirmed" ? (
+              <span className="rounded-md border border-emerald-400/30 bg-emerald-400/10 px-1.5 py-0.5 text-emerald-200">
+                Reviewed {formatDateTime(applicant.confirmed_at)}
+              </span>
+            ) : (
+              <span className="flex items-center gap-2">
+                <span className="text-muted-foreground">
+                  {applicant.waivers_sent_at
+                    ? `Sent ${formatDateTime(applicant.waivers_sent_at)}`
+                    : "Not marked sent"}
+                </span>
+                <Button
+                  size="xs"
+                  variant={applicant.waivers_sent_at ? "default" : "outline"}
+                  disabled={pending}
+                  onClick={() =>
+                    run(
+                      () => setAttendance([applicant.id], "confirmed"),
+                      "Waivers reviewed, spot confirmed"
+                    )
+                  }
+                >
+                  <Check className="size-3" />
+                  Mark reviewed
+                </Button>
+              </span>
+            )}
+          </Row>
+        )}
+
         <Row label="Check-in">
           <button
             type="button"

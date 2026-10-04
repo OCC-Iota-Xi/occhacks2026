@@ -35,7 +35,7 @@ export const COLUMNS: ColumnDef[] = [
   { key: "classes", label: "Extra credit" },
   { key: "needs", label: "Needs" },
   { key: "checked_in", label: "Checked in", sort: "checked_in_at" },
-  { key: "submitted", label: "Submitted", sort: "completed_at" },
+  { key: "submitted", label: "Submitted", sort: "timeline_at" },
   { key: "started", label: "Started", sort: "created_at" },
 ];
 
@@ -57,7 +57,8 @@ export function rowFlags(applicant: Applicant): string[] {
   const flags: string[] = [];
   if (applicant.flag_missing_info) flags.push("Missing required information");
   if (applicant.flag_duplicate_email) flags.push("Another application shares this email");
-  if (applicant.flag_unconfirmed) flags.push("Accepted, attendance not confirmed");
+  if (applicant.flag_waivers_to_review) flags.push("Says waivers are sent, waiting on review");
+  else if (applicant.flag_unconfirmed) flags.push("Accepted, attendance not confirmed");
   if (applicant.flag_stale_draft) flags.push("Draft abandoned over three days ago");
   return flags;
 }

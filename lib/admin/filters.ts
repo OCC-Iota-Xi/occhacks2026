@@ -10,6 +10,7 @@ import { ATTENDANCE, STATUSES } from "@/lib/admin/types";
  */
 
 export const SORTABLE = [
+  "timeline_at",
   "completed_at",
   "created_at",
   "full_name",
@@ -27,6 +28,7 @@ export const FLAGS = [
   "duplicate_email",
   "unreviewed",
   "unconfirmed",
+  "waivers_to_review",
   "stale_draft",
   "not_checked_in",
 ] as const;
@@ -37,6 +39,7 @@ export const FLAG_LABEL: Record<Flag, string> = {
   duplicate_email: "Duplicate email",
   unreviewed: "Not yet reviewed",
   unconfirmed: "Accepted, not confirmed",
+  waivers_to_review: "Waivers sent, to review",
   stale_draft: "Abandoned draft",
   not_checked_in: "Confirmed, not checked in",
 };
@@ -129,7 +132,7 @@ export function parseFilters(input: URLSearchParams): ApplicantFilters {
     from: "",
     to: "",
     flag: [],
-    sort: "completed_at",
+    sort: "timeline_at",
     dir: "desc",
     page: 1,
     per: 50,
