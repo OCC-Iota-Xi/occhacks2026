@@ -67,7 +67,7 @@ helping run the weekend. All three are multi-step forms that autosave a draft
 as you go: partial rows in Postgres, plus a local copy per role. Everyone has
 to be 18 by day one — the rule lives once, in `lib/eligibility.ts`, and both
 the form and the server action read it from there. A finished sign-up sends a
-welcome email.
+welcome email to the address the account signed in with, once.
 
 **Auth** — `/signin`, and `/auth/callback`, which handles both the PKCE
 `?code=` flow and the `?token_hash=` template flow.

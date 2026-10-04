@@ -15,6 +15,9 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
   SidebarRail,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
@@ -34,11 +37,16 @@ export default function AccountSidebar({
   userId,
   email,
   name,
+  statusPreviews,
+  activePreview,
 }: {
   active: "register" | "status" | "volunteer" | "mentor";
   userId?: string;
   email?: string | null;
   name?: string | null;
+  /** Temporary: states of the status page to list under its entry. */
+  statusPreviews?: { key: string; label: string }[];
+  activePreview?: string;
 }) {
   useEffect(() => {
     if (!userId) return;
@@ -77,7 +85,7 @@ export default function AccountSidebar({
                 <SidebarMenuItem key={item.key}>
                   <SidebarMenuButton
                     asChild
-                    isActive={item.key === active}
+                    isActive={item.key === active && !(item.key === "status" && activePreview)}
                     tooltip={item.label}
                   >
                     <Link href={item.href}>
@@ -85,6 +93,19 @@ export default function AccountSidebar({
                       <span>{item.label}</span>
                     </Link>
                   </SidebarMenuButton>
+                  {item.key === "status" && statusPreviews && (
+                    <SidebarMenuSub>
+                      {statusPreviews.map((preview) => (
+                        <SidebarMenuSubItem key={preview.key}>
+                          <SidebarMenuSubButton asChild isActive={preview.key === activePreview}>
+                            <Link href={`/status?preview=${preview.key}`}>
+                              <span>{preview.label}</span>
+                            </Link>
+                          </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
+                      ))}
+                    </SidebarMenuSub>
+                  )}
                 </SidebarMenuItem>
               ))}
             </SidebarMenu>

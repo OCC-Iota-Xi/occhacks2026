@@ -25,9 +25,9 @@ type View = {
 };
 
 /**
- * What an applicant sees for each state. Only accepted and withdrawn are shown
- * as-is; everything else an organizer can set — `submitted`, `in_review`, and
- * for now `waitlisted` and `rejected` — reads as "under review" here.
+ * What an applicant sees for each state. Only accepted is shown as-is;
+ * everything else an organizer can set — `submitted`, `in_review`, `withdrawn`,
+ * and for now `waitlisted` and `rejected` — reads as "under review" here.
  *
  * Accepted has three steps: waivers still to send, sent and waiting on an
  * organizer (`waivers_sent_at`, set by the applicant's own button), and
@@ -76,11 +76,6 @@ function viewFor(
     //     label: "not accepted",
     //     body: "we weren't able to offer you a spot this year. thank you for applying, and we hope to see you at a future OCC Hacks.",
     //   };
-    case "withdrawn":
-      return {
-        label: "withdrawn",
-        body: "Your application has been withdrawn. If that's a mistake, email hello@occhacks.com.",
-      };
   }
 
   if (!completed) {
@@ -96,6 +91,28 @@ function viewFor(
     body: "We've got your application and are still reviewing it. Your decision will show up here.",
   };
 }
+
+/**
+ * Temporary: every state the page can show, listed in the sidebar so each one
+ * can be looked at without the database row to match. `?preview=<key>` renders
+ * that state in place of the caller's own. Development only.
+ */
+const PREVIEWS = [
+  { key: "not-submitted", label: "not submitted", view: viewFor(false, undefined, undefined, false) },
+  { key: "under-review", label: "under review", view: viewFor(true, "submitted", undefined, false) },
+  { key: "accepted", label: "accepted", view: viewFor(true, "accepted", "pending", false) },
+  { key: "waivers-sent", label: "waivers sent", view: viewFor(true, "accepted", "pending", true) },
+  { key: "confirmed", label: "confirmed", view: viewFor(true, "accepted", "confirmed", true) },
+  // Preview only: a rejected applicant still reads as "under review" above.
+  {
+    key: "rejected",
+    label: "rejected",
+    view: {
+      label: "not accepted",
+      body: "We weren't able to offer you a spot this year. Thank you for applying, and we hope to see you at a future OCC Hacks.",
+    },
+  },
+] as const;
 
 interface Decision {
   status: string;
@@ -124,7 +141,15 @@ async function readDecision(
   return (await read("status, attendance")).data;
 }
 
-export default async function StatusPage() {
+export default async function StatusPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ preview?: string | string[] }>;
+}) {
+  const previewing = process.env.NODE_ENV === "development";
+  const previewKey = previewing ? (await searchParams).preview : undefined;
+  const preview = PREVIEWS.find((p) => p.key === previewKey);
+
   const supabase = await createClient();
   const {
     data: { user },
@@ -145,12 +170,14 @@ export default async function StatusPage() {
       ])
     : [{ data: null }, null];
 
-  const view = viewFor(
-    !!hacker?.completed_at,
-    decision?.status,
-    decision?.attendance,
-    !!decision?.waivers_sent_at
-  );
+  const view: View =
+    preview?.view ??
+    viewFor(
+      !!hacker?.completed_at,
+      decision?.status,
+      decision?.attendance,
+      !!decision?.waivers_sent_at
+    );
 
   return (
     <SidebarProvider>
@@ -159,6 +186,10 @@ export default async function StatusPage() {
         userId={user?.id}
         email={user?.email}
         name={hacker?.full_name}
+        statusPreviews={
+          previewing ? PREVIEWS.map(({ key, label }) => ({ key, label })) : undefined
+        }
+        activePreview={preview?.key}
       />
       <SidebarInset className="relative min-h-screen overflow-hidden">
         <header className="sticky top-0 z-50 flex items-center border-b border-border bg-background/80 px-4 py-3 backdrop-blur-md md:hidden">

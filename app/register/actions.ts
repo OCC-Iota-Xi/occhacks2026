@@ -228,9 +228,12 @@ export async function submitRegistration(
 
   // After the response, so a slow mail provider never delays the confirmation.
   // Only the first save sends — `sendHackerWelcome` no-ops on later edits.
-  const email = field("email");
+  // Sent to the address they signed in with, which the OAuth provider has
+  // verified, not the one typed into the form: that field is free text, and
+  // mailing it would let any account send our email to any inbox.
+  const email = user.email ?? "";
   const fullName = field("name");
-  after(() => sendHackerWelcome(supabase, user.id, email, fullName));
+  after(() => sendHackerWelcome(supabase, email, fullName));
 
   return { ok: true, message: "" };
 }
@@ -288,9 +291,10 @@ async function submitHelper(
 
   // Same as the hacker flow: fire after the response, first save only. The
   // claim is per table, so someone who does both gets one email for each.
-  const email = field("email");
+  // The signed-in address again, for the reason given there.
+  const email = user.email ?? "";
   const fullName = field("name");
-  after(() => sendHelperWelcome(supabase, role, user.id, email, fullName));
+  after(() => sendHelperWelcome(supabase, role, email, fullName));
 
   return { ok: true, message: "" };
 }

@@ -38,6 +38,11 @@ list sorts by. Without it the list still loads, but drafts sort to the end.
 page still loads, but the "i've sent my waivers" button fails and the "Waivers
 to review" view errors.
 
+`0025_welcome_email_guard.sql` isn't an admin migration, but it has to run with
+the rest: it moves the welcome-email claim into `claim_welcome_email()` and
+blocks direct writes to `welcome_email_sent_at`. Without it sign-ups still save
+and no welcome email is sent.
+
 ## Waivers
 
 An accepted applicant's `/status` page walks three steps:
@@ -54,8 +59,8 @@ review" view (`flag=waivers_to_review`), select the rows, and set attendance to
 Confirmed from the bulk menu. `waivers_sent_at` is the applicant's word, not
 proof — check the inbox before confirming.
 
-Waitlisted and rejected are not shown to applicants: both read as "under
-review" on `/status`.
+Waitlisted, rejected and withdrawn are not shown to applicants: all three read
+as "under review" on `/status`.
 
 ## Emails (`/admin/emails`)
 

@@ -558,7 +558,7 @@ export function acceptanceEmail(fullName: string, confirmBy: string): WelcomeEma
       `Then get ready for a weekend of $2,000 in prizes, free food, and guest speakers you won't want to miss.`
     ),
     paragraph(
-      `Join the Discord if you haven't already. That's where we post announcements, run team formation, and where our industry mentors answer questions before and during the event.`
+      `Join the Discord if you haven't already. That's where we post announcements and run team formation.`
     ),
     buttons([
       { label: "Join the Discord", href: EVENT.discordUrl, primary: true, icon: DISCORD_ICON },
@@ -587,7 +587,7 @@ ${MEDICAL_NOTE}
 
 Then get ready for a weekend of $2,000 in prizes, free food, and guest speakers you won't want to miss.
 
-Join the Discord if you haven't already. That's where we post announcements, run team formation, and where our industry mentors answer questions before and during the event.
+Join the Discord if you haven't already. That's where we post announcements and run team formation.
 
 Join the Discord: ${EVENT.discordUrl}
 See the schedule: ${SITE}/#schedule
