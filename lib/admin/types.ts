@@ -102,11 +102,8 @@ export interface Applicant {
   assigned_email: string | null;
   decided_at: string | null;
   confirmed_at: string | null;
-  /** Day 1 check-in. */
   checked_in_at: string | null;
   checked_in: boolean;
-  /** Day 2 check-in. Absent until migration 0026 has updated the view. */
-  checked_in_day2_at?: string | null;
   /** When the applicant said they emailed their signed waivers (migration 0024). */
   waivers_sent_at: string | null;
   review_count: number;

@@ -8,6 +8,9 @@
  * the desk falls back to if the in-page scanner won't start. Opening the link
  * does nothing by itself, and `/admin` turns away anyone who isn't an organizer.
  *
+ * A code is read once. The event runs two days, but checking in on either one
+ * covers both, so there's no day in here and nothing to scan a second time.
+ *
  * Shared by the server (which draws the QR) and the browser (which reads it),
  * so nothing here may import server-only code.
  */
@@ -45,27 +48,4 @@ export function matchesBackupCode(userId: string, term: string): boolean {
   const typed = term.replace(/[\s-]/g, "").toLowerCase();
   if (typed.length < 4 || !/^[0-9a-f]+$/.test(typed)) return false;
   return userId.replace(/-/g, "").startsWith(typed);
-}
-
-/**
- * The event runs two days and people check in on each. The QR is the same both
- * days: it says who someone is, and the desk records which day it was read on.
- */
-export const CHECKIN_DAYS = [
-  { day: 1, label: "Day 1", date: "2026-10-10" },
-  { day: 2, label: "Day 2", date: "2026-10-11" },
-] as const;
-export type CheckInDay = (typeof CHECKIN_DAYS)[number]["day"];
-
-/**
- * Which day a check-in belongs to, given today's date in event time
- * ("YYYY-MM-DD"). Anything before the second day counts as the first, so a
- * rehearsal the week before lands on day 1.
- */
-export function checkInDayOn(eventDate: string): CheckInDay {
-  return eventDate >= CHECKIN_DAYS[1].date ? 2 : 1;
-}
-
-export function parseCheckInDay(value: unknown): CheckInDay | null {
-  return value === 1 || value === "1" ? 1 : value === 2 || value === "2" ? 2 : null;
 }

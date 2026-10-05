@@ -16,7 +16,7 @@ import {
 } from "@/lib/admin/actions";
 import { displayName, formatDateTime, initials } from "@/lib/admin/format";
 import { ATTENDANCE_LABEL, STATUS_LABEL, type Applicant } from "@/lib/admin/types";
-import { matchesBackupCode, parseCheckInCode, type CheckInDay } from "@/lib/checkin";
+import { matchesBackupCode, parseCheckInCode } from "@/lib/checkin";
 import { cn } from "@/lib/utils";
 
 /** Someone the page was opened on, by a phone camera following a code's link. */
@@ -30,8 +30,6 @@ export interface Arrival {
 interface Queued {
   id: string;
   name: string;
-  /** The day it was scanned for, which may not be the day it finally sends. */
-  day: CheckInDay;
 }
 
 /** The one thing the desk is being told right now, shown above the list. */
@@ -41,7 +39,7 @@ type Card =
   | { kind: "ready"; person: CheckInPerson }
   | { kind: "result"; id: string; result: CheckInResult }
   /** No answer from the server; kept on this device and retried. */
-  | { kind: "queued"; id: string; name: string; day: CheckInDay }
+  | { kind: "queued"; id: string; name: string }
   /** No answer from the server, and nothing here to say they're expected. */
   | { kind: "unverified"; id: string }
   | { kind: "unreadable" };
@@ -87,9 +85,8 @@ function arrivalCard(arrival: Arrival | undefined): Card | null {
  * camera, which opens this page on them (`arrival`); or search the list by
  * name, email, student ID or the backup code under their QR.
  *
- * The event runs two days and this board works one of them at a time (`day`):
- * `expected` arrives with each person's check-in for that day, and everything
- * recorded here is recorded against it.
+ * Checking in once covers both days of the event, so there is one list and one
+ * count however many mornings the desk is open.
  *
  * The whole expected list is already on the page, so finding someone never
  * needs the network. Recording the check-in does, and when the venue wifi
@@ -99,11 +96,9 @@ function arrivalCard(arrival: Arrival | undefined): Card | null {
  */
 export default function CheckInBoard({
   expected,
-  day,
   arrival,
 }: {
   expected: Applicant[];
-  day: CheckInDay;
   arrival?: Arrival;
 }) {
   const router = useRouter();
@@ -134,9 +129,8 @@ export default function CheckInBoard({
   // Anything left unsent by a reload or a closed tab is picked back up.
   useEffect(() => {
     try {
-      const parsed = JSON.parse(window.localStorage.getItem(QUEUE_KEY) ?? "[]") as Queued[];
-      if (Array.isArray(parsed) && parsed.length) {
-        const stored = parsed.map((item) => ({ ...item, day: item.day === 2 ? 2 : 1 }) as Queued);
+      const stored = JSON.parse(window.localStorage.getItem(QUEUE_KEY) ?? "[]") as Queued[];
+      if (Array.isArray(stored) && stored.length) {
         queueRef.current = stored;
         // Reading a browser store on mount is exactly what an effect is for;
         // the rule can't tell this apart from a render-triggering cascade.
@@ -157,10 +151,7 @@ export default function CheckInBoard({
         let result: CheckInResult;
         try {
           // Forced: whoever queued it had already decided to let them in.
-          result = await withTimeout(
-            checkIn(item.id, { force: true, day: item.day }),
-            CALL_TIMEOUT
-          );
+          result = await withTimeout(checkIn(item.id, { force: true }), CALL_TIMEOUT);
         } catch {
           break; // Still no connection; the timer comes back to it.
         }
@@ -169,9 +160,7 @@ export default function CheckInBoard({
           break;
         }
         setQueueProblem(null);
-        saveQueue(
-          queueRef.current.filter((queued) => queued.id !== item.id || queued.day !== item.day)
-        );
+        saveQueue(queueRef.current.filter((queued) => queued.id !== item.id));
         synced = true;
       }
     } finally {
@@ -201,25 +190,20 @@ export default function CheckInBoard({
       setCard({ kind: "working", id, name });
 
       try {
-        const result = await withTimeout(checkIn(id, { force, day }), CALL_TIMEOUT);
+        const result = await withTimeout(checkIn(id, { force }), CALL_TIMEOUT);
         setCard({ kind: "result", id, result });
         if (result.outcome === "checked_in") {
           // Not on iOS, where the card turning green has to do.
           if (typeof navigator.vibrate === "function") navigator.vibrate(80);
-          saveQueue(
-            queueRef.current.filter((queued) => queued.id !== id || queued.day !== day)
-          );
+          saveQueue(queueRef.current.filter((queued) => queued.id !== id));
         }
         if (result.outcome === "checked_in" || result.outcome === "already") router.refresh();
       } catch {
         // No answer. If the list on this page says they're expected (or the
         // organizer has already overridden), let them in and settle up later.
         if (force || (local && isExpected(local))) {
-          const queued = { id, name: name ?? "Attendee", day };
-          saveQueue([
-            ...queueRef.current.filter((item) => item.id !== id || item.day !== day),
-            queued,
-          ]);
+          const queued = { id, name: name ?? "Attendee" };
+          saveQueue([...queueRef.current.filter((item) => item.id !== id), queued]);
           setCard({ kind: "queued", ...queued });
         } else {
           setCard({ kind: "unverified", id });
@@ -228,7 +212,7 @@ export default function CheckInBoard({
         busy.current = null;
       }
     },
-    [day, expected, router, saveQueue]
+    [expected, router, saveQueue]
   );
 
   const onRead = useCallback(
@@ -243,7 +227,7 @@ export default function CheckInBoard({
   const undo = (id: string, name: string) =>
     startTransition(async () => {
       try {
-        const result = await setCheckedIn([id], false, day);
+        const result = await setCheckedIn([id], false);
         if (result.ok) {
           toast(`Check-in undone for ${name}`);
           setCard((current) => (current && "id" in current && current.id === id ? null : current));
@@ -268,10 +252,7 @@ export default function CheckInBoard({
     );
   }, [expected, needle]);
 
-  const queuedIds = useMemo(
-    () => new Set(queue.filter((item) => item.day === day).map((item) => item.id)),
-    [queue, day]
-  );
+  const queuedIds = useMemo(() => new Set(queue.map((item) => item.id)), [queue]);
   const checkedIn = expected.filter((applicant) => applicant.checked_in).length;
 
   return (
@@ -295,7 +276,7 @@ export default function CheckInBoard({
           {scanning ? "Close scanner" : "Scan QR"}
         </Button>
         <span className="text-xs text-muted-foreground tabular-nums">
-          {checkedIn} of {expected.length} checked in, day {day}
+          {checkedIn} of {expected.length} checked in
         </span>
       </div>
 
@@ -317,7 +298,6 @@ export default function CheckInBoard({
       {card && (
         <ResultCard
           card={card}
-          day={day}
           pending={pending}
           onDismiss={() => setCard(null)}
           onCheckIn={submit}
@@ -424,14 +404,12 @@ const TONE = {
  */
 function ResultCard({
   card,
-  day,
   pending,
   onDismiss,
   onCheckIn,
   onUndo,
 }: {
   card: Card;
-  day: CheckInDay;
   pending: boolean;
   onDismiss: () => void;
   onCheckIn: (id: string, force?: boolean) => void;
@@ -471,7 +449,7 @@ function ResultCard({
     person = card.person;
     title = person.name;
     if (isExpected(person)) {
-      detail = `Confirmed, not checked in for day ${day} yet.`;
+      detail = "Confirmed and not checked in yet.";
       action = (
         <Button size="sm" onClick={() => onCheckIn(card.person.id)}>
           <Check className="size-3.5" />
@@ -510,13 +488,13 @@ function ResultCard({
       tone = "good";
       person = result.person;
       title = person.name;
-      detail = `Checked in for day ${day}, ${formatDateTime(result.at)}`;
+      detail = `Checked in ${formatDateTime(result.at)}`;
       action = undo(person);
     } else if (result.outcome === "already") {
       tone = "warn";
       person = result.person;
       title = person.name;
-      detail = `Already checked in for day ${day}, ${formatDateTime(result.at)}`;
+      detail = `Already checked in ${formatDateTime(result.at)}`;
       action = undo(person);
     } else if (result.outcome === "not_confirmed") {
       tone = "bad";

@@ -8,7 +8,7 @@ import CheckInQr from "@/components/CheckInQr";
 import WaiversSentButton from "@/components/WaiversSentButton";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { applicantStage, type ApplicantStage } from "@/lib/applicant-stage";
-import { WAIVER_REPLY_TO } from "@/lib/email/templates";
+import { EVENT, MEDICAL_NOTE, WAIVER_REPLY_TO } from "@/lib/email/templates";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
@@ -18,11 +18,14 @@ export const metadata: Metadata = {
 
 type View = {
   label: string;
-  body: string;
+  /** One paragraph, or several. */
+  body: string | string[];
   accent?: boolean;
   details?: boolean;
   /** Show the waiver packet and the addresses to send it to. */
   waivers?: boolean;
+  /** Close with what the weekend holds and where to find the Discord. */
+  outro?: boolean;
   /** Show the check-in QR. */
   qr?: boolean;
   link?: { href: string; label: string };
@@ -44,15 +47,22 @@ const VIEWS: Record<ApplicantStage, View> = {
     label: "under review",
     body: "We've got your application and are still reviewing it. Your decision will show up here.",
   },
+  // Says what the acceptance email says (`acceptanceEmail`), so someone who
+  // reads one and then the other isn't told two different things.
   accepted: {
     label: "accepted",
     accent: true,
     details: true,
     waivers: true,
-    body: "You're accepted. To confirm your spot, fill out the waiver packet and email your signed copy to both organizers below by October 5 at 11:59 PM. Once it's sent, let us know with the button below.",
+    outro: true,
+    body: [
+      "Congratulations. You've been accepted to OCC Hacks 2026, and we're excited to have you join us.",
+      "To confirm your spot, sign the waiver packet and email your signed copy to both organizers below by October 5 at 11:59 PM. Once we have your forms, your spot is officially confirmed.",
+      "Unconfirmed spots will be reallocated to waitlisted participants, so be sure to send them over promptly to guarantee your entry!",
+    ],
   },
   waivers_review: {
-    label: "under review",
+    label: "waivers sent",
     details: true,
     body: "Thanks for sending your waivers. An organizer is reviewing them, and your spot will show as confirmed here once they're done.",
   },
@@ -63,22 +73,13 @@ const VIEWS: Record<ApplicantStage, View> = {
     qr: true,
     body: "Your waivers are reviewed and your spot is confirmed. You're in, see you there.",
   },
-  // Day 1 of two. The same code checks them in again tomorrow, so it stays up.
+  // Once, for the whole event: nothing left to scan, so the code comes down.
   checked_in: {
     label: "checked in",
     accent: true,
     details: true,
-    qr: true,
-    body: "You're checked in for day 1. Welcome to OCC Hacks. Keep this code: you'll show it again to check in on day 2.",
+    body: "You're checked in. Welcome to OCC Hacks.",
   },
-};
-
-/** Checked in on the second day: nothing left to scan. */
-const CHECKED_IN_DAY_2: View = {
-  label: "checked in",
-  accent: true,
-  details: true,
-  body: "You're checked in for day 2. Welcome back.",
 };
 
 /**
@@ -92,8 +93,7 @@ const PREVIEWS = [
   { key: "accepted", label: "accepted", view: VIEWS.accepted },
   { key: "waivers-sent", label: "waivers sent", view: VIEWS.waivers_review },
   { key: "confirmed", label: "confirmed", view: VIEWS.confirmed },
-  { key: "checked-in", label: "checked in, day 1", view: VIEWS.checked_in },
-  { key: "checked-in-day-2", label: "checked in, day 2", view: CHECKED_IN_DAY_2 },
+  { key: "checked-in", label: "checked in", view: VIEWS.checked_in },
   // Preview only: a rejected applicant still reads as "under review" above.
   {
     key: "rejected",
@@ -110,17 +110,15 @@ interface Decision {
   attendance: string;
   waivers_sent_at?: string | null;
   checked_in_at?: string | null;
-  checked_in_day2_at?: string | null;
 }
 
 /** Stands in for the caller's id when a preview is drawn without a session. */
 const PREVIEW_USER_ID = "00000000-0000-4000-8000-000000000000";
 
 /**
- * `waivers_sent_at` arrives with migration 0024 and `checked_in_day2_at` with
- * 0026. Against a database that hasn't had one yet, read the decision without
- * it rather than losing the whole row — an accepted applicant would otherwise
- * be told they're still under review.
+ * `waivers_sent_at` arrives with migration 0024. Against a database that hasn't
+ * had it yet, read the decision without it rather than losing the whole row —
+ * an accepted applicant would otherwise be told they're still under review.
  */
 async function readDecision(
   supabase: Awaited<ReturnType<typeof createClient>>,
@@ -133,16 +131,9 @@ async function readDecision(
       .eq("user_id", userId)
       .maybeSingle<Decision>();
 
-  const attempts = [
-    "status, attendance, checked_in_at, waivers_sent_at, checked_in_day2_at",
-    "status, attendance, checked_in_at, waivers_sent_at",
-    "status, attendance, checked_in_at",
-  ];
-  for (const columns of attempts) {
-    const { data, error } = await read(columns);
-    if (error?.code !== "42703") return data;
-  }
-  return null;
+  const first = await read("status, attendance, checked_in_at, waivers_sent_at");
+  if (first.error?.code !== "42703") return first.data;
+  return (await read("status, attendance, checked_in_at")).data;
 }
 
 export default async function StatusPage({
@@ -179,11 +170,9 @@ export default async function StatusPage({
     status: decision?.status,
     attendance: decision?.attendance,
     waiversSent: !!decision?.waivers_sent_at,
-    checkedIn: !!decision?.checked_in_at || !!decision?.checked_in_day2_at,
+    checkedIn: !!decision?.checked_in_at,
   });
-  const view: View =
-    preview?.view ??
-    (stage === "checked_in" && decision?.checked_in_day2_at ? CHECKED_IN_DAY_2 : VIEWS[stage]);
+  const view: View = preview?.view ?? VIEWS[stage];
 
   return (
     <SidebarProvider>
@@ -220,7 +209,11 @@ export default async function StatusPage({
               {view.label}
             </span>
 
-            <p className="mt-5 text-base leading-relaxed text-foreground/90">{view.body}</p>
+            <div className="mt-5 space-y-4 text-base leading-relaxed text-foreground/90">
+              {[view.body].flat().map((paragraph) => (
+                <p key={paragraph}>{paragraph}</p>
+              ))}
+            </div>
 
             {view.waivers && (
               <>
@@ -248,6 +241,11 @@ export default async function StatusPage({
                   </dd>
                 </dl>
 
+                <p className="mt-6 text-sm leading-relaxed text-muted-foreground">{MEDICAL_NOTE}</p>
+                <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+                  Once it&apos;s sent, let us know with the button below.
+                </p>
+
                 <WaiversSentButton />
               </>
             )}
@@ -261,8 +259,49 @@ export default async function StatusPage({
                 <dt className="text-muted-foreground">where</dt>
                 <dd>orange coast college, college center, floor 3 ballroom</dd>
                 <dt className="text-muted-foreground">check-in</dt>
-                <dd>8:00–8:40am, hacking starts at 9am</dd>
+                <dd>8:00–8:40am saturday</dd>
+                <dt className="text-muted-foreground">kickoff</dt>
+                <dd>9:00am</dd>
+                <dt className="text-muted-foreground">parking</dt>
+                <dd>
+                  free in{" "}
+                  <a
+                    href={EVENT.parkingUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-ring underline-offset-4 hover:underline"
+                  >
+                    Lot C
+                  </a>
+                  , at merrimac way and fairview road
+                </dd>
               </dl>
+            )}
+
+            {view.outro && (
+              <div className="mt-6 space-y-4 border-t border-border pt-6 text-sm leading-relaxed text-foreground/90">
+                <p>
+                  Then get ready for a weekend of $2,000 in prizes, free food, and guest speakers
+                  you won&apos;t want to miss.
+                </p>
+                <p>
+                  Join the Discord if you haven&apos;t already. That&apos;s where we post
+                  announcements and run team formation.
+                </p>
+                <p className="flex flex-wrap gap-x-6 gap-y-2">
+                  <a
+                    href={EVENT.discordUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-ring underline-offset-4 hover:underline"
+                  >
+                    join the discord
+                  </a>
+                  <Link href="/#schedule" className="text-ring underline-offset-4 hover:underline">
+                    see the schedule
+                  </Link>
+                </p>
+              </div>
             )}
 
             {view.link && (

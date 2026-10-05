@@ -34,7 +34,7 @@ const STARS = `${SITE}/email/stars-tile.png`;
 const WORDMARK_W = 380;
 const WORDMARK_H = 58;
 
-const EVENT = {
+export const EVENT = {
   dates: "October 10–11, 2026",
   venue: "College Center 3rd floor (ballroom), Orange Coast College",
   checkIn: "8:00 AM Saturday",
@@ -523,7 +523,7 @@ const REPLY_NOTE_HTML = `Replies to this email go to two of our organizers: ${WA
 ).join(" and ")}. If your reply isn't addressed to both, add them before you send.`;
 const REPLY_NOTE_TEXT = `Replies to this email go to two of our organizers: ${WAIVER_REPLY_TO.join(" and ")}. If your reply isn't addressed to both, add them before you send.`;
 
-const MEDICAL_NOTE = `The packet includes a Medical Consent Form, which is required only for Orange Coast College students. If you're not an OCC student, skip it.`;
+export const MEDICAL_NOTE = `The packet includes a Medical Consent Form, which is required only for Orange Coast College students. If you're not an OCC student, skip it.`;
 
 /**
  * Tells an applicant they're in and what confirms the spot: the signed waiver
@@ -624,7 +624,7 @@ export function acceptanceReminderEmail(fullName: string): WelcomeEmail {
 
   const body = [
     paragraph(
-      `Hi ${name} — you're accepted to OCC Hacks 2026, but we still need your signed waiver forms. Reply to this email with them by ${bright(due)}, or your spot may be jeopardized.`
+      `Hi ${name} — you're accepted to OCC Hacks 2026, but we still need your signed waiver forms. Reply to this email with them by ${bright(due)}. Unconfirmed spots will be reallocated to waitlisted participants, so be sure to send them over promptly to guarantee your entry!`
     ),
     paragraph(
       `The waiver packet is attached. Its Medical Consent Form is only for Orange Coast College students.`
@@ -641,7 +641,7 @@ export function acceptanceReminderEmail(fullName: string): WelcomeEmail {
 
   const text = `${subject}
 
-Hi ${firstName(fullName)} — you're accepted to OCC Hacks 2026, but we still need your signed waiver forms. Reply to this email with them by ${due}, or your spot may be jeopardized.
+Hi ${firstName(fullName)} — you're accepted to OCC Hacks 2026, but we still need your signed waiver forms. Reply to this email with them by ${due}. Unconfirmed spots will be reallocated to waitlisted participants, so be sure to send them over promptly to guarantee your entry!
 
 The waiver packet is attached. Its Medical Consent Form is only for Orange Coast College students.
 

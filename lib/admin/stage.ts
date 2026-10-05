@@ -10,8 +10,9 @@ import type { Applicant } from "@/lib/admin/types";
  * that reading, and `setStage` (lib/admin/actions.ts) is the one write that
  * moves someone between them.
  *
- * Check-in isn't a stage. It happens once per day of the event to someone who
- * stays confirmed throughout, so it's shown beside the stage rather than as one.
+ * Check-in isn't a stage. It happens to someone who stays confirmed, and it can
+ * be undone without changing where they stand, so it's shown beside the stage
+ * rather than as one.
  */
 export const STAGES = [
   "draft",
@@ -110,9 +111,9 @@ export const MOVE_DONE: Record<Move, string> = {
 /** What each move does, in the applicant's terms, for the confirmation dialog. */
 export const MOVE_EFFECT: Record<Move, string> = {
   accepted:
-    "Their status page shows accepted, with the waiver packet. Anyone already accepted is left as they are.",
+    "Their status page shows accepted, with the waiver packet. Anyone already accepted is left as they are, and drafts are skipped.",
   confirmed:
-    "Their status page shows confirmed, with their check-in QR. Anyone not yet accepted is accepted too.",
+    "Their status page shows confirmed, with their check-in QR. Only applies to accepted applicants.",
   waivers_due:
     "Their status page goes back to accepted with the waiver packet, as if no waivers were sent. Only applies to accepted applicants.",
   waitlisted: "Their status page keeps reading under review.",
@@ -121,20 +122,34 @@ export const MOVE_EFFECT: Record<Move, string> = {
   submitted: "Clears the decision and puts them back in the pile to decide.",
 };
 
-/** The moves that make sense from a stage: everything except where they are. */
+/**
+ * The moves on offer from a stage. They follow the order of the pipeline: a
+ * draft has nothing to decide until it's submitted, accepting comes before
+ * confirming, and confirming is only for someone already accepted.
+ */
 export function movesFrom(stage: Stage): Move[] {
-  const accepted = stage === "accepted" || stage === "waivers_review" || stage === "confirmed" || stage === "declined";
+  if (stage === "draft") return [];
+  const accepted =
+    stage === "accepted" ||
+    stage === "waivers_review" ||
+    stage === "confirmed" ||
+    stage === "declined";
   return MOVES.filter((move) => {
     if (move === "accepted") return !accepted;
+    if (move === "confirmed") return accepted && stage !== "confirmed";
     if (move === "waivers_due") return accepted && stage !== "accepted";
-    if (move === "confirmed") return stage !== "confirmed";
     return move !== stage;
   });
 }
 
-/** The one obvious next step, offered as a button on the row. */
+/**
+ * The one obvious next step, offered as a button on the row — only where the
+ * next step is an organizer's. From "accepted, waivers due" it's the
+ * applicant's turn (send the forms, press the button), so there is no button:
+ * confirming them anyway is in the menu, for forms that arrived by email.
+ */
 export function nextMove(stage: Stage): Move | null {
   if (stage === "submitted" || stage === "in_review") return "accepted";
-  if (stage === "accepted" || stage === "waivers_review") return "confirmed";
+  if (stage === "waivers_review") return "confirmed";
   return null;
 }

@@ -10,7 +10,6 @@ import {
   type Attendance,
   type Status,
 } from "@/lib/admin/types";
-import { parseCheckInDay, type CheckInDay } from "@/lib/checkin";
 
 /**
  * Every write the organizer dashboard makes.
@@ -53,10 +52,21 @@ function fail(error: { message: string } | null, fallback: string): ActionResult
 
 export async function setStatus(ids: string[], status: Status): Promise<ActionResult> {
   const { supabase, user } = await assertAdmin();
-  const targets = validIds(ids);
+  let targets = validIds(ids);
   if (!targets.length) return { ok: false, message: "No applicants selected." };
   if (!(DECISION_STATUSES as readonly string[]).includes(status)) {
     return { ok: false, message: "Unknown status." };
+  }
+
+  // Accepting is the step after "under review", and a draft isn't there yet:
+  // the applicant would be told they're in without ever having applied.
+  let rejected = 0;
+  if (status === "accepted") {
+    const { drafts, error: readError } = await standingOf(supabase, targets);
+    if (readError) return fail(readError, "Could not read those applications.");
+    rejected = targets.filter((id) => drafts.has(id)).length;
+    targets = targets.filter((id) => !drafts.has(id));
+    if (!targets.length) return { ok: false, message: NOT_SUBMITTED };
   }
 
   // A decision is stamped; moving back to submitted / in review clears the
@@ -75,7 +85,7 @@ export async function setStatus(ids: string[], status: Status): Promise<ActionRe
   if (error) return fail(error, "Could not update those applications.");
 
   refresh();
-  return { ok: true, count: targets.length };
+  return { ok: true, count: targets.length, message: skipped(targets.length, rejected) };
 }
 
 export async function setAttendance(
@@ -104,39 +114,22 @@ export async function setAttendance(
   return { ok: true, count: targets.length };
 }
 
-/** Day 1 lives in the original column; day 2 arrived with migration 0026. */
-const CHECKIN_COLUMN: Record<CheckInDay, string> = {
-  1: "checked_in_at",
-  2: "checked_in_day2_at",
-};
-
-const DAY2_NOT_SET_UP =
-  "Day 2 check-in isn't set up yet. Run migration 0026_checkin_days.sql in the Supabase SQL editor.";
-
-/** Postgres's "no such column": the day 2 column before its migration has run. */
-function missingColumn(error: { code?: string } | null) {
-  return error?.code === "42703" || error?.code === "PGRST204";
-}
-
 export async function setCheckedIn(
   ids: string[],
-  checkedIn: boolean,
-  day: CheckInDay = 1
+  checkedIn: boolean
 ): Promise<ActionResult> {
   const { supabase } = await assertAdmin();
   const targets = validIds(ids);
   if (!targets.length) return { ok: false, message: "No applicants selected." };
-  const column = CHECKIN_COLUMN[parseCheckInDay(day) ?? 1];
 
   const rows = targets.map((user_id) => ({
     user_id,
-    [column]: checkedIn ? new Date().toISOString() : null,
+    checked_in_at: checkedIn ? new Date().toISOString() : null,
   }));
 
   const { error } = await supabase
     .from("application_status")
     .upsert(rows, { onConflict: "user_id" });
-  if (missingColumn(error)) return { ok: false, message: DAY2_NOT_SET_UP };
   if (error) return fail(error, "Could not update check-in.");
 
   refresh();
@@ -147,34 +140,55 @@ export async function setCheckedIn(
 /* Stages                                                                      */
 /* -------------------------------------------------------------------------- */
 
-/** Which of these applicants are accepted right now. Read in slices: ids go in the URL. */
-async function acceptedAmong(
+const NOT_SUBMITTED =
+  "Drafts can't be accepted: the application hasn't been submitted. Nothing changed.";
+
+/** "Updated 12. Skipped 3 drafts…" when a selection was only partly movable. */
+function skipped(done: number, drafts: number): string | undefined {
+  if (!drafts) return undefined;
+  return `Updated ${done}. Skipped ${drafts} ${drafts === 1 ? "draft" : "drafts"} that ${
+    drafts === 1 ? "hasn't" : "haven't"
+  } been submitted.`;
+}
+
+/**
+ * Which of these applicants are accepted right now, and which haven't submitted
+ * an application at all. Read in slices: the ids go in the URL.
+ */
+async function standingOf(
   supabase: Awaited<ReturnType<typeof assertAdmin>>["supabase"],
   ids: string[]
-): Promise<{ accepted: Set<string>; error: { message: string } | null }> {
+): Promise<{ accepted: Set<string>; drafts: Set<string>; error: { message: string } | null }> {
   const accepted = new Set<string>();
+  const drafts = new Set<string>();
   for (let start = 0; start < ids.length; start += 150) {
     const { data, error } = await supabase
-      .from("application_status")
-      .select("user_id")
-      .in("user_id", ids.slice(start, start + 150))
-      .eq("status", "accepted");
-    if (error) return { accepted, error };
-    for (const row of data ?? []) accepted.add((row as { user_id: string }).user_id);
+      .from("admin_applicants")
+      .select("id, status, completed_at")
+      .in("id", ids.slice(start, start + 150));
+    if (error) return { accepted, drafts, error };
+    for (const row of (data ?? []) as { id: string; status: Status; completed_at: string | null }[]) {
+      if (row.status === "accepted") accepted.add(row.id);
+      if (!row.completed_at) drafts.add(row.id);
+    }
   }
-  return { accepted, error: null };
+  return { accepted, drafts, error: null };
 }
 
 /**
  * Moves applicants to a stage (see lib/admin/stage.ts): the one write behind
  * the stage menu on each row and the bulk "Move to".
  *
- * A stage is a combination of status and attendance, and the point of doing it
- * here is that the combination is always written whole. Two things are
- * deliberately not blunt, because this runs on selections of mixed people:
- * accepting never touches someone who is already accepted (so it can't
- * unconfirm anyone or restamp when they were decided), and stepping back to
- * "waivers due" only applies to people who are accepted.
+ * The pipeline has an order — submitted, accepted, waivers sent, confirmed —
+ * and the two steps that are an organizer's can't skip it: only a submitted
+ * application can be accepted, and only an accepted applicant can be confirmed.
+ * (Confirming doesn't wait for "waivers sent", which is the applicant's own
+ * button: people email the forms and never press it.)
+ *
+ * This also runs on selections of mixed people, so it leaves alone whoever a
+ * move doesn't apply to rather than failing the lot: accepting never touches
+ * someone already accepted (it can't unconfirm them or restamp when they were
+ * decided), and stepping back to "waivers due" only applies to the accepted.
  */
 export async function setStage(ids: string[], move: Move): Promise<ActionResult> {
   const { supabase, user } = await assertAdmin();
@@ -189,63 +203,50 @@ export async function setStage(ids: string[], move: Move): Promise<ActionResult>
     return setStatus(targets, move);
   }
 
-  const { accepted, error: readError } = await acceptedAmong(supabase, targets);
+  const { accepted, drafts, error: readError } = await standingOf(supabase, targets);
   if (readError) return fail(readError, "Could not read those applications.");
 
   const now = new Date().toISOString();
   const already = targets.filter((id) => accepted.has(id));
-  const fresh = targets.filter((id) => !accepted.has(id));
-  const writes: Record<string, unknown>[][] = [];
+  const fresh = targets.filter((id) => !accepted.has(id) && !drafts.has(id));
+  const draftCount = targets.filter((id) => !accepted.has(id) && drafts.has(id)).length;
 
+  let rows: Record<string, unknown>[];
+  let nothing: string;
   if (move === "accepted") {
-    writes.push(
-      fresh.map((user_id) => ({ user_id, status: "accepted", decided_at: now, decided_by: user.id }))
-    );
+    rows = fresh.map((user_id) => ({
+      user_id,
+      status: "accepted",
+      decided_at: now,
+      decided_by: user.id,
+    }));
+    nothing = draftCount ? NOT_SUBMITTED : "Already accepted. Nothing changed.";
   } else if (move === "confirmed") {
-    writes.push(
-      fresh.map((user_id) => ({
-        user_id,
-        status: "accepted",
-        decided_at: now,
-        decided_by: user.id,
-        attendance: "confirmed",
-        confirmed_at: now,
-      })),
-      already.map((user_id) => ({ user_id, attendance: "confirmed", confirmed_at: now }))
-    );
+    rows = already.map((user_id) => ({ user_id, attendance: "confirmed", confirmed_at: now }));
+    nothing = "Only accepted applicants can be confirmed. Accept them first. Nothing changed.";
   } else {
-    writes.push(
-      already.map((user_id) => ({
-        user_id,
-        attendance: "pending",
-        confirmed_at: null,
-        waivers_sent_at: null,
-      }))
-    );
+    rows = already.map((user_id) => ({
+      user_id,
+      attendance: "pending",
+      confirmed_at: null,
+      waivers_sent_at: null,
+    }));
+    nothing = "Only accepted applicants can go back to waivers due. Nothing changed.";
   }
 
-  let count = 0;
-  for (const rows of writes) {
-    if (!rows.length) continue;
-    const { error } = await supabase
-      .from("application_status")
-      .upsert(rows, { onConflict: "user_id" });
-    if (error) return fail(error, "Could not update those applications.");
-    count += rows.length;
-  }
+  if (!rows.length) return { ok: false, message: nothing };
 
-  if (!count) {
-    return {
-      ok: false,
-      message:
-        move === "accepted"
-          ? "Already accepted. Nothing changed."
-          : "Only accepted applicants can go back to waivers due. Nothing changed.",
-    };
-  }
+  const { error } = await supabase
+    .from("application_status")
+    .upsert(rows, { onConflict: "user_id" });
+  if (error) return fail(error, "Could not update those applications.");
 
   refresh();
-  return { ok: true, count };
+  return {
+    ok: true,
+    count: rows.length,
+    message: move === "accepted" ? skipped(rows.length, draftCount) : undefined,
+  };
 }
 
 /**
@@ -301,7 +302,9 @@ export type CheckInResult =
   | { outcome: "error"; message: string };
 
 /**
- * Checks one person in from a scanned code, a typed code, or the list.
+ * Checks one person in from a scanned code, a typed code, or the list. Once
+ * covers the whole event: someone checked in on Saturday is checked in, and
+ * their code scanned again on Sunday reads "already checked in".
  *
  * Unlike the other actions this one reports rather than throws, and it is safe
  * to repeat: the desk retries it over bad wifi, and two organizers can scan the
@@ -314,33 +317,33 @@ export type CheckInResult =
  */
 export async function checkIn(
   id: string,
-  options: { force?: boolean; day?: CheckInDay } = {}
+  options: { force?: boolean } = {}
 ): Promise<CheckInResult> {
   let supabase: Awaited<ReturnType<typeof assertAdmin>>["supabase"];
-  let user: Awaited<ReturnType<typeof assertAdmin>>["user"];
   try {
-    ({ supabase, user } = await assertAdmin());
+    ({ supabase } = await assertAdmin());
   } catch {
     return { outcome: "error", message: "You're signed out. Sign in again to check people in." };
   }
   if (typeof id !== "string" || !UUID.test(id)) return { outcome: "not_found" };
 
-  const day = parseCheckInDay(options.day) ?? 1;
-  const column = CHECKIN_COLUMN[day];
+  const read = () =>
+    supabase
+      .from("admin_applicants")
+      .select("id, full_name, email, shirt, needs, status, attendance, checked_in_at")
+      .eq("id", id)
+      .maybeSingle<{
+        id: string;
+        full_name: string | null;
+        email: string | null;
+        shirt: string | null;
+        needs: string | null;
+        status: Status;
+        attendance: Attendance;
+        checked_in_at: string | null;
+      }>();
 
-  const found = await supabase
-    .from("admin_applicants")
-    .select("id, full_name, email, shirt, needs, status, attendance")
-    .eq("id", id)
-    .maybeSingle<{
-      id: string;
-      full_name: string | null;
-      email: string | null;
-      shirt: string | null;
-      needs: string | null;
-      status: Status;
-      attendance: Attendance;
-    }>();
+  const found = await read();
   if (found.error) return { outcome: "error", message: found.error.message };
   if (!found.data) return { outcome: "not_found" };
 
@@ -355,20 +358,7 @@ export async function checkIn(
     attendance: row.attendance,
   };
 
-  // That day's time comes from the table rather than the view, so day 2 works
-  // as soon as its column exists, whether or not the view has caught up.
-  const stamp = () =>
-    supabase
-      .from("application_status")
-      .select(column)
-      .eq("user_id", id)
-      .maybeSingle<Record<string, string | null>>();
-
-  const before = await stamp();
-  if (missingColumn(before.error)) return { outcome: "error", message: DAY2_NOT_SET_UP };
-  if (before.error) return { outcome: "error", message: before.error.message };
-  const existing = before.data?.[column];
-  if (existing) return { outcome: "already", person, at: existing };
+  if (row.checked_in_at) return { outcome: "already", person, at: row.checked_in_at };
 
   const expected = row.status === "accepted" && row.attendance === "confirmed";
   if (!expected && !options.force) return { outcome: "not_confirmed", person };
@@ -376,34 +366,24 @@ export async function checkIn(
   const at = new Date().toISOString();
   const updated = await supabase
     .from("application_status")
-    .update({ [column]: at })
+    .update({ checked_in_at: at })
     .eq("user_id", id)
-    .is(column, null)
+    .is("checked_in_at", null)
     .select("user_id");
   if (updated.error) return { outcome: "error", message: updated.error.message };
 
   if (!updated.data?.length) {
     // Nothing matched: either someone else checked them in between the read and
     // the write, or (only with `force`) they have no decision row to update yet.
-    const again = await stamp();
+    const again = await read();
     if (again.error) return { outcome: "error", message: again.error.message };
-    const raced = again.data?.[column];
-    if (raced) return { outcome: "already", person, at: raced };
+    if (again.data?.checked_in_at) {
+      return { outcome: "already", person, at: again.data.checked_in_at };
+    }
     const inserted = await supabase
       .from("application_status")
-      .upsert({ user_id: id, [column]: at }, { onConflict: "user_id" });
+      .upsert({ user_id: id, checked_in_at: at }, { onConflict: "user_id" });
     if (inserted.error) return { outcome: "error", message: inserted.error.message };
-  }
-
-  // The trigger that writes the activity log knows about day 1's column only.
-  // Best effort: a missing log line must not undo a check-in that happened.
-  if (day === 2) {
-    await supabase.from("application_activity").insert({
-      applicant_id: id,
-      actor_id: user.id,
-      kind: "checkin",
-      summary: "Checked in (day 2)",
-    });
   }
 
   refresh();

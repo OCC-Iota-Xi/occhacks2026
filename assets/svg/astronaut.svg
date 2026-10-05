@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="61 148 261 288" width="261" height="288">
+  <g id="tank" transform="rotate(-30 175 278)">
+    <rect x="115" y="218" width="120" height="120" rx="10" fill="#a6a6a6"/>
+  </g>
+  <g id="astro" transform="rotate(-30 401 300.5)">
+    <g id="dress">
+      <rect x="171" y="126" width="100" height="100" rx="10" fill="#f2f2f2"/>
+      <g id="c">
+        <rect x="194" y="151" width="55" height="30" rx="8" fill="#ffffff"/>
+        <circle id="btn1" cx="205" cy="167" r="6" fill="#4775ff"/>
+        <circle id="btn2" cx="221" cy="167" r="6" fill="#ffd147"/>
+        <circle id="btn3" cx="238" cy="167" r="6" fill="#ff6347"/>
+        <circle id="btn4" cx="223" cy="201" r="10" fill="#a6a6a6"/>
+      </g>
+    </g>
+    <g id="handl" transform="rotate(20 159.5 133)">
+      <rect x="122" y="120" width="75" height="26" rx="13" fill="#f2f2f2"/>
+      <g id="handl1" transform="rotate(-90 133.5 116)">
+        <rect x="105" y="103" width="57" height="26" rx="13" fill="#f2f2f2"/>
+        <g id="glovel" transform="rotate(90 160 116)">
+          <path d="M160 102A13 14 0 0 1 173 116V130H147V116A13 14 0 0 1 160 102Z" fill="#ffffff"/>
+          <circle id="thumbl" cx="173" cy="126" r="5" fill="#ffffff"/>
+          <rect id="b2" x="146" y="130" width="28" height="5.5" rx="2.75" fill="#ff6347"/>
+        </g>
+      </g>
+    </g>
+    <g id="handr" transform="rotate(-20 283.5 132)">
+      <rect x="246" y="119" width="75" height="26" rx="13" fill="#f2f2f2"/>
+      <g id="handr1" transform="rotate(90 309.5 114)">
+        <rect x="281" y="101" width="57" height="26" rx="13" fill="#f2f2f2"/>
+        <g id="glover" transform="rotate(-90 278 114)">
+          <path d="M278 100A13 14 0 0 1 291 114V128H265V114A13 14 0 0 1 278 100Z" fill="#ffffff"/>
+          <circle id="thumbr" cx="263" cy="124" r="5" fill="#ffffff"/>
+          <rect id="b1" x="264" y="128" width="28" height="5.5" rx="2.75" fill="#ff6347"/>
+        </g>
+      </g>
+    </g>
+    <g id="legl" transform="rotate(20 176 265)">
+      <rect x="156" y="215" width="40" height="100" fill="#f2f2f2"/>
+      <g id="bootl1">
+        <path d="M176 280A21.5 17.5 0 0 1 197.5 297.5V315H154.5V297.5A21.5 17.5 0 0 1 176 280Z" fill="#ffffff"/>
+        <rect id="bootl2" x="153" y="310" width="45" height="5" rx="2.5" fill="#ff6347"/>
+      </g>
+    </g>
+    <g id="legr" transform="rotate(-20 267 265)">
+      <rect x="247" y="215" width="40" height="100" fill="#f2f2f2"/>
+      <g id="bootr1">
+        <path d="M267 280A21.5 17.5 0 0 1 288.5 297.5V315H245.5V297.5A21.5 17.5 0 0 1 267 280Z" fill="#ffffff"/>
+        <rect id="bootr2" x="244" y="310" width="45" height="5" rx="2.5" fill="#ff6347"/>
+      </g>
+    </g>
+    <g id="pipe" transform="rotate(180 321 193)">
+      <path d="M310.09 153H361V233H331.91A50.91 50.91 0 0 1 281 182.09A29.09 29.09 0 0 1 310.09 153ZM310.09 163H361V223H331.91A40.91 40.91 0 0 1 291 182.09A19.09 19.09 0 0 1 310.09 163Z" fill-rule="evenodd" fill="#4775ff"/>
+      <g id="pipe2" transform="rotate(90 379 174)">
+        <path d="M398 129H400V219H358V169A40 40 0 0 1 398 129ZM398 139H400V219H368V169A30 30 0 0 1 398 139Z" fill-rule="evenodd" fill="#4775ff"/>
+        <circle id="pipe3" cx="410" cy="134" r="5" fill="#4775ff"/>
+      </g>
+    </g>
+    <g id="helmet">
+      <rect x="171" y="38" width="100" height="93" rx="45" ry="41.85" fill="#ffffff"/>
+      <g id="glass">
+        <path d="M221 45A40 30 0 0 1 261 75V85A26.67 20 0 0 1 234.33 105H207.67A26.67 20 0 0 1 181 85V75A40 30 0 0 1 221 45Z" fill="#666666"/>
+        <circle id="shine" cx="198.5" cy="67.5" r="7.5" fill="#a6a6a6" fill-opacity="0.7"/>
+      </g>
+    </g>
+  </g>
+</svg>

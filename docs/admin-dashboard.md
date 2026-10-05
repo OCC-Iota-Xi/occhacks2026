@@ -43,10 +43,6 @@ the rest: it moves the welcome-email claim into `claim_welcome_email()` and
 blocks direct writes to `welcome_email_sent_at`. Without it sign-ups still save
 and no welcome email is sent.
 
-`0026_checkin_days.sql` adds `application_status.checked_in_day2_at` and carries
-it into the `admin_applicants` view. Without it day 1 check-in works and day 2
-refuses with a message naming this file.
-
 ## Stages (`/admin/applicants`)
 
 The list is organized by stage: one word for where an applicant is, read off
@@ -62,15 +58,31 @@ a URL filter like any other.
 | Confirmed | `status = accepted`, `attendance = confirmed` |
 | Declined | `status = accepted`, `attendance = declined` |
 
-Each row's stage pill is a menu of the moves that make sense from there, and the
-button beside it is the usual next one (Accept, then Confirm). A move from a row
+The pipeline has an order, and each step has one owner:
+
+| Step | Who | How |
+| --- | --- | --- |
+| not submitted → under review | applicant | submits the form (`hackers.completed_at`) |
+| under review → accepted | organizer | Accept |
+| accepted → waivers sent | applicant | "i've sent my waivers" (`mark_waivers_sent()`) |
+| waivers sent → confirmed | organizer | Confirm |
+
+The organizer's two steps can't skip it: a draft can't be accepted, and only an
+accepted applicant can be confirmed. Confirm doesn't wait for "waivers sent",
+because people email the forms and never press the button.
+
+Each row's stage pill is a menu of the moves that make sense from there. The
+button beside it appears only when the next step is an organizer's: Accept on a
+submitted application, Confirm once waivers are marked sent. A draft has no
+menu. A move from a row
 is immediate, with no dialog. Selecting rows and using Move to does the same for
 many, behind a dialog that says what they will each see. Nobody is emailed
 either way.
 
-Every move goes through `setStage`. Two are deliberately not blunt, because bulk
-selections are mixed: Accept leaves anyone already accepted untouched, so it
-cannot unconfirm them, and Back to waivers due (unconfirm, or return a bad
+Every move goes through `setStage`. On a mixed selection it leaves alone whoever
+a move doesn't apply to rather than failing: Accept skips drafts and anyone
+already accepted (so it cannot unconfirm them), Confirm skips anyone not
+accepted, and Back to waivers due (unconfirm, or return a bad
 packet; it clears `waivers_sent_at`) only applies to accepted applicants.
 
 Filters for anything other than stage (school, shirt, class, problems, reviewer,
@@ -84,9 +96,9 @@ An accepted applicant's `/status` page walks three steps:
 | Applicant sees | Stored as | Who moves it |
 | --- | --- | --- |
 | accepted, with the packet and where to email it | `status = accepted`, `waivers_sent_at` null | organizer accepts |
-| under review | `waivers_sent_at` set | applicant presses "i've sent my waivers" |
+| waivers sent | `waivers_sent_at` set | applicant presses "i've sent my waivers" |
 | confirmed, with their check-in QR | `attendance = confirmed` | organizer confirms them |
-| checked in (QR stays up after day 1) | `checked_in_at` or `checked_in_day2_at` set | organizer scans or checks them in |
+| checked in | `checked_in_at` set | organizer scans or checks them in |
 
 To confirm someone, open the Waivers to review tab on the applicant list and
 press Confirm on their row, or select several and use Move to. Mark reviewed, on
@@ -108,11 +120,10 @@ as "under review" on `/status`.
 
 ## Check-in (`/admin/checkin`)
 
-People check in on both days, October 10 and 11. The page works one day at a
-time: today's by the event's clock (anything before the 11th counts as day 1),
-or the one picked with the Day 1 / Day 2 switch (`?day=`). Day 1 is stored in
-`checked_in_at` and day 2 in `checked_in_day2_at`. The QR is the same both days;
-it identifies the person and the desk records which day it was read on.
+The desk is open both days, October 10 and 11, but a person checks in once and
+that covers the whole event: `checked_in_at` is the one record. Someone checked
+in on Saturday shows as already checked in if their code is scanned on Sunday,
+and once checked in their status page drops the QR.
 
 A confirmed applicant's `/status` page shows a QR, drawn on the server
 (`components/CheckInQr.tsx`). It encodes `https://occhacks.com/admin/checkin?code=<user id>`
@@ -129,8 +140,8 @@ Ways to check someone in, each a fallback for the one before:
 3. **Search** by name, email, school, student ID, or backup code. The list is
    already on the page, so this needs no network.
 
-All three end in the `checkIn` action, which is safe to repeat: a second scan on
-the same day reports "already checked in" and leaves the original time alone. Anyone who
+All three end in the `checkIn` action, which is safe to repeat: a second scan
+reports "already checked in" and leaves the original time alone. Anyone who
 isn't accepted and confirmed is refused, with a Check in anyway override for a
 waiver handed over at the desk.
 

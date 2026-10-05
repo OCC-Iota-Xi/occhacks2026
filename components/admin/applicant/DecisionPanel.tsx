@@ -29,7 +29,6 @@ import {
   type Attendance,
   type Status,
 } from "@/lib/admin/types";
-import { CHECKIN_DAYS } from "@/lib/checkin";
 import { cn } from "@/lib/utils";
 
 /**
@@ -122,7 +121,7 @@ export default function DecisionPanel({
     status: applicant.status,
     attendance: applicant.attendance,
     waiversSent: Boolean(applicant.waivers_sent_at),
-    checkedIn: applicant.checked_in || Boolean(applicant.checked_in_day2_at),
+    checkedIn: applicant.checked_in,
   });
 
   return (
@@ -249,31 +248,28 @@ export default function DecisionPanel({
           </Row>
         )}
 
-        {CHECKIN_DAYS.map(({ day, label }) => {
-          const at = day === 2 ? applicant.checked_in_day2_at : applicant.checked_in_at;
-          return (
-            <Row key={day} label={`Check-in, ${label.toLowerCase()}`}>
-              <button
-                type="button"
-                disabled={pending}
-                onClick={() =>
-                  run(
-                    () => setCheckedIn([applicant.id], !at, day),
-                    at ? `${label} check-in undone` : `Checked in for ${label.toLowerCase()}`
-                  )
-                }
-                className={cn(
-                  "rounded-md border px-1.5 py-0.5 transition-colors",
-                  at
-                    ? "border-emerald-400/30 bg-emerald-400/10 text-emerald-200"
-                    : "border-border text-muted-foreground hover:text-foreground"
-                )}
-              >
-                {at ? `Checked in ${formatDateTime(at)}` : "Not checked in"}
-              </button>
-            </Row>
-          );
-        })}
+        <Row label="Check-in">
+          <button
+            type="button"
+            disabled={pending}
+            onClick={() =>
+              run(
+                () => setCheckedIn([applicant.id], !applicant.checked_in),
+                applicant.checked_in ? "Check-in undone" : "Checked in"
+              )
+            }
+            className={cn(
+              "rounded-md border px-1.5 py-0.5 transition-colors",
+              applicant.checked_in
+                ? "border-emerald-400/30 bg-emerald-400/10 text-emerald-200"
+                : "border-border text-muted-foreground hover:text-foreground"
+            )}
+          >
+            {applicant.checked_in
+              ? `Checked in ${formatDateTime(applicant.checked_in_at)}`
+              : "Not checked in"}
+          </button>
+        </Row>
 
         <Row label="Reviewer">
           <ActionMenu

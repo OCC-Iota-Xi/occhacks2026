@@ -36,7 +36,6 @@ const COLUMNS: Column[] = [
   { header: "status", value: (r) => r.status },
   { header: "attendance", value: (r) => r.attendance },
   { header: "checked_in_at", value: (r) => r.checked_in_at },
-  { header: "checked_in_day2_at", value: (r) => r.checked_in_day2_at },
   { header: "average_score", value: (r) => r.avg_score },
   { header: "review_count", value: (r) => r.review_count },
   { header: "assigned_reviewer", value: (r) => r.assigned_name ?? r.assigned_email },

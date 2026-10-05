@@ -66,7 +66,6 @@ import {
   type Stage,
 } from "@/lib/admin/stage";
 import type { AdminUser, Applicant, SavedView, Tag } from "@/lib/admin/types";
-import { CHECKIN_DAYS } from "@/lib/checkin";
 import { OCC_CLASSES, SHIRT_SIZES, TRACKS } from "@/lib/form-options";
 import { cn } from "@/lib/utils";
 
@@ -712,32 +711,16 @@ export default function ApplicantsWorkspace({
               }
             >
               <MenuLabel>Check-in</MenuLabel>
-              {CHECKIN_DAYS.map(({ day, label }) => (
-                <MenuItem
-                  key={`in-${day}`}
-                  onSelect={() =>
-                    run(
-                      () => setCheckedIn(ids, true, day),
-                      `Checked in {n} applicants for ${label.toLowerCase()}`
-                    )
-                  }
-                >
-                  Check in, {label.toLowerCase()}
-                </MenuItem>
-              ))}
-              {CHECKIN_DAYS.map(({ day, label }) => (
-                <MenuItem
-                  key={`out-${day}`}
-                  onSelect={() =>
-                    run(
-                      () => setCheckedIn(ids, false, day),
-                      `Undid ${label.toLowerCase()} check-in for {n}`
-                    )
-                  }
-                >
-                  Undo {label.toLowerCase()} check-in
-                </MenuItem>
-              ))}
+              <MenuItem
+                onSelect={() => run(() => setCheckedIn(ids, true), "Checked in {n} applicants")}
+              >
+                Check in
+              </MenuItem>
+              <MenuItem
+                onSelect={() => run(() => setCheckedIn(ids, false), "Undid check-in for {n}")}
+              >
+                Undo check-in
+              </MenuItem>
 
               <MenuLabel>Assign reviewer</MenuLabel>
               {admins

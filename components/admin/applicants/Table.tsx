@@ -9,6 +9,7 @@ import {
   AttendanceBadge,
   Score,
   STAGE_STYLE,
+  StageBadge,
   StatusBadge,
   TagPill,
 } from "@/components/admin/ui";
@@ -211,6 +212,10 @@ function StageCell({
 }) {
   const stage = stageOf(applicant);
   const next = nextMove(stage);
+  const moves = movesFrom(stage);
+
+  // A draft has nothing to move to until the applicant submits it.
+  if (!moves.length) return <StageBadge stage={stage} />;
 
   return (
     <div className="flex items-center gap-1.5">
@@ -232,7 +237,7 @@ function StageCell({
         }
       >
         <MenuLabel>Move to</MenuLabel>
-        {movesFrom(stage).map((move) => (
+        {moves.map((move) => (
           <MenuItem
             key={move}
             disabled={moving}
@@ -255,20 +260,16 @@ function StageCell({
         </Button>
       )}
 
-      {applicant.checked_in && <CheckedIn day={1} />}
-      {applicant.checked_in_day2_at && <CheckedIn day={2} />}
+      {applicant.checked_in && (
+        <span
+          title={`Checked in ${formatDate(applicant.checked_in_at)}`}
+          className="inline-flex items-center gap-0.5 text-xs whitespace-nowrap text-emerald-300"
+        >
+          <Check className="size-3" />
+          In
+        </span>
+      )}
     </div>
-  );
-}
-
-function CheckedIn({ day }: { day: 1 | 2 }) {
-  return (
-    <span
-      title={`Checked in, day ${day}`}
-      className="inline-flex items-center gap-0.5 text-xs text-emerald-300"
-    >
-      <Check className="size-3" />D{day}
-    </span>
   );
 }
 
