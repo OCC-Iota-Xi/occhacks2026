@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   Bookmark,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
   Download,
@@ -34,9 +35,8 @@ import {
   matchingIds,
   removeTag,
   saveView,
-  setAttendance,
   setCheckedIn,
-  setStatus,
+  setStage,
   type ActionResult,
 } from "@/lib/admin/actions";
 import { draftCampaignForApplicants } from "@/lib/admin/email-actions";
@@ -53,44 +53,47 @@ import {
   toggleParam,
   type ApplicantFilters,
 } from "@/lib/admin/filters";
-import { formatNumber } from "@/lib/admin/format";
+import { displayName, formatNumber } from "@/lib/admin/format";
 import type { FilterFacets } from "@/lib/admin/queries";
 import {
-  ATTENDANCE,
-  ATTENDANCE_LABEL,
-  STATUSES,
-  STATUS_LABEL,
-  STATUS_VERB,
-  type AdminUser,
-  type Applicant,
-  type Attendance,
-  type SavedView,
-  type Status,
-  type Tag,
-} from "@/lib/admin/types";
+  MOVES,
+  MOVE_DONE,
+  MOVE_EFFECT,
+  MOVE_LABEL,
+  STAGES,
+  STAGE_LABEL,
+  type Move,
+  type Stage,
+} from "@/lib/admin/stage";
+import type { AdminUser, Applicant, SavedView, Tag } from "@/lib/admin/types";
 import { OCC_CLASSES, SHIRT_SIZES, TRACKS } from "@/lib/form-options";
 import { cn } from "@/lib/utils";
 
 /**
- * The organizer workspace: filters, table, selection, bulk actions.
+ * The organizer workspace: stage tabs, the table, selection, bulk moves.
+ *
+ * Built around the one question the list gets asked — who needs something from
+ * us, and what — so the tabs are the stages of the pipeline with a count on
+ * each, and every row carries its own stage control. Selecting rows is for
+ * doing the same thing to many people; changing one person never needs it.
+ * The filters that slice by anything else (school, shirt, class…) are a click
+ * away behind Filters rather than on screen all the time.
  *
  * The one piece of state that isn't in the URL is the selection — checkboxes
  * are about what you're doing right now, not about what you're looking at, and
  * putting two hundred ids in the address bar would help nobody.
  */
 
-/** Views every organizer gets, as query strings against this same list. */
-const BUILT_IN_VIEWS: { name: string; query: string }[] = [
-  { name: "All applicants", query: "" },
-  { name: "Needs review", query: "flag=unreviewed" },
-  { name: "My review queue", query: "reviewer=me&status=submitted&status=in_review" },
-  { name: "Accepted", query: "status=accepted" },
-  { name: "Waitlisted", query: "status=waitlisted" },
-  { name: "Rejected", query: "status=rejected" },
-  { name: "Confirmed", query: "attendance=confirmed" },
-  { name: "Missing confirmation", query: "flag=unconfirmed" },
-  { name: "Drafts", query: "status=draft" },
-  { name: "Data problems", query: "flag=missing_info&flag=duplicate_email" },
+/** The pipeline, left to right in the order people move through it. */
+const STAGE_TABS: { name: string; stages: Stage[] }[] = [
+  { name: "All", stages: [] },
+  { name: "To decide", stages: ["submitted", "in_review"] },
+  { name: "Waivers due", stages: ["accepted"] },
+  { name: "Waivers to review", stages: ["waivers_review"] },
+  { name: "Confirmed", stages: ["confirmed"] },
+  { name: "Waitlisted", stages: ["waitlisted"] },
+  { name: "Rejected", stages: ["rejected"] },
+  { name: "Drafts", stages: ["draft"] },
 ];
 
 export default function ApplicantsWorkspace({
@@ -102,6 +105,7 @@ export default function ApplicantsWorkspace({
   admins,
   savedViews,
   viewerId,
+  stageCounts,
   error,
 }: {
   rows: Applicant[];
@@ -112,6 +116,8 @@ export default function ApplicantsWorkspace({
   admins: AdminUser[];
   savedViews: SavedView[];
   viewerId: string;
+  /** How many applicants sit at each stage, for the tabs. */
+  stageCounts?: Record<Stage, number>;
   error: string | null;
 }) {
   const router = useRouter();
@@ -174,10 +180,17 @@ export default function ApplicantsWorkspace({
     [pathname, router]
   );
 
+  // The query the search box itself last sent to the URL, until it lands.
+  const [sent, setSent] = useState<string | null>(null);
+
   // Debounced search: one query when the typing stops, not one per keystroke.
   useEffect(() => {
     if (term === filters.q) return;
-    const timer = setTimeout(() => push(setParam(params, "q", term.trim())), 300);
+    const timer = setTimeout(() => {
+      const q = term.trim();
+      setSent(q);
+      push(setParam(params, "q", q));
+    }, 300);
     return () => clearTimeout(timer);
     // `params` changes identity on every navigation; depending on it here would
     // re-arm the timer mid-typing.
@@ -192,7 +205,10 @@ export default function ApplicantsWorkspace({
   const [lastQuery, setLastQuery] = useState(filters.q);
   if (lastQuery !== filters.q) {
     setLastQuery(filters.q);
-    setTerm(filters.q);
+    setSent(null);
+    // The box's own search landing is not news to the box: by then there may
+    // be more typed, and writing the older query back would eat those letters.
+    if (filters.q !== sent) setTerm(filters.q);
   }
 
   const paramsKey = params.toString();
@@ -264,14 +280,29 @@ export default function ApplicantsWorkspace({
     });
   };
 
-  const confirmStatus = (status: Status) => {
+  // One person, from their own row: no selection and no dialog. Nobody is
+  // emailed by a move and every one of them can be moved back the same way.
+  const moveOne = (applicant: Applicant, move: Move) => {
+    startTransition(async () => {
+      const result = await setStage([applicant.id], move);
+      if (result.ok) {
+        toast(`${displayName(applicant)}: ${MOVE_DONE[move]}`);
+        router.refresh();
+      } else {
+        toast(result.message ?? "That didn't work.", "error");
+      }
+    });
+  };
+
+  // Many people at once does get a dialog: it says what they'll each see.
+  const confirmMove = (move: Move) => {
     const people = ids.length === 1 ? "applicant" : "applicants";
     setConfirm({
-      title: `${STATUS_VERB[status]} ${ids.length} ${people}?`,
-      body: `This sets their application status to ${STATUS_LABEL[status].toLowerCase()}. It doesn't email anyone.`,
-      label: `${STATUS_VERB[status]} ${people}`,
-      destructive: status === "rejected",
-      run: () => setStatus(ids, status),
+      title: `${MOVE_LABEL[move]}: ${formatNumber(ids.length)} ${people}?`,
+      body: `${MOVE_EFFECT[move]} Nobody is emailed.`,
+      label: MOVE_LABEL[move],
+      destructive: move === "rejected",
+      run: () => setStage(ids, move),
     });
   };
 
@@ -316,49 +347,76 @@ export default function ApplicantsWorkspace({
   ];
 
   const currentQuery = params.toString();
+  // What Filters is hiding: every narrowing except the search box and the tabs.
+  const otherFilters = chips.filter((chip) => chip.param !== "q" && chip.param !== "stage").length;
 
   return (
     <div className="space-y-3">
-      {/* Saved views */}
+      {/* The pipeline. A tab swaps the stage and leaves a search or any other
+          filter in place, so "everyone from OCC" can be walked stage by stage. */}
       <div className="scroll-soft flex items-center gap-1.5 overflow-x-auto pb-1">
-        {[...BUILT_IN_VIEWS, ...savedViews.map((v) => ({ name: v.name, query: v.query }))].map(
-          (view) => {
-            const active = normalize(currentQuery) === normalize(view.query);
-            return (
-              <Link
-                key={view.name}
-                href={`${pathname}${view.query ? `?${view.query}` : ""}`}
-                className={cn(
-                  "rounded-lg border px-2.5 py-1 text-xs whitespace-nowrap transition-colors",
-                  active
-                    ? "border-[var(--ring)]/40 bg-accent/60 text-foreground"
-                    : "border-border text-muted-foreground hover:text-foreground"
-                )}
-              >
-                {view.name}
-              </Link>
-            );
-          }
-        )}
-        <button
-          type="button"
-          onClick={() => setSaveOpen(true)}
-          className="flex items-center gap-1 rounded-lg border border-dashed border-border px-2.5 py-1 text-xs whitespace-nowrap text-muted-foreground transition-colors hover:text-foreground"
-        >
-          <Bookmark className="size-3" />
-          Save this view
-        </button>
+        {STAGE_TABS.map((tab) => {
+          const active =
+            tab.stages.length === filters.stage.length &&
+            tab.stages.every((stage) => filters.stage.includes(stage));
+          const counted: readonly Stage[] = tab.stages.length ? tab.stages : STAGES;
+          const count = stageCounts
+            ? counted.reduce((sum, stage) => sum + stageCounts[stage], 0)
+            : null;
+          const ours = tab.stages.includes("waivers_review") && Boolean(count);
+          return (
+            <button
+              key={tab.name}
+              type="button"
+              onClick={() => {
+                const next = new URLSearchParams(params);
+                next.delete("page");
+                next.delete("stage");
+                for (const stage of tab.stages) next.append("stage", stage);
+                push(next);
+              }}
+              className={cn(
+                "flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs whitespace-nowrap transition-colors",
+                active
+                  ? "border-[var(--ring)]/40 bg-accent/60 text-foreground"
+                  : "border-border text-muted-foreground hover:text-foreground"
+              )}
+            >
+              {tab.name}
+              {count != null && (
+                <span className={cn("tabular-nums", ours ? "text-[var(--ring)]" : "opacity-70")}>
+                  {formatNumber(count)}
+                </span>
+              )}
+            </button>
+          );
+        })}
+
+        {savedViews.map((view) => (
+          <Link
+            key={view.name}
+            href={`${pathname}${view.query ? `?${view.query}` : ""}`}
+            className={cn(
+              "rounded-lg border border-dashed px-2.5 py-1.5 text-xs whitespace-nowrap transition-colors",
+              normalize(currentQuery) === normalize(view.query)
+                ? "border-[var(--ring)]/40 text-foreground"
+                : "border-border text-muted-foreground hover:text-foreground"
+            )}
+          >
+            {view.name}
+          </Link>
+        ))}
       </div>
 
-      {/* Filter bar */}
+      {/* Search, and the door to everything else */}
       <div className="flex flex-wrap items-center gap-2">
-        <div className="flex h-8 min-w-[16rem] flex-1 items-center gap-2 rounded-lg border border-border px-2.5 focus-within:border-[var(--ring)]/50">
-          <Search className="size-3.5 shrink-0 text-muted-foreground" />
+        <div className="flex h-9 min-w-[16rem] flex-1 items-center gap-2 rounded-lg border border-border px-3 focus-within:border-[var(--ring)]/50">
+          <Search className="size-4 shrink-0 text-muted-foreground" />
           <input
             value={term}
             onChange={(event) => setTerm(event.target.value)}
             placeholder="Search name, email, school, major, student ID"
-            className="w-full bg-transparent text-xs outline-none placeholder:text-muted-foreground"
+            className="w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
           />
           {term && (
             <button type="button" onClick={() => setTerm("")} aria-label="Clear search">
@@ -367,84 +425,27 @@ export default function ApplicantsWorkspace({
           )}
         </div>
 
-        <FilterMenu
-          label="Status"
-          options={STATUSES.map((status) => ({ value: status, label: STATUS_LABEL[status] }))}
-          selected={filters.status}
-          onToggle={(value) => toggle("status", value)}
-          onClear={() => push(setParam(params, "status", ""))}
-        />
-        <FilterMenu
-          label="Attendance"
-          options={ATTENDANCE.map((value) => ({ value, label: ATTENDANCE_LABEL[value] }))}
-          selected={filters.attendance}
-          onToggle={(value) => toggle("attendance", value)}
-          onClear={() => push(setParam(params, "attendance", ""))}
-        />
-        <FilterMenu
-          label="School"
-          searchable
-          options={facets.schools.map((school) => ({ value: school, label: school }))}
-          selected={filters.school}
-          onToggle={(value) => toggle("school", value)}
-          onClear={() => push(setParam(params, "school", ""))}
-        />
-        <FilterMenu
-          label="Tags"
-          options={tags.map((tag) => ({ value: tag.name, label: tag.name }))}
-          selected={filters.tag}
-          onToggle={(value) => toggle("tag", value)}
-          onClear={() => push(setParam(params, "tag", ""))}
-        />
-        <FilterMenu
-          label="Reviewer"
-          options={reviewerOptions}
-          selected={filters.reviewer ? [filters.reviewer] : []}
-          onToggle={(value) =>
-            push(setParam(params, "reviewer", filters.reviewer === value ? "" : value))
-          }
-          onClear={() => push(setParam(params, "reviewer", ""))}
-        />
-        <FilterMenu
-          label="Data quality"
-          width="w-72"
-          options={FLAGS.map((flag) => ({ value: flag, label: FLAG_LABEL[flag] }))}
-          selected={filters.flag}
-          onToggle={(value) => toggle("flag", value)}
-          onClear={() => push(setParam(params, "flag", ""))}
-        />
-
         <button
           type="button"
           onClick={() => setShowMore((value) => !value)}
+          aria-expanded={showMore}
           className={cn(
-            "flex h-8 items-center gap-1.5 rounded-lg border px-2.5 text-xs transition-colors",
-            showMore
+            "flex h-9 items-center gap-1.5 rounded-lg border px-3 text-xs transition-colors",
+            showMore || otherFilters > 0
               ? "border-[var(--ring)]/40 text-foreground"
               : "border-border text-muted-foreground hover:text-foreground"
           )}
         >
           <SlidersHorizontal className="size-3.5" />
-          More
+          Filters
+          {otherFilters > 0 && (
+            <span className="tabular-nums text-[var(--ring)]">{otherFilters}</span>
+          )}
         </button>
-
-        <FilterMenu
-          label="Columns"
-          align="end"
-          options={COLUMNS.map((column) => ({ value: column.key, label: column.label }))}
-          selected={visible}
-          onToggle={(value) =>
-            setColumns(
-              visible.includes(value)
-                ? visible.filter((key) => key !== value || key === "applicant")
-                : [...visible, value]
-            )
-          }
-        />
 
         <ActionMenu
           trigger={
-            <Button variant="outline" size="sm">
+            <Button variant="outline">
               <Download className="size-3.5" />
               Export
             </Button>
@@ -458,7 +459,7 @@ export default function ApplicantsWorkspace({
             onSelect={() => window.open(`/admin/export${queryString(params)}`, "_self")}
             disabled={!hasActiveFilters(filters)}
           >
-            Filtered ({formatNumber(total)})
+            This view ({formatNumber(total)})
           </MenuItem>
           <MenuItem
             onSelect={() => window.open(exportHref, "_self")}
@@ -471,6 +472,21 @@ export default function ApplicantsWorkspace({
 
       {showMore && (
         <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-card/30 p-2">
+          <FilterMenu
+            label="Stage"
+            options={STAGES.map((stage) => ({ value: stage, label: STAGE_LABEL[stage] }))}
+            selected={filters.stage}
+            onToggle={(value) => toggle("stage", value)}
+            onClear={() => push(setParam(params, "stage", ""))}
+          />
+          <FilterMenu
+            label="School"
+            searchable
+            options={facets.schools.map((school) => ({ value: school, label: school }))}
+            selected={filters.school}
+            onToggle={(value) => toggle("school", value)}
+            onClear={() => push(setParam(params, "school", ""))}
+          />
           <FilterMenu
             label="Major"
             searchable
@@ -513,17 +529,6 @@ export default function ApplicantsWorkspace({
             }
           />
           <FilterMenu
-            label="Reviewed"
-            options={[
-              { value: "yes", label: "Has a review" },
-              { value: "no", label: "Not reviewed" },
-            ]}
-            selected={filters.reviewed ? [filters.reviewed] : []}
-            onToggle={(value) =>
-              push(setParam(params, "reviewed", filters.reviewed === value ? "" : value))
-            }
-          />
-          <FilterMenu
             label="Checked in"
             options={[
               { value: "yes", label: "Checked in" },
@@ -534,6 +539,43 @@ export default function ApplicantsWorkspace({
               push(setParam(params, "checked_in", filters.checkedIn === value ? "" : value))
             }
           />
+          <FilterMenu
+            label="Problems"
+            width="w-72"
+            options={FLAGS.map((flag) => ({ value: flag, label: FLAG_LABEL[flag] }))}
+            selected={filters.flag}
+            onToggle={(value) => toggle("flag", value)}
+            onClear={() => push(setParam(params, "flag", ""))}
+          />
+          <FilterMenu
+            label="Reviewer"
+            options={reviewerOptions}
+            selected={filters.reviewer ? [filters.reviewer] : []}
+            onToggle={(value) =>
+              push(setParam(params, "reviewer", filters.reviewer === value ? "" : value))
+            }
+            onClear={() => push(setParam(params, "reviewer", ""))}
+          />
+          <FilterMenu
+            label="Reviewed"
+            options={[
+              { value: "yes", label: "Has a review" },
+              { value: "no", label: "Not reviewed" },
+            ]}
+            selected={filters.reviewed ? [filters.reviewed] : []}
+            onToggle={(value) =>
+              push(setParam(params, "reviewed", filters.reviewed === value ? "" : value))
+            }
+          />
+          {tags.length > 0 && (
+            <FilterMenu
+              label="Tags"
+              options={tags.map((tag) => ({ value: tag.name, label: tag.name }))}
+              selected={filters.tag}
+              onToggle={(value) => toggle("tag", value)}
+              onClear={() => push(setParam(params, "tag", ""))}
+            />
+          )}
 
           <label className="flex h-8 items-center gap-1.5 rounded-lg border border-border px-2.5 text-xs text-muted-foreground">
             Score
@@ -576,6 +618,30 @@ export default function ApplicantsWorkspace({
               className="bg-transparent text-foreground outline-none"
             />
           </label>
+
+          <div className="ml-auto flex items-center gap-2">
+            <FilterMenu
+              label="Columns"
+              align="end"
+              options={COLUMNS.map((column) => ({ value: column.key, label: column.label }))}
+              selected={visible}
+              onToggle={(value) =>
+                setColumns(
+                  visible.includes(value)
+                    ? visible.filter((key) => key !== value || key === "applicant")
+                    : [...visible, value]
+                )
+              }
+            />
+            <button
+              type="button"
+              onClick={() => setSaveOpen(true)}
+              className="flex h-8 items-center gap-1 rounded-lg border border-dashed border-border px-2.5 text-xs whitespace-nowrap text-muted-foreground transition-colors hover:text-foreground"
+            >
+              <Bookmark className="size-3" />
+              Save this view
+            </button>
+          </div>
         </div>
       )}
 
@@ -621,49 +687,39 @@ export default function ApplicantsWorkspace({
             )}
 
           <div className="ml-auto flex flex-wrap items-center gap-1.5">
+            <ActionMenu
+              trigger={
+                <Button size="sm">
+                  Move to
+                  <ChevronDown className="size-3" />
+                </Button>
+              }
+            >
+              <MenuLabel>Move {formatNumber(ids.length)} to</MenuLabel>
+              {MOVES.map((move) => (
+                <MenuItem
+                  key={move}
+                  destructive={move === "rejected"}
+                  onSelect={() => confirmMove(move)}
+                >
+                  {MOVE_LABEL[move]}
+                </MenuItem>
+              ))}
+            </ActionMenu>
+
             <Button size="sm" variant="outline" onClick={emailSelected} disabled={pending}>
               <Mail className="size-3.5" />
               Email
-            </Button>
-            <Button size="sm" variant="outline" onClick={() => confirmStatus("accepted")}>
-              Accept
-            </Button>
-            <Button size="sm" variant="outline" onClick={() => confirmStatus("waitlisted")}>
-              Waitlist
-            </Button>
-            <Button size="sm" variant="outline" onClick={() => confirmStatus("rejected")}>
-              Reject
             </Button>
 
             <ActionMenu
               trigger={
                 <Button size="sm" variant="outline">
                   More
+                  <ChevronDown className="size-3" />
                 </Button>
               }
             >
-              <MenuLabel>Status</MenuLabel>
-              {(["in_review", "submitted", "withdrawn"] as Status[]).map((status) => (
-                <MenuItem key={status} onSelect={() => confirmStatus(status)}>
-                  {STATUS_VERB[status]}
-                </MenuItem>
-              ))}
-
-              <MenuLabel>Attendance</MenuLabel>
-              {ATTENDANCE.map((value) => (
-                <MenuItem
-                  key={value}
-                  onSelect={() =>
-                    run(
-                      () => setAttendance(ids, value as Attendance),
-                      `Attendance updated for {n} applicants`
-                    )
-                  }
-                >
-                  Mark {ATTENDANCE_LABEL[value].toLowerCase()}
-                </MenuItem>
-              ))}
-
               <MenuLabel>Check-in</MenuLabel>
               <MenuItem
                 onSelect={() => run(() => setCheckedIn(ids, true), "Checked in {n} applicants")}
@@ -676,20 +732,6 @@ export default function ApplicantsWorkspace({
                 Undo check-in
               </MenuItem>
 
-              <MenuLabel>Danger</MenuLabel>
-              <MenuItem destructive onSelect={confirmDelete}>
-                <Trash2 className="size-3.5" />
-                Delete permanently
-              </MenuItem>
-            </ActionMenu>
-
-            <ActionMenu
-              trigger={
-                <Button size="sm" variant="outline">
-                  Assign
-                </Button>
-              }
-            >
               <MenuLabel>Assign reviewer</MenuLabel>
               {admins
                 .filter((admin) => admin.user_id)
@@ -709,38 +751,46 @@ export default function ApplicantsWorkspace({
               <MenuItem onSelect={() => run(() => assignReviewer(ids, null), "Unassigned {n}")}>
                 Unassign
               </MenuItem>
+
+              <MenuLabel>Danger</MenuLabel>
+              <MenuItem destructive onSelect={confirmDelete}>
+                <Trash2 className="size-3.5" />
+                Delete permanently
+              </MenuItem>
             </ActionMenu>
 
-            <ActionMenu
-              trigger={
-                <Button size="sm" variant="outline">
-                  Tag
-                </Button>
-              }
-            >
-              <MenuLabel>Add tag</MenuLabel>
-              {tags.map((tag) => (
-                <MenuItem
-                  key={tag.id}
-                  onSelect={() =>
-                    run(() => addTag(ids, tag.id), `Tagged {n} applicants “${tag.name}”`)
-                  }
-                >
-                  {tag.name}
-                </MenuItem>
-              ))}
-              <MenuLabel>Remove tag</MenuLabel>
-              {tags.map((tag) => (
-                <MenuItem
-                  key={`remove-${tag.id}`}
-                  onSelect={() =>
-                    run(() => removeTag(ids, tag.id), `Removed “${tag.name}” from {n}`)
-                  }
-                >
-                  {tag.name}
-                </MenuItem>
-              ))}
-            </ActionMenu>
+            {tags.length > 0 && (
+              <ActionMenu
+                trigger={
+                  <Button size="sm" variant="outline">
+                    Tag
+                  </Button>
+                }
+              >
+                <MenuLabel>Add tag</MenuLabel>
+                {tags.map((tag) => (
+                  <MenuItem
+                    key={tag.id}
+                    onSelect={() =>
+                      run(() => addTag(ids, tag.id), `Tagged {n} applicants “${tag.name}”`)
+                    }
+                  >
+                    {tag.name}
+                  </MenuItem>
+                ))}
+                <MenuLabel>Remove tag</MenuLabel>
+                {tags.map((tag) => (
+                  <MenuItem
+                    key={`remove-${tag.id}`}
+                    onSelect={() =>
+                      run(() => removeTag(ids, tag.id), `Removed “${tag.name}” from {n}`)
+                    }
+                  >
+                    {tag.name}
+                  </MenuItem>
+                ))}
+              </ActionMenu>
+            )}
 
             <Button size="sm" variant="ghost" onClick={() => setSelected(new Set())}>
               Clear
@@ -762,6 +812,8 @@ export default function ApplicantsWorkspace({
               selected={selected}
               onToggleRow={toggleRow}
               onToggleAll={toggleAll}
+              onMove={moveOne}
+              moving={pending}
               onSort={(column: ColumnDef) => {
                 if (!column.sort) return;
                 const next = new URLSearchParams(params);

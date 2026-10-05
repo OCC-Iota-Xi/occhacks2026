@@ -2,11 +2,11 @@
 
 import { revalidatePath } from "next/cache";
 import { assertAdmin } from "@/lib/admin/auth";
+import { MOVES, type Move } from "@/lib/admin/stage";
 import {
   ATTENDANCE,
   DECISION_STATUSES,
   REVIEW_CRITERIA,
-  TAG_COLORS,
   type Attendance,
   type Status,
 } from "@/lib/admin/types";
@@ -52,10 +52,21 @@ function fail(error: { message: string } | null, fallback: string): ActionResult
 
 export async function setStatus(ids: string[], status: Status): Promise<ActionResult> {
   const { supabase, user } = await assertAdmin();
-  const targets = validIds(ids);
+  let targets = validIds(ids);
   if (!targets.length) return { ok: false, message: "No applicants selected." };
   if (!(DECISION_STATUSES as readonly string[]).includes(status)) {
     return { ok: false, message: "Unknown status." };
+  }
+
+  // Accepting is the step after "under review", and a draft isn't there yet:
+  // the applicant would be told they're in without ever having applied.
+  let rejected = 0;
+  if (status === "accepted") {
+    const { drafts, error: readError } = await standingOf(supabase, targets);
+    if (readError) return fail(readError, "Could not read those applications.");
+    rejected = targets.filter((id) => drafts.has(id)).length;
+    targets = targets.filter((id) => !drafts.has(id));
+    if (!targets.length) return { ok: false, message: NOT_SUBMITTED };
   }
 
   // A decision is stamped; moving back to submitted / in review clears the
@@ -74,7 +85,7 @@ export async function setStatus(ids: string[], status: Status): Promise<ActionRe
   if (error) return fail(error, "Could not update those applications.");
 
   refresh();
-  return { ok: true, count: targets.length };
+  return { ok: true, count: targets.length, message: skipped(targets.length, rejected) };
 }
 
 export async function setAttendance(
@@ -123,6 +134,260 @@ export async function setCheckedIn(
 
   refresh();
   return { ok: true, count: targets.length };
+}
+
+/* -------------------------------------------------------------------------- */
+/* Stages                                                                      */
+/* -------------------------------------------------------------------------- */
+
+const NOT_SUBMITTED =
+  "Drafts can't be accepted: the application hasn't been submitted. Nothing changed.";
+
+/** "Updated 12. Skipped 3 drafts…" when a selection was only partly movable. */
+function skipped(done: number, drafts: number): string | undefined {
+  if (!drafts) return undefined;
+  return `Updated ${done}. Skipped ${drafts} ${drafts === 1 ? "draft" : "drafts"} that ${
+    drafts === 1 ? "hasn't" : "haven't"
+  } been submitted.`;
+}
+
+/**
+ * Which of these applicants are accepted right now, and which haven't submitted
+ * an application at all. Read in slices: the ids go in the URL.
+ */
+async function standingOf(
+  supabase: Awaited<ReturnType<typeof assertAdmin>>["supabase"],
+  ids: string[]
+): Promise<{ accepted: Set<string>; drafts: Set<string>; error: { message: string } | null }> {
+  const accepted = new Set<string>();
+  const drafts = new Set<string>();
+  for (let start = 0; start < ids.length; start += 150) {
+    const { data, error } = await supabase
+      .from("admin_applicants")
+      .select("id, status, completed_at")
+      .in("id", ids.slice(start, start + 150));
+    if (error) return { accepted, drafts, error };
+    for (const row of (data ?? []) as { id: string; status: Status; completed_at: string | null }[]) {
+      if (row.status === "accepted") accepted.add(row.id);
+      if (!row.completed_at) drafts.add(row.id);
+    }
+  }
+  return { accepted, drafts, error: null };
+}
+
+/**
+ * Moves applicants to a stage (see lib/admin/stage.ts): the one write behind
+ * the stage menu on each row and the bulk "Move to".
+ *
+ * The pipeline has an order — submitted, accepted, waivers sent, confirmed —
+ * and the two steps that are an organizer's can't skip it: only a submitted
+ * application can be accepted, and only an accepted applicant can be confirmed.
+ * (Confirming doesn't wait for "waivers sent", which is the applicant's own
+ * button: people email the forms and never press it.)
+ *
+ * This also runs on selections of mixed people, so it leaves alone whoever a
+ * move doesn't apply to rather than failing the lot: accepting never touches
+ * someone already accepted (it can't unconfirm them or restamp when they were
+ * decided), and stepping back to "waivers due" only applies to the accepted.
+ */
+export async function setStage(ids: string[], move: Move): Promise<ActionResult> {
+  const { supabase, user } = await assertAdmin();
+  const targets = validIds(ids);
+  if (!targets.length) return { ok: false, message: "No applicants selected." };
+  if (!(MOVES as readonly string[]).includes(move)) {
+    return { ok: false, message: "Unknown stage." };
+  }
+
+  // The plain decisions are exactly a status change.
+  if (move !== "accepted" && move !== "confirmed" && move !== "waivers_due") {
+    return setStatus(targets, move);
+  }
+
+  const { accepted, drafts, error: readError } = await standingOf(supabase, targets);
+  if (readError) return fail(readError, "Could not read those applications.");
+
+  const now = new Date().toISOString();
+  const already = targets.filter((id) => accepted.has(id));
+  const fresh = targets.filter((id) => !accepted.has(id) && !drafts.has(id));
+  const draftCount = targets.filter((id) => !accepted.has(id) && drafts.has(id)).length;
+
+  let rows: Record<string, unknown>[];
+  let nothing: string;
+  if (move === "accepted") {
+    rows = fresh.map((user_id) => ({
+      user_id,
+      status: "accepted",
+      decided_at: now,
+      decided_by: user.id,
+    }));
+    nothing = draftCount ? NOT_SUBMITTED : "Already accepted. Nothing changed.";
+  } else if (move === "confirmed") {
+    rows = already.map((user_id) => ({ user_id, attendance: "confirmed", confirmed_at: now }));
+    nothing = "Only accepted applicants can be confirmed. Accept them first. Nothing changed.";
+  } else {
+    rows = already.map((user_id) => ({
+      user_id,
+      attendance: "pending",
+      confirmed_at: null,
+      waivers_sent_at: null,
+    }));
+    nothing = "Only accepted applicants can go back to waivers due. Nothing changed.";
+  }
+
+  if (!rows.length) return { ok: false, message: nothing };
+
+  const { error } = await supabase
+    .from("application_status")
+    .upsert(rows, { onConflict: "user_id" });
+  if (error) return fail(error, "Could not update those applications.");
+
+  refresh();
+  return {
+    ok: true,
+    count: rows.length,
+    message: move === "accepted" ? skipped(rows.length, draftCount) : undefined,
+  };
+}
+
+/**
+ * Sends waivers back: clears "the applicant says they're sent", so their status
+ * page shows the packet and the button again instead of "under review". For a
+ * packet that arrived unsigned, incomplete, or not at all. Anyone already
+ * confirmed is left alone — their waivers were reviewed.
+ */
+export async function clearWaiversSent(id: string): Promise<ActionResult> {
+  const { supabase } = await assertAdmin();
+  if (typeof id !== "string" || !UUID.test(id)) {
+    return { ok: false, message: "No applicant selected." };
+  }
+
+  const { data, error } = await supabase
+    .from("application_status")
+    .update({ waivers_sent_at: null })
+    .eq("user_id", id)
+    .neq("attendance", "confirmed")
+    .select("user_id");
+  if (error) return fail(error, "Could not send the waivers back.");
+  if (!data?.length) return { ok: false, message: "Nothing to send back." };
+
+  refresh();
+  return { ok: true, count: 1 };
+}
+
+/* -------------------------------------------------------------------------- */
+/* Check-in desk                                                               */
+/* -------------------------------------------------------------------------- */
+
+/** Who a check-in was about, for the desk to read back before waving them in. */
+export interface CheckInPerson {
+  id: string;
+  name: string;
+  email: string | null;
+  shirt: string | null;
+  needs: string | null;
+  status: Status;
+  attendance: Attendance;
+}
+
+export type CheckInResult =
+  /** Checked in by this call. */
+  | { outcome: "checked_in"; person: CheckInPerson; at: string }
+  /** Was already checked in; nothing changed, `at` is the original time. */
+  | { outcome: "already"; person: CheckInPerson; at: string }
+  /** A real applicant who isn't accepted and confirmed. Nothing changed. */
+  | { outcome: "not_confirmed"; person: CheckInPerson }
+  /** The code isn't an applicant's. */
+  | { outcome: "not_found" }
+  /** Nothing changed and trying again won't help until `message` is dealt with. */
+  | { outcome: "error"; message: string };
+
+/**
+ * Checks one person in from a scanned code, a typed code, or the list. Once
+ * covers the whole event: someone checked in on Saturday is checked in, and
+ * their code scanned again on Sunday reads "already checked in".
+ *
+ * Unlike the other actions this one reports rather than throws, and it is safe
+ * to repeat: the desk retries it over bad wifi, and two organizers can scan the
+ * same person, so a second call must neither fail nor move the time they
+ * arrived. The write only touches a row that isn't checked in yet, which makes
+ * "already checked in" the answer to a repeat instead of an overwrite.
+ *
+ * Someone who isn't accepted and confirmed is refused unless `force` is set —
+ * the desk's "check in anyway", for a waiver handed over in person.
+ */
+export async function checkIn(
+  id: string,
+  options: { force?: boolean } = {}
+): Promise<CheckInResult> {
+  let supabase: Awaited<ReturnType<typeof assertAdmin>>["supabase"];
+  try {
+    ({ supabase } = await assertAdmin());
+  } catch {
+    return { outcome: "error", message: "You're signed out. Sign in again to check people in." };
+  }
+  if (typeof id !== "string" || !UUID.test(id)) return { outcome: "not_found" };
+
+  const read = () =>
+    supabase
+      .from("admin_applicants")
+      .select("id, full_name, email, shirt, needs, status, attendance, checked_in_at")
+      .eq("id", id)
+      .maybeSingle<{
+        id: string;
+        full_name: string | null;
+        email: string | null;
+        shirt: string | null;
+        needs: string | null;
+        status: Status;
+        attendance: Attendance;
+        checked_in_at: string | null;
+      }>();
+
+  const found = await read();
+  if (found.error) return { outcome: "error", message: found.error.message };
+  if (!found.data) return { outcome: "not_found" };
+
+  const row = found.data;
+  const person: CheckInPerson = {
+    id: row.id,
+    name: row.full_name?.trim() || row.email || "Unnamed applicant",
+    email: row.email,
+    shirt: row.shirt,
+    needs: row.needs,
+    status: row.status,
+    attendance: row.attendance,
+  };
+
+  if (row.checked_in_at) return { outcome: "already", person, at: row.checked_in_at };
+
+  const expected = row.status === "accepted" && row.attendance === "confirmed";
+  if (!expected && !options.force) return { outcome: "not_confirmed", person };
+
+  const at = new Date().toISOString();
+  const updated = await supabase
+    .from("application_status")
+    .update({ checked_in_at: at })
+    .eq("user_id", id)
+    .is("checked_in_at", null)
+    .select("user_id");
+  if (updated.error) return { outcome: "error", message: updated.error.message };
+
+  if (!updated.data?.length) {
+    // Nothing matched: either someone else checked them in between the read and
+    // the write, or (only with `force`) they have no decision row to update yet.
+    const again = await read();
+    if (again.error) return { outcome: "error", message: again.error.message };
+    if (again.data?.checked_in_at) {
+      return { outcome: "already", person, at: again.data.checked_in_at };
+    }
+    const inserted = await supabase
+      .from("application_status")
+      .upsert({ user_id: id, checked_in_at: at }, { onConflict: "user_id" });
+    if (inserted.error) return { outcome: "error", message: inserted.error.message };
+  }
+
+  refresh();
+  return { outcome: "checked_in", person, at };
 }
 
 /** `reviewerId` of null unassigns. */
@@ -199,37 +464,6 @@ export async function removeTag(ids: string[], tagId: string): Promise<ActionRes
 
   refresh();
   return { ok: true, count: targets.length };
-}
-
-export async function createTag(name: string, color: string): Promise<ActionResult> {
-  const { supabase, user } = await assertAdmin();
-  const clean = name.trim().slice(0, 40);
-  if (!clean) return { ok: false, message: "Give the tag a name." };
-  const swatch = (TAG_COLORS as readonly string[]).includes(color) ? color : "slate";
-
-  const { error } = await supabase
-    .from("tags")
-    .insert({ name: clean, color: swatch, created_by: user.id });
-  if (error) {
-    return {
-      ok: false,
-      message: error.code === "23505" ? "That tag already exists." : error.message,
-    };
-  }
-
-  refresh();
-  return { ok: true };
-}
-
-export async function deleteTag(tagId: string): Promise<ActionResult> {
-  const { supabase } = await assertAdmin();
-  if (!UUID.test(tagId)) return { ok: false, message: "Unknown tag." };
-
-  const { error } = await supabase.from("tags").delete().eq("id", tagId);
-  if (error) return fail(error, "Could not delete that tag.");
-
-  refresh();
-  return { ok: true };
 }
 
 /* -------------------------------------------------------------------------- */

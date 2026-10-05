@@ -4,10 +4,11 @@ import type { SortKey } from "@/lib/admin/filters";
 /**
  * The applicant table's columns.
  *
- * Every column is optional except the applicant themself, and which ones are
- * showing is remembered per organizer in localStorage — someone doing decisions
- * wants score and reviewer, someone doing logistics wants shirt size and
- * dietary needs, and neither should have to scroll past the other's columns.
+ * The default is the four that answer "who is this and where are they": the
+ * applicant, their school, their stage (which is also the control that moves
+ * them), and when they applied. Everything else is optional and remembered per
+ * organizer in localStorage — someone doing logistics wants shirt size and
+ * dietary needs, and nobody else should have to scroll past them.
  */
 export interface ColumnDef {
   key: string;
@@ -23,6 +24,7 @@ export const COLUMNS: ColumnDef[] = [
   { key: "email", label: "Email", sort: "email" },
   { key: "school", label: "School", sort: "school" },
   { key: "major", label: "Major" },
+  { key: "stage", label: "Stage", sort: "status" },
   { key: "status", label: "Status", sort: "status" },
   { key: "attendance", label: "Attendance" },
   { key: "score", label: "Score", sort: "avg_score", align: "right" },
@@ -35,29 +37,22 @@ export const COLUMNS: ColumnDef[] = [
   { key: "classes", label: "Extra credit" },
   { key: "needs", label: "Needs" },
   { key: "checked_in", label: "Checked in", sort: "checked_in_at" },
-  { key: "submitted", label: "Submitted", sort: "completed_at" },
+  { key: "submitted", label: "Submitted", sort: "timeline_at" },
   { key: "started", label: "Started", sort: "created_at" },
 ];
 
-export const DEFAULT_COLUMNS = [
-  "applicant",
-  "email",
-  "school",
-  "status",
-  "score",
-  "tags",
-  "reviewer",
-  "submitted",
-];
+export const DEFAULT_COLUMNS = ["applicant", "school", "stage", "submitted"];
 
-export const COLUMN_STORAGE_KEY = "occhacks:admin-columns";
+/** Versioned: a saved choice from before the stage column would hide it. */
+export const COLUMN_STORAGE_KEY = "occhacks:admin-columns-v2";
 
 /** The flags worth showing inline as a warning triangle on the row. */
 export function rowFlags(applicant: Applicant): string[] {
   const flags: string[] = [];
   if (applicant.flag_missing_info) flags.push("Missing required information");
   if (applicant.flag_duplicate_email) flags.push("Another application shares this email");
-  if (applicant.flag_unconfirmed) flags.push("Accepted, attendance not confirmed");
+  if (applicant.flag_waivers_to_review) flags.push("Says waivers are sent, waiting on review");
+  else if (applicant.flag_unconfirmed) flags.push("Accepted, attendance not confirmed");
   if (applicant.flag_stale_draft) flags.push("Draft abandoned over three days ago");
   return flags;
 }

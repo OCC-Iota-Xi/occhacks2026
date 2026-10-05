@@ -1,17 +1,11 @@
 import { Suspense } from "react";
-import ApplicantsWorkspace from "@/components/admin/applicants/Workspace";
+import { ApplicantsList } from "@/components/admin/applicants/Menus";
+import AutoRefresh from "@/components/AutoRefresh";
 import SetupNotice from "@/components/admin/SetupNotice";
 import { PageHeader } from "@/components/admin/ui";
 import { parseFilters, toSearchParams } from "@/lib/admin/filters";
 import { formatNumber } from "@/lib/admin/format";
-import {
-  adminContext,
-  fetchAdmins,
-  fetchApplicants,
-  fetchFacets,
-  fetchSavedViews,
-  fetchTags,
-} from "@/lib/admin/queries";
+import { adminContext, fetchApplicants } from "@/lib/admin/queries";
 
 export default async function ApplicantsPage({
   searchParams,
@@ -24,33 +18,25 @@ export default async function ApplicantsPage({
   const params = toSearchParams(await searchParams);
   const filters = parseFilters(params);
 
-  // The page of rows is the only query that depends on the filters; the rest
-  // are small, cacheable lists that populate the menus.
-  const [page, facets, tags, admins, savedViews] = await Promise.all([
-    fetchApplicants(ctx, filters),
-    fetchFacets(ctx),
-    fetchTags(ctx),
-    fetchAdmins(ctx),
-    fetchSavedViews(ctx),
-  ]);
+  // Only the rows depend on the filters. The menus and the stage counts come
+  // from the layout, which a change of query string doesn't re-run.
+  const page = await fetchApplicants(ctx, filters);
 
   if (page.schemaMissing) return <SetupNotice detail={page.error} />;
 
   return (
     <div className="space-y-4">
+      {/* New sign-ups, waivers marked sent, another organizer's decisions. */}
+      <AutoRefresh every={15_000} />
       <PageHeader
         title="Applicants"
         subtitle={`${formatNumber(page.total)} ${page.total === 1 ? "application" : "applications"} match this view`}
       />
       <Suspense fallback={null}>
-        <ApplicantsWorkspace
+        <ApplicantsList
           rows={page.rows}
           total={page.total}
           filters={filters}
-          facets={facets}
-          tags={tags}
-          admins={admins}
-          savedViews={savedViews}
           viewerId={ctx.userId}
           error={page.error}
         />

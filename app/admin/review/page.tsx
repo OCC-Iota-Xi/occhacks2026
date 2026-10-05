@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import Link from "next/link";
 import ApplicantsWorkspace from "@/components/admin/applicants/Workspace";
 import SetupNotice from "@/components/admin/SetupNotice";
+import AutoRefresh from "@/components/AutoRefresh";
 import { PageHeader, StatCard } from "@/components/admin/ui";
 import { parseFilters, toSearchParams } from "@/lib/admin/filters";
 import { formatNumber } from "@/lib/admin/format";
@@ -12,6 +13,7 @@ import {
   fetchFacets,
   fetchOverview,
   fetchSavedViews,
+  fetchStageCounts,
   fetchTags,
 } from "@/lib/admin/queries";
 
@@ -36,24 +38,26 @@ export default async function ReviewQueuePage({
   if (Array.from(params.keys()).length === 0) {
     params.append("status", "submitted");
     params.append("status", "in_review");
-    params.set("sort", "completed_at");
+    params.set("sort", "timeline_at");
     params.set("dir", "asc");
   }
   const filters = parseFilters(params);
 
-  const [page, facets, tags, admins, savedViews, stats] = await Promise.all([
+  const [page, facets, tags, admins, savedViews, stats, stageCounts] = await Promise.all([
     fetchApplicants(ctx, filters),
     fetchFacets(ctx),
     fetchTags(ctx),
     fetchAdmins(ctx),
     fetchSavedViews(ctx),
     fetchOverview(ctx, 30),
+    fetchStageCounts(ctx),
   ]);
 
   if (page.schemaMissing) return <SetupNotice detail={page.error} />;
 
   return (
     <div className="space-y-4">
+      <AutoRefresh every={15_000} />
       <PageHeader
         title="Review queue"
         subtitle="Submitted applications, oldest first"
@@ -90,6 +94,7 @@ export default async function ReviewQueuePage({
           admins={admins}
           savedViews={savedViews}
           viewerId={ctx.userId}
+          stageCounts={stageCounts}
           error={page.error}
         />
       </Suspense>

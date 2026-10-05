@@ -1,0 +1,92 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="61 -15 419 463" width="419" height="463">
+  <defs>
+    <clipPath id="clip-planet">
+      <circle cx="345" cy="120" r="100"/>
+    </clipPath>
+  </defs>
+  <g id="planet" transform="matrix(1.35 0 0 1.35 -120.75 -42)">
+    <circle cx="345" cy="120" r="100" fill="#ff9933"/>
+    <g clip-path="url(#clip-planet)">
+      <rect id="r1" x="330" y="80" width="110" height="20" rx="10" fill="#ffbf80"/>
+      <rect id="r2" x="355" y="120" width="90" height="15" rx="6.5" fill="#ffbf80"/>
+      <rect id="r3" x="295" y="133" width="120" height="30" rx="15" fill="#ffbf80"/>
+      <rect id="r4" x="257" y="155" width="90" height="22" rx="11" fill="#ffbf80"/>
+      <rect id="r5" x="315" y="57" width="40" height="15" rx="7.5" fill="#cc6600" fill-opacity="0.3"/>
+      <rect id="r6" x="255" y="97" width="60" height="20" rx="10" fill="#cc6600" fill-opacity="0.3"/>
+      <rect id="r7" x="375" y="182" width="45" height="15" rx="7.5" fill="#cc6600" fill-opacity="0.3"/>
+      <rect id="r8" x="277" y="164" width="30" height="12" rx="6" fill="#ffffff" fill-opacity="0.4"/>
+      <path id="shad" d="M406.81 42.19A100 100 0 1 1 266.19 182.81A100 100 0 0 0 406.81 42.19Z" fill="#cc6600" fill-opacity="0.3"/>
+    </g>
+  </g>
+  <circle id="s1" cx="204" cy="54" r="4" fill="#ffffff"/>
+  <circle id="s2" cx="258" cy="342" r="4" fill="#ffffff"/>
+  <circle id="s3" cx="69" cy="122" r="4" fill="#ffffff"/>
+  <circle id="s4" cx="253" cy="444" r="4" fill="#ffffff"/>
+  <circle id="s5" cx="104" cy="375" r="4" fill="#ffffff"/>
+  <circle id="s6" cx="374" cy="304" r="4" fill="#ffffff"/>
+  <g id="tank" transform="rotate(-30 175 278)">
+    <rect x="115" y="218" width="120" height="120" rx="10" fill="#a6a6a6"/>
+  </g>
+  <g id="astro" transform="rotate(-30 401 300.5)">
+    <g id="dress">
+      <rect x="171" y="126" width="100" height="100" rx="10" fill="#f2f2f2"/>
+      <g id="c">
+        <rect x="194" y="151" width="55" height="30" rx="8" fill="#ffffff"/>
+        <circle id="btn1" cx="205" cy="167" r="6" fill="#4775ff"/>
+        <circle id="btn2" cx="221" cy="167" r="6" fill="#ffd147"/>
+        <circle id="btn3" cx="238" cy="167" r="6" fill="#ff6347"/>
+        <circle id="btn4" cx="223" cy="201" r="10" fill="#a6a6a6"/>
+      </g>
+    </g>
+    <g id="handl" transform="rotate(20 159.5 133)">
+      <rect x="122" y="120" width="75" height="26" rx="13" fill="#f2f2f2"/>
+      <g id="handl1" transform="rotate(-90 133.5 116)">
+        <rect x="105" y="103" width="57" height="26" rx="13" fill="#f2f2f2"/>
+        <g id="glovel" transform="rotate(90 160 116)">
+          <path d="M160 102A13 14 0 0 1 173 116V130H147V116A13 14 0 0 1 160 102Z" fill="#ffffff"/>
+          <circle id="thumbl" cx="173" cy="126" r="5" fill="#ffffff"/>
+          <rect id="b2" x="146" y="130" width="28" height="5.5" rx="2.75" fill="#ff6347"/>
+        </g>
+      </g>
+    </g>
+    <g id="handr" transform="rotate(-20 283.5 132)">
+      <rect x="246" y="119" width="75" height="26" rx="13" fill="#f2f2f2"/>
+      <g id="handr1" transform="rotate(90 309.5 114)">
+        <rect x="281" y="101" width="57" height="26" rx="13" fill="#f2f2f2"/>
+        <g id="glover" transform="rotate(-90 278 114)">
+          <path d="M278 100A13 14 0 0 1 291 114V128H265V114A13 14 0 0 1 278 100Z" fill="#ffffff"/>
+          <circle id="thumbr" cx="263" cy="124" r="5" fill="#ffffff"/>
+          <rect id="b1" x="264" y="128" width="28" height="5.5" rx="2.75" fill="#ff6347"/>
+        </g>
+      </g>
+    </g>
+    <g id="legl" transform="rotate(20 176 265)">
+      <rect x="156" y="215" width="40" height="100" fill="#f2f2f2"/>
+      <g id="bootl1">
+        <path d="M176 280A21.5 17.5 0 0 1 197.5 297.5V315H154.5V297.5A21.5 17.5 0 0 1 176 280Z" fill="#ffffff"/>
+        <rect id="bootl2" x="153" y="310" width="45" height="5" rx="2.5" fill="#ff6347"/>
+      </g>
+    </g>
+    <g id="legr" transform="rotate(-20 267 265)">
+      <rect x="247" y="215" width="40" height="100" fill="#f2f2f2"/>
+      <g id="bootr1">
+        <path d="M267 280A21.5 17.5 0 0 1 288.5 297.5V315H245.5V297.5A21.5 17.5 0 0 1 267 280Z" fill="#ffffff"/>
+        <rect id="bootr2" x="244" y="310" width="45" height="5" rx="2.5" fill="#ff6347"/>
+      </g>
+    </g>
+    <g id="pipe" transform="rotate(180 321 193)">
+      <path d="M310.09 153H361V233H331.91A50.91 50.91 0 0 1 281 182.09A29.09 29.09 0 0 1 310.09 153ZM310.09 163H361V223H331.91A40.91 40.91 0 0 1 291 182.09A19.09 19.09 0 0 1 310.09 163Z" fill-rule="evenodd" fill="#4775ff"/>
+      <g id="pipe2" transform="rotate(90 379 174)">
+        <path d="M398 129H400V219H358V169A40 40 0 0 1 398 129ZM398 139H400V219H368V169A30 30 0 0 1 398 139Z" fill-rule="evenodd" fill="#4775ff"/>
+        <circle id="pipe3" cx="410" cy="134" r="5" fill="#4775ff"/>
+      </g>
+    </g>
+    <g id="helmet">
+      <rect x="171" y="38" width="100" height="93" rx="45" ry="41.85" fill="#ffffff"/>
+      <g id="glass">
+        <path d="M221 45A40 30 0 0 1 261 75V85A26.67 20 0 0 1 234.33 105H207.67A26.67 20 0 0 1 181 85V75A40 30 0 0 1 221 45Z" fill="#666666"/>
+        <circle id="shine" cx="198.5" cy="67.5" r="7.5" fill="#a6a6a6" fill-opacity="0.7"/>
+      </g>
+    </g>
+  </g>
+</svg>

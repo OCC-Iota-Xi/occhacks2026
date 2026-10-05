@@ -7,45 +7,33 @@ type Supabase = Awaited<ReturnType<typeof createClient>>;
 type Table = "hackers" | HelperTable;
 
 /**
- * Claims the welcome-email slot for a row: flips `welcome_email_sent_at` from
- * null to now() and reports whether *this* call is the one that flipped it.
+ * Claims the welcome-email slot for the signed-in user's row: flips
+ * `welcome_email_sent_at` from null to now() and reports whether *this* call
+ * is the one that flipped it.
  *
- * The `.is(..., null)` filter makes the claim atomic, so a double-submit or a
- * later edit of the same form can't produce a second email.
+ * Goes through `claim_welcome_email` (migration 0025) rather than an update:
+ * the row belongs to the applicant, so a stamp they could write is a stamp
+ * they could clear. The function is atomic, so a double-submit or a later edit
+ * of the same form can't produce a second email, and it stops answering after
+ * three claims.
  */
-async function claim(
-  supabase: Supabase,
-  table: Table,
-  userId: string
-): Promise<boolean> {
-  // Every table here is keyed by `user_id` alone, so the claim can't reach past
-  // the one sign-up it's for — someone who registered and also volunteered has
-  // a separate slot in each table.
-  const { data, error } = await supabase
-    .from(table)
-    .update({ welcome_email_sent_at: new Date().toISOString() })
-    .eq("user_id", userId)
-    .is("welcome_email_sent_at", null)
-    .select("user_id");
+async function claim(supabase: Supabase, table: Table): Promise<boolean> {
+  // Each table is keyed by `user_id` alone and the function only touches the
+  // caller's row, so the claim can't reach past the one sign-up it's for —
+  // someone who registered and also volunteered has a separate slot in each.
+  const { data, error } = await supabase.rpc("claim_welcome_email", { p_table: table });
 
   if (error) {
     console.error(`[email] couldn't claim the welcome slot on ${table}:`, error);
     return false;
   }
 
-  return (data?.length ?? 0) > 0;
+  return data === true;
 }
 
 /** Hands the slot back so a later save retries — used when the send fails. */
-async function release(
-  supabase: Supabase,
-  table: Table,
-  userId: string
-): Promise<void> {
-  const { error } = await supabase
-    .from(table)
-    .update({ welcome_email_sent_at: null })
-    .eq("user_id", userId);
+async function release(supabase: Supabase, table: Table): Promise<void> {
+  const { error } = await supabase.rpc("release_welcome_email", { p_table: table });
 
   if (error) {
     console.error(`[email] couldn't release the welcome slot on ${table}:`, error);
@@ -55,25 +43,28 @@ async function release(
 async function sendWelcome(
   supabase: Supabase,
   table: Table,
-  userId: string,
   to: string,
   message: WelcomeEmail
 ): Promise<void> {
   if (!to) return;
-  if (!(await claim(supabase, table, userId))) return;
+  if (!(await claim(supabase, table))) return;
 
   const result = await sendEmail({ to, ...message });
-  if (!result.ok) await release(supabase, table, userId);
+  if (!result.ok) await release(supabase, table);
 }
 
-/** Welcomes a first-time hacker registration. No-op on later edits. */
+/**
+ * Welcomes a first-time hacker registration. No-op on later edits.
+ *
+ * `to` is the address the account signed in with — never one read from the
+ * form, which would let anyone point this at a stranger's inbox.
+ */
 export async function sendHackerWelcome(
   supabase: Supabase,
-  userId: string,
   to: string,
   fullName: string
 ): Promise<void> {
-  await sendWelcome(supabase, "hackers", userId, to, hackerWelcomeEmail(fullName));
+  await sendWelcome(supabase, "hackers", to, hackerWelcomeEmail(fullName));
 }
 
 /**
@@ -84,15 +75,8 @@ export async function sendHackerWelcome(
 export async function sendHelperWelcome(
   supabase: Supabase,
   role: HelperRole,
-  userId: string,
   to: string,
   fullName: string
 ): Promise<void> {
-  await sendWelcome(
-    supabase,
-    HELPER_TABLE[role],
-    userId,
-    to,
-    helperWelcomeEmail(fullName, role)
-  );
+  await sendWelcome(supabase, HELPER_TABLE[role], to, helperWelcomeEmail(fullName, role));
 }

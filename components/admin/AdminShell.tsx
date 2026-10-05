@@ -11,7 +11,6 @@ import {
   Mail,
   QrCode,
   Settings,
-  Tags,
   TrendingUp,
   Users,
 } from "lucide-react";
@@ -50,7 +49,6 @@ const NAV = [
   { href: "/admin/checkin", label: "Check-in", icon: QrCode },
   { href: "/admin/helpers", label: "Volunteers & mentors", icon: HeartHandshake },
   { href: "/admin/emails", label: "Emails", icon: Mail },
-  { href: "/admin/tags", label: "Tags", icon: Tags },
   { href: "/admin/settings", label: "Settings", icon: Settings },
 ];
 

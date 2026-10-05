@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180" width="180" height="180">
+  <defs>
+    <clipPath id="clip-pluto">
+      <circle cx="90" cy="90" r="90"/>
+    </clipPath>
+  </defs>
+  <g id="pluto">
+    <circle cx="90" cy="90" r="90" fill="#d9b391"/>
+    <g clip-path="url(#clip-pluto)">
+      <g id="patch" transform="rotate(-8 40 39)">
+        <rect x="-20" y="24" width="120" height="30" rx="15" fill="#784632" fill-opacity="0.3"/>
+      </g>
+      <circle id="crater1" cx="129" cy="63" r="11" fill="#784632" fill-opacity="0.35"/>
+      <circle id="crater2" cx="103" cy="35" r="7" fill="#784632" fill-opacity="0.35"/>
+      <g id="heart" transform="rotate(-45 90 126)">
+        <rect x="66" y="102" width="48" height="48" fill="#f4e3cd"/>
+        <circle cx="90" cy="102" r="24" fill="#f4e3cd"/>
+        <circle cx="114" cy="126" r="24" fill="#f4e3cd"/>
+      </g>
+      <g id="patch-2" transform="rotate(-8 220 39)">
+        <rect x="160" y="24" width="120" height="30" rx="15" fill="#784632" fill-opacity="0.3"/>
+      </g>
+      <rect id="glint" x="40" y="12" width="26" height="10" rx="5" fill="#ffffff" fill-opacity="0.4"/>
+      <path id="shade" d="M131.13 9.95A90 90 0 1 1 28.87 156.05A90 90 0 0 0 131.13 9.95Z" fill="#000000" fill-opacity="0.18"/>
+    </g>
+  </g>
+</svg>

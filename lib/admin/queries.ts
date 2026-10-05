@@ -2,6 +2,7 @@ import { cache } from "react";
 import type { PostgrestError, SupabaseClient } from "@supabase/supabase-js";
 import { requireAdmin } from "@/lib/admin/auth";
 import type { ApplicantFilters, Flag } from "@/lib/admin/filters";
+import { STAGES, STAGE_CONDITION, stageOf, type Stage } from "@/lib/admin/stage";
 import { dayEnd, dayStart } from "@/lib/admin/time";
 import type {
   ActivityEvent,
@@ -55,14 +56,23 @@ export interface AdminContext {
  */
 export const adminContext = cache(async (): Promise<AdminContext> => {
   const { supabase, user } = await requireAdmin();
+  const context = { supabase, userId: user.id, email: user.email ?? "" };
+
+  // The binding is a no-op after the first call and `last_seen_at` doesn't
+  // need to be exact, so an organizer clicking around pays for the round trip
+  // once a minute rather than before every page's queries. This is bookkeeping,
+  // not the gate: `requireAdmin` above and the RLS policies run every time.
+  const last = touched.get(user.id);
+  if (last && Date.now() - last < TOUCH_INTERVAL_MS) return { ...context, ready: true };
+
   const { error } = await supabase.rpc("admin_touch_self");
-  return {
-    supabase,
-    userId: user.id,
-    email: user.email ?? "",
-    ready: !isSchemaMissing(error),
-  };
+  if (!error) touched.set(user.id, Date.now());
+  return { ...context, ready: !isSchemaMissing(error) };
 });
+
+/** When this server last ran `admin_touch_self` for each organizer. */
+const touched = new Map<string, number>();
+const TOUCH_INTERVAL_MS = 60_000;
 
 /** ilike patterns are built by hand, so the needle can't carry PostgREST syntax. */
 function sanitize(term: string) {
@@ -101,6 +111,11 @@ function applyFilters<Q>(query: Q, f: ApplicantFilters, viewerId: string): Q {
     }
   }
 
+  // Several stages are an "either": each is its own combination of columns, so
+  // they go in as one OR. The conditions come from a fixed table, never the URL.
+  if (f.stage.length) {
+    q = q.or(f.stage.map((stage) => STAGE_CONDITION[stage as Stage]).join(","));
+  }
   if (f.status.length) q = q.in("status", f.status);
   if (f.attendance.length) q = q.in("attendance", f.attendance);
   if (f.school.length) q = q.in("school", f.school);
@@ -146,6 +161,23 @@ function applyFilters<Q>(query: Q, f: ApplicantFilters, viewerId: string): Q {
   return q as Q;
 }
 
+/**
+ * How many applicants are at each stage, for the tabs above the list. Counted
+ * here from three columns of every row rather than with ten count queries: the
+ * whole table is a few hundred rows.
+ */
+export async function fetchStageCounts(ctx: AdminContext): Promise<Record<Stage, number>> {
+  const counts = Object.fromEntries(STAGES.map((stage) => [stage, 0])) as Record<Stage, number>;
+  const { data } = await ctx.supabase
+    .from("admin_applicants")
+    .select("status, attendance, waivers_sent_at")
+    .limit(5000);
+  for (const row of (data ?? []) as Pick<Applicant, "status" | "attendance" | "waivers_sent_at">[]) {
+    counts[stageOf(row)] += 1;
+  }
+  return counts;
+}
+
 export interface ApplicantPage {
   rows: Applicant[];
   total: number;
@@ -161,15 +193,26 @@ export async function fetchApplicants(
 ): Promise<ApplicantPage> {
   const from = (filters.page - 1) * filters.per;
 
-  const base = ctx.supabase.from("admin_applicants").select("*", { count: "exact" });
-  const query = applyFilters(base, filters, ctx.userId)
-    // A second key on every sort: rows with equal timestamps would otherwise be
-    // free to swap places between pages and appear twice, or not at all.
-    .order(filters.sort, { ascending: filters.dir === "asc", nullsFirst: false })
-    .order("id", { ascending: true })
-    .range(from, from + filters.per - 1);
+  const run = (sort: string) => {
+    const base = ctx.supabase.from("admin_applicants").select("*", { count: "exact" });
+    return (
+      applyFilters(base, filters, ctx.userId)
+        // A second key on every sort: rows with equal timestamps would otherwise
+        // be free to swap places between pages and appear twice, or not at all.
+        .order(sort, { ascending: filters.dir === "asc", nullsFirst: false })
+        .order("id", { ascending: true })
+        .range(from, from + filters.per - 1)
+    );
+  };
 
-  const { data, error, count } = await query;
+  let { data, error, count } = await run(filters.sort);
+
+  // `timeline_at` arrives with migration 0023. Against a database that hasn't
+  // had it yet, fall back to the old order — drafts last — rather than showing
+  // an error where the list should be.
+  if (error?.code === "42703" && filters.sort === "timeline_at") {
+    ({ data, error, count } = await run("completed_at"));
+  }
 
   if (error) {
     return {
@@ -338,17 +381,6 @@ export async function fetchTags(ctx: AdminContext): Promise<Tag[]> {
     .order("name");
   if (error) return [];
   return (data ?? []) as Tag[];
-}
-
-/** Tag usage counts, for the tag admin page. */
-export async function fetchTagUsage(ctx: AdminContext): Promise<Record<string, number>> {
-  const { data, error } = await ctx.supabase.from("applicant_tags").select("tag_id");
-  if (error) return {};
-  const counts: Record<string, number> = {};
-  for (const row of (data ?? []) as { tag_id: string }[]) {
-    counts[row.tag_id] = (counts[row.tag_id] ?? 0) + 1;
-  }
-  return counts;
 }
 
 export async function fetchAdmins(ctx: AdminContext): Promise<AdminUser[]> {

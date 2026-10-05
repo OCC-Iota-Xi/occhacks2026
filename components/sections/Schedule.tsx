@@ -24,7 +24,6 @@ const DAYS = [
     label: "Day 2 (Oct 11th)",
     events: [
       { time: "9:00 am", name: "competition start" },
-      { time: "9:00 am", name: "breakfast" },
       { time: "11:00 am", name: "leetcode challenge" },
       { time: "12:00 pm", name: "lunch" },
       { time: "3:30 pm", name: "submission deadline" },

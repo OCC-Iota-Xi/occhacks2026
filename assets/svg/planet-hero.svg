@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="245 20 200 200" width="200" height="200">
+  <defs>
+    <clipPath id="clip-planet">
+      <circle cx="345" cy="120" r="100"/>
+    </clipPath>
+  </defs>
+  <g id="planet">
+    <circle cx="345" cy="120" r="100" fill="#ff9933"/>
+    <g clip-path="url(#clip-planet)">
+      <rect id="r1" x="330" y="80" width="110" height="20" rx="10" fill="#ffbf80"/>
+      <rect id="r2" x="355" y="120" width="90" height="15" rx="6.5" fill="#ffbf80"/>
+      <rect id="r3" x="295" y="133" width="120" height="30" rx="15" fill="#ffbf80"/>
+      <rect id="r4" x="257" y="155" width="90" height="22" rx="11" fill="#ffbf80"/>
+      <rect id="r5" x="315" y="57" width="40" height="15" rx="7.5" fill="#cc6600" fill-opacity="0.3"/>
+      <rect id="r6" x="255" y="97" width="60" height="20" rx="10" fill="#cc6600" fill-opacity="0.3"/>
+      <rect id="r7" x="375" y="182" width="45" height="15" rx="7.5" fill="#cc6600" fill-opacity="0.3"/>
+      <rect id="r8" x="277" y="164" width="30" height="12" rx="6" fill="#ffffff" fill-opacity="0.4"/>
+      <path id="shad" d="M406.81 42.19A100 100 0 1 1 266.19 182.81A100 100 0 0 0 406.81 42.19Z" fill="#cc6600" fill-opacity="0.3"/>
+    </g>
+  </g>
+</svg>

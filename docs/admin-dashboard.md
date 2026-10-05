@@ -28,6 +28,132 @@ contact list, campaigns and their per-recipient send log — plus the
 `admin_email_campaigns` view. Without it the Emails page shows its own setup
 notice and everything else keeps working.
 
+`0023_applicant_timeline.sql` adds `timeline_at` to the `admin_applicants` view
+— the submit time, or the start time for a draft — which is what the applicant
+list sorts by. Without it the list still loads, but drafts sort to the end.
+
+`0024_waivers_sent.sql` adds `application_status.waivers_sent_at`, the
+`mark_waivers_sent()` function the applicant's status page calls, and the
+`flag_waivers_to_review` column on `admin_applicants`. Without it the status
+page still loads, but the "i've sent my waivers" button fails and the "Waivers
+to review" view errors.
+
+`0025_welcome_email_guard.sql` isn't an admin migration, but it has to run with
+the rest: it moves the welcome-email claim into `claim_welcome_email()` and
+blocks direct writes to `welcome_email_sent_at`. Without it sign-ups still save
+and no welcome email is sent.
+
+## Stages (`/admin/applicants`)
+
+The list is organized by stage: one word for where an applicant is, read off
+status, attendance and `waivers_sent_at` by `stageOf` (`lib/admin/stage.ts`).
+The tabs are the stages in pipeline order with a count on each, and `stage=` is
+a URL filter like any other.
+
+| Stage | Stored as |
+| --- | --- |
+| Draft, Submitted, In review, Waitlisted, Rejected, Withdrawn | `status` of the same name |
+| Accepted, waivers due | `status = accepted`, `attendance = pending`, `waivers_sent_at` null |
+| Waivers to review | same, `waivers_sent_at` set |
+| Confirmed | `status = accepted`, `attendance = confirmed` |
+| Declined | `status = accepted`, `attendance = declined` |
+
+The pipeline has an order, and each step has one owner:
+
+| Step | Who | How |
+| --- | --- | --- |
+| not submitted → under review | applicant | submits the form (`hackers.completed_at`) |
+| under review → accepted | organizer | Accept |
+| accepted → waivers sent | applicant | "i've sent my waivers" (`mark_waivers_sent()`) |
+| waivers sent → confirmed | organizer | Confirm |
+
+The organizer's two steps can't skip it: a draft can't be accepted, and only an
+accepted applicant can be confirmed. Confirm doesn't wait for "waivers sent",
+because people email the forms and never press the button.
+
+Each row's stage pill is a menu of the moves that make sense from there. The
+button beside it appears only when the next step is an organizer's: Accept on a
+submitted application, Confirm once waivers are marked sent. A draft has no
+menu. A move from a row
+is immediate, with no dialog. Selecting rows and using Move to does the same for
+many, behind a dialog that says what they will each see. Nobody is emailed
+either way.
+
+Every move goes through `setStage`. On a mixed selection it leaves alone whoever
+a move doesn't apply to rather than failing: Accept skips drafts and anyone
+already accepted (so it cannot unconfirm them), Confirm skips anyone not
+accepted, and Back to waivers due (unconfirm, or return a bad
+packet; it clears `waivers_sent_at`) only applies to accepted applicants.
+
+Filters for anything other than stage (school, shirt, class, problems, reviewer,
+score, dates), the column picker and Save this view are behind the Filters
+button.
+
+## Waivers
+
+An accepted applicant's `/status` page walks three steps:
+
+| Applicant sees | Stored as | Who moves it |
+| --- | --- | --- |
+| accepted, with the packet and where to email it | `status = accepted`, `waivers_sent_at` null | organizer accepts |
+| waivers sent | `waivers_sent_at` set | applicant presses "i've sent my waivers" |
+| confirmed, with their check-in QR | `attendance = confirmed` | organizer confirms them |
+| checked in | `checked_in_at` set | organizer scans or checks them in |
+
+To confirm someone, open the Waivers to review tab on the applicant list and
+press Confirm on their row, or select several and use Move to. Mark reviewed, on
+the Waivers row of a profile, does the same. `waivers_sent_at` is the applicant's word, not
+proof — check the inbox before confirming.
+
+None of these is a stored value. `status` and `attendance` are text columns
+with check constraints, and the stage is read off them and the timestamps by
+`applicantStage` (`lib/applicant-stage.ts`), which the status page and the
+profile's "Applicant sees" row both use.
+
+Send back, next to Mark reviewed, clears `waivers_sent_at`: the applicant's page
+returns to accepted with the packet and the button. Nobody is emailed. Only an
+organizer can write `attendance`, so only an organizer can produce the confirmed
+page; the applicant's sole write is `mark_waivers_sent()`.
+
+Waitlisted, rejected and withdrawn are not shown to applicants: all three read
+as "under review" on `/status`.
+
+## Check-in (`/admin/checkin`)
+
+The desk is open both days, October 10 and 11, but a person checks in once and
+that covers the whole event: `checked_in_at` is the one record. Someone checked
+in on Saturday shows as already checked in if their code is scanned on Sunday,
+and once checked in their status page drops the QR.
+
+A confirmed applicant's `/status` page shows a QR, drawn on the server
+(`components/CheckInQr.tsx`). It encodes `https://occhacks.com/admin/checkin?code=<user id>`
+(`lib/checkin.ts`), and under it is a backup code: the first eight characters of
+that id.
+
+Ways to check someone in, each a fallback for the one before:
+
+1. **Scan QR** on the check-in page. Uses the browser's `BarcodeDetector` where
+   it reads QR, and jsQR (bundled, no worker or wasm) everywhere else.
+2. **The phone's own camera.** It opens the link in the code, which lands on the
+   check-in page leading with that person. Nothing is written until Check in is
+   tapped.
+3. **Search** by name, email, school, student ID, or backup code. The list is
+   already on the page, so this needs no network.
+
+All three end in the `checkIn` action, which is safe to repeat: a second scan
+reports "already checked in" and leaves the original time alone. Anyone who
+isn't accepted and confirmed is refused, with a Check in anyway override for a
+waiver handed over at the desk.
+
+If a check-in gets no answer within 10 seconds it is saved in that browser's
+localStorage (`occhacks:checkin-queue`) and retried every 5 seconds until it
+lands. Only people the loaded list shows as confirmed, or an explicit override,
+are queued. The queue lives on the device that scanned: keep that page open
+until the banner clears.
+
+The camera only opens on https (or localhost) and needs camera permission for
+the site.
+
 ## Emails (`/admin/emails`)
 
 Organizer mail through Resend. The composer picks audiences (hackers by

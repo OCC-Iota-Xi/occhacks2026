@@ -9,6 +9,7 @@ import { useToast } from "@/components/admin/Toast";
 import { Button } from "@/components/ui/button";
 import {
   assignReviewer,
+  clearWaiversSent,
   deleteApplicants,
   setAttendance,
   setCheckedIn,
@@ -16,6 +17,7 @@ import {
   type ActionResult,
 } from "@/lib/admin/actions";
 import { displayName, formatDateTime } from "@/lib/admin/format";
+import { APPLICANT_STAGE_LABEL, applicantStage } from "@/lib/applicant-stage";
 import {
   ATTENDANCE,
   ATTENDANCE_LABEL,
@@ -102,7 +104,25 @@ export default function DecisionPanel({
       done: () => router.replace("/admin/applicants"),
     });
 
+  // A packet that came in unsigned or incomplete goes back to the applicant:
+  // their status page returns to "accepted" with the packet and the button.
+  const sendBack = () =>
+    setConfirm({
+      title: "Send the waivers back?",
+      body: `${displayName(applicant)}'s status page goes from "under review" back to "accepted", with the waiver packet and the "i've sent my waivers" button again. Nobody is emailed, so tell them what was wrong.`,
+      label: "Send back",
+      success: "Waivers sent back",
+      run: () => clearWaiversSent(applicant.id),
+    });
+
   const assignee = admins.find((admin) => admin.user_id === applicant.assigned_to);
+  const stage = applicantStage({
+    completed: Boolean(applicant.completed_at),
+    status: applicant.status,
+    attendance: applicant.attendance,
+    waiversSent: Boolean(applicant.waivers_sent_at),
+    checkedIn: applicant.checked_in,
+  });
 
   return (
     <div className="space-y-3">
@@ -157,6 +177,11 @@ export default function DecisionPanel({
       </div>
 
       <div className="grid gap-2 text-xs">
+        {/* The same reading of these fields that their status page makes. */}
+        <Row label="Applicant sees">
+          <span className="text-right text-foreground">{APPLICANT_STAGE_LABEL[stage]}</span>
+        </Row>
+
         <Row label="Attendance">
           <ActionMenu
             trigger={
@@ -185,6 +210,43 @@ export default function DecisionPanel({
             ))}
           </ActionMenu>
         </Row>
+
+        {applicant.status === "accepted" && (
+          <Row label="Waivers">
+            {applicant.attendance === "confirmed" ? (
+              <span className="rounded-md border border-emerald-400/30 bg-emerald-400/10 px-1.5 py-0.5 text-emerald-200">
+                Reviewed {formatDateTime(applicant.confirmed_at)}
+              </span>
+            ) : (
+              <span className="flex flex-wrap items-center justify-end gap-2">
+                <span className="text-muted-foreground">
+                  {applicant.waivers_sent_at
+                    ? `Sent ${formatDateTime(applicant.waivers_sent_at)}`
+                    : "Not marked sent"}
+                </span>
+                <Button
+                  size="xs"
+                  variant={applicant.waivers_sent_at ? "default" : "outline"}
+                  disabled={pending}
+                  onClick={() =>
+                    run(
+                      () => setAttendance([applicant.id], "confirmed"),
+                      "Waivers reviewed, spot confirmed"
+                    )
+                  }
+                >
+                  <Check className="size-3" />
+                  Mark reviewed
+                </Button>
+                {applicant.waivers_sent_at && (
+                  <Button size="xs" variant="ghost" disabled={pending} onClick={sendBack}>
+                    Send back
+                  </Button>
+                )}
+              </span>
+            )}
+          </Row>
+        )}
 
         <Row label="Check-in">
           <button

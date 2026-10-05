@@ -75,11 +75,7 @@ export default function AccountSidebar({
             <SidebarMenu>
               {NAV.map((item) => (
                 <SidebarMenuItem key={item.key}>
-                  <SidebarMenuButton
-                    asChild
-                    isActive={item.key === active}
-                    tooltip={item.label}
-                  >
+                  <SidebarMenuButton asChild isActive={item.key === active} tooltip={item.label}>
                     <Link href={item.href}>
                       <item.icon />
                       <span>{item.label}</span>

@@ -93,6 +93,8 @@ export interface Applicant {
   completed_at: string | null;
   created_at: string;
   updated_at: string;
+  /** `completed_at`, or `created_at` for a draft — what the list sorts by. */
+  timeline_at: string;
   status: Status;
   attendance: Attendance;
   assigned_to: string | null;
@@ -102,6 +104,8 @@ export interface Applicant {
   confirmed_at: string | null;
   checked_in_at: string | null;
   checked_in: boolean;
+  /** When the applicant said they emailed their signed waivers (migration 0024). */
+  waivers_sent_at: string | null;
   review_count: number;
   avg_score: number | null;
   tags: string[];
@@ -112,6 +116,8 @@ export interface Applicant {
   flag_unreviewed: boolean;
   flag_unconfirmed: boolean;
   flag_stale_draft: boolean;
+  /** Accepted, says the waivers are sent, attendance still pending. */
+  flag_waivers_to_review: boolean;
 }
 
 export interface Review {
