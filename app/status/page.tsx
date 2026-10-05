@@ -9,7 +9,7 @@ import CheckInQr from "@/components/CheckInQr";
 import WaiversSentButton from "@/components/WaiversSentButton";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { applicantStage, type ApplicantStage } from "@/lib/applicant-stage";
-import { EVENT, MEDICAL_NOTE, WAIVER_REPLY_TO } from "@/lib/email/templates";
+import { EVENT, MEDICAL_NOTE, WAIVER_DUE_DAY, WAIVER_REPLY_TO } from "@/lib/email/templates";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
@@ -58,7 +58,7 @@ const VIEWS: Record<ApplicantStage, View> = {
     outro: true,
     body: [
       "Congratulations. You've been accepted to OCC Hacks 2026, and we're excited to have you join us.",
-      "To confirm your spot, sign the waiver packet and email your signed copy to both organizers below by October 5 at 11:59 PM. Once we have your forms, your spot is officially confirmed.",
+      `To confirm your spot, sign the waiver packet and email your signed copy to both organizers below by ${WAIVER_DUE_DAY} at 11:59 PM. Once we have your forms, your spot is officially confirmed.`,
       "Unconfirmed spots will be reallocated to waitlisted participants, so be sure to send them over promptly to guarantee your entry!",
     ],
   },
