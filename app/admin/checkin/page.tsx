@@ -1,5 +1,6 @@
 import CheckInBoard, { type Arrival } from "@/components/admin/CheckInBoard";
 import SetupNotice from "@/components/admin/SetupNotice";
+import AutoRefresh from "@/components/AutoRefresh";
 import { PageHeader, StatCard } from "@/components/admin/ui";
 import { displayName, formatNumber, formatPercent } from "@/lib/admin/format";
 import { adminContext } from "@/lib/admin/queries";
@@ -79,6 +80,8 @@ export default async function CheckInPage({
 
   return (
     <div className="space-y-4">
+      {/* Two desks stay in step: each sees who the other has checked in. */}
+      <AutoRefresh />
       <PageHeader
         title="Check-in"
         subtitle="Confirmed attendees. Scan their QR or search, then check them in."

@@ -23,7 +23,10 @@ export async function markWaiversSent(): Promise<WaiversSentState> {
   } = await supabase.auth.getUser();
   if (!user) return { ok: false, message: "Your session ended. Sign in again and retry." };
 
-  const { error } = await supabase.rpc("mark_waivers_sent");
+  // The function answers whether it changed anything. "No" is not an error to
+  // the database, but it is to the person who pressed the button: they aren't
+  // accepted (or no longer are), or it was already recorded.
+  const { data: changed, error } = await supabase.rpc("mark_waivers_sent");
   if (error) {
     return {
       ok: false,
@@ -31,6 +34,14 @@ export async function markWaiversSent(): Promise<WaiversSentState> {
     };
   }
 
+  // Either way the page is re-read, so it shows where they really stand.
   revalidatePath("/status");
+  if (changed === false) {
+    return {
+      ok: false,
+      message:
+        "Nothing was updated: this only applies once your application is accepted, and only once. If this page still looks out of date, reload it.",
+    };
+  }
   return { ok: true };
 }

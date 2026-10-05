@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { Download } from "lucide-react";
 import AccountBackdrop from "@/components/AccountBackdrop";
 import AccountSidebar from "@/components/AccountSidebar";
+import AutoRefresh from "@/components/AutoRefresh";
 import CheckInQr from "@/components/CheckInQr";
 import WaiversSentButton from "@/components/WaiversSentButton";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
@@ -83,9 +84,10 @@ const VIEWS: Record<ApplicantStage, View> = {
 };
 
 /**
- * Temporary: every state the page can show, listed in the sidebar so each one
- * can be looked at without the database row to match. `?preview=<key>` renders
- * that state in place of the caller's own. Development only.
+ * Every state the page can show, so each one can be looked at without the
+ * database row to match: `?preview=<key>` renders that state in place of the
+ * caller's own. Development only, and not linked from anywhere — the page
+ * otherwise follows the applicant's real stage on its own.
  */
 const PREVIEWS = [
   { key: "not-submitted", label: "not submitted", view: VIEWS.not_submitted },
@@ -181,10 +183,6 @@ export default async function StatusPage({
         userId={user?.id}
         email={user?.email}
         name={hacker?.full_name}
-        statusPreviews={
-          previewing ? PREVIEWS.map(({ key, label }) => ({ key, label })) : undefined
-        }
-        activePreview={preview?.key}
       />
       <SidebarInset className="relative min-h-screen overflow-hidden">
         <header className="sticky top-0 z-50 flex items-center border-b border-border bg-background/80 px-4 py-3 backdrop-blur-md md:hidden">
@@ -192,6 +190,8 @@ export default async function StatusPage({
         </header>
 
         <AccountBackdrop />
+        {/* A preview is fixed by its URL; there's nothing for it to catch up to. */}
+        {!preview && <AutoRefresh />}
 
         <section className="relative z-10 mx-auto w-full max-w-2xl px-6 py-16 sm:px-12">
           <h1 className="text-center font-display text-4xl tracking-tight sm:text-5xl">
@@ -246,7 +246,9 @@ export default async function StatusPage({
                   Once it&apos;s sent, let us know with the button below.
                 </p>
 
-                <WaiversSentButton />
+                <WaiversSentButton
+                  previewNext={preview ? "/status?preview=waivers-sent" : undefined}
+                />
               </>
             )}
 

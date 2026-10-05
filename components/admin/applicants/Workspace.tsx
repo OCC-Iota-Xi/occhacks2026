@@ -180,10 +180,17 @@ export default function ApplicantsWorkspace({
     [pathname, router]
   );
 
+  // The query the search box itself last sent to the URL, until it lands.
+  const [sent, setSent] = useState<string | null>(null);
+
   // Debounced search: one query when the typing stops, not one per keystroke.
   useEffect(() => {
     if (term === filters.q) return;
-    const timer = setTimeout(() => push(setParam(params, "q", term.trim())), 300);
+    const timer = setTimeout(() => {
+      const q = term.trim();
+      setSent(q);
+      push(setParam(params, "q", q));
+    }, 300);
     return () => clearTimeout(timer);
     // `params` changes identity on every navigation; depending on it here would
     // re-arm the timer mid-typing.
@@ -198,7 +205,10 @@ export default function ApplicantsWorkspace({
   const [lastQuery, setLastQuery] = useState(filters.q);
   if (lastQuery !== filters.q) {
     setLastQuery(filters.q);
-    setTerm(filters.q);
+    setSent(null);
+    // The box's own search landing is not news to the box: by then there may
+    // be more typed, and writing the older query back would eat those letters.
+    if (filters.q !== sent) setTerm(filters.q);
   }
 
   const paramsKey = params.toString();

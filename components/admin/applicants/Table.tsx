@@ -17,12 +17,15 @@ import { Button } from "@/components/ui/button";
 import { displayName, formatDate, initials } from "@/lib/admin/format";
 import type { ApplicantFilters } from "@/lib/admin/filters";
 import {
+  EXITS,
   MOVE_LABEL,
+  PIPELINE,
   STAGE_LABEL,
-  movesFrom,
+  moveTo,
   nextMove,
   stageOf,
   type Move,
+  type Stage,
 } from "@/lib/admin/stage";
 import type { Applicant } from "@/lib/admin/types";
 import { cn } from "@/lib/utils";
@@ -197,9 +200,11 @@ export default function ApplicantTable({
 }
 
 /**
- * Where someone is, and the way to change it. The pill opens every move that
- * makes sense from here; the button beside it is the one most rows want next,
- * so working down a tab is one click a row.
+ * Where someone is, and the way to change it. The pill opens the pipeline in
+ * order — the same list in the same place on every row, with this person's
+ * stage ticked — and under it the ways out. The button beside it is the next
+ * step when that step is an organizer's, so working down a tab is one click a
+ * row.
  */
 function StageCell({
   applicant,
@@ -212,16 +217,52 @@ function StageCell({
 }) {
   const stage = stageOf(applicant);
   const next = nextMove(stage);
-  const moves = movesFrom(stage);
 
   // A draft has nothing to move to until the applicant submits it.
-  if (!moves.length) return <StageBadge stage={stage} />;
+  if (stage === "draft") return <StageBadge stage={stage} />;
+
+  const option = (to: Stage) => {
+    const move = moveTo(stage, to);
+    if (move) {
+      return (
+        <MenuItem
+          key={to}
+          disabled={moving}
+          destructive={to === "rejected"}
+          onSelect={() => onMove(applicant, move)}
+        >
+          <span className="size-3.5 shrink-0" />
+          {STAGE_LABEL[to]}
+        </MenuItem>
+      );
+    }
+    // Where they are now, or a step that isn't ours to take: shown so the list
+    // reads the same on every row, but not a button.
+    const current = to === stage;
+    return (
+      <div
+        key={to}
+        aria-current={current ? "step" : undefined}
+        className={cn(
+          "flex items-center gap-2 px-2.5 py-1.5 text-xs",
+          current ? "text-foreground" : "text-muted-foreground/60"
+        )}
+      >
+        <span className="flex size-3.5 shrink-0 items-center justify-center">
+          {current && <Check className="size-3.5 text-[var(--ring)]" />}
+        </span>
+        <span className="flex-1">{STAGE_LABEL[to]}</span>
+        {!current && to === "waivers_review" && <span>applicant</span>}
+        {!current && to === "confirmed" && <span>accept first</span>}
+      </div>
+    );
+  };
 
   return (
     <div className="flex items-center gap-1.5">
       <ActionMenu
         align="start"
-        width="w-48"
+        width="w-60"
         trigger={
           <button
             type="button"
@@ -237,16 +278,9 @@ function StageCell({
         }
       >
         <MenuLabel>Move to</MenuLabel>
-        {moves.map((move) => (
-          <MenuItem
-            key={move}
-            disabled={moving}
-            destructive={move === "rejected"}
-            onSelect={() => onMove(applicant, move)}
-          >
-            {MOVE_LABEL[move]}
-          </MenuItem>
-        ))}
+        {PIPELINE.map(option)}
+        <div className="my-1 border-t border-border" />
+        {EXITS.map(option)}
       </ActionMenu>
 
       {next && (

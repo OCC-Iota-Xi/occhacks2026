@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import Link from "next/link";
 import ApplicantsWorkspace from "@/components/admin/applicants/Workspace";
 import SetupNotice from "@/components/admin/SetupNotice";
+import AutoRefresh from "@/components/AutoRefresh";
 import { PageHeader, StatCard } from "@/components/admin/ui";
 import { parseFilters, toSearchParams } from "@/lib/admin/filters";
 import { formatNumber } from "@/lib/admin/format";
@@ -56,6 +57,7 @@ export default async function ReviewQueuePage({
 
   return (
     <div className="space-y-4">
+      <AutoRefresh every={15_000} />
       <PageHeader
         title="Review queue"
         subtitle="Submitted applications, oldest first"

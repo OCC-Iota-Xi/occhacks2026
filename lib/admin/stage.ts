@@ -77,13 +77,14 @@ export const STAGE_CONDITION: Record<Stage, string> = {
  * back — and only touches people who are already accepted.
  */
 export const MOVES = [
+  // In the order of the pipeline, then the ways out of it.
+  "submitted",
   "accepted",
-  "confirmed",
   "waivers_due",
+  "confirmed",
   "waitlisted",
   "rejected",
   "withdrawn",
-  "submitted",
 ] as const;
 export type Move = (typeof MOVES)[number];
 
@@ -122,24 +123,40 @@ export const MOVE_EFFECT: Record<Move, string> = {
   submitted: "Clears the decision and puts them back in the pile to decide.",
 };
 
+/** The path an applicant travels, in order. The stage menu lists it this way. */
+export const PIPELINE: Stage[] = ["submitted", "accepted", "waivers_review", "confirmed"];
+
+/** The ways off the path, listed under it. */
+export const EXITS: Stage[] = ["waitlisted", "rejected", "withdrawn"];
+
 /**
- * The moves on offer from a stage. They follow the order of the pipeline: a
- * draft has nothing to decide until it's submitted, accepting comes before
- * confirming, and confirming is only for someone already accepted.
+ * The move that takes someone from one stage to another, or null when it isn't
+ * an organizer's to make. That's the order of the pipeline again: a draft has
+ * nothing to decide until it's submitted, "waivers sent" is the applicant's own
+ * button, and confirming is only for someone already accepted.
  */
-export function movesFrom(stage: Stage): Move[] {
-  if (stage === "draft") return [];
+export function moveTo(from: Stage, to: Stage): Move | null {
+  if (from === to || from === "draft") return null;
   const accepted =
-    stage === "accepted" ||
-    stage === "waivers_review" ||
-    stage === "confirmed" ||
-    stage === "declined";
-  return MOVES.filter((move) => {
-    if (move === "accepted") return !accepted;
-    if (move === "confirmed") return accepted && stage !== "confirmed";
-    if (move === "waivers_due") return accepted && stage !== "accepted";
-    return move !== stage;
-  });
+    from === "accepted" ||
+    from === "waivers_review" ||
+    from === "confirmed" ||
+    from === "declined";
+  switch (to) {
+    case "submitted":
+    case "waitlisted":
+    case "rejected":
+    case "withdrawn":
+      return to;
+    case "accepted":
+      // For someone already past it, going back here is the deliberate step
+      // back: unconfirm, or return a bad packet.
+      return accepted ? "waivers_due" : "accepted";
+    case "confirmed":
+      return accepted ? "confirmed" : null;
+    default:
+      return null;
+  }
 }
 
 /**

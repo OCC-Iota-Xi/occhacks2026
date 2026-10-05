@@ -56,14 +56,23 @@ export interface AdminContext {
  */
 export const adminContext = cache(async (): Promise<AdminContext> => {
   const { supabase, user } = await requireAdmin();
+  const context = { supabase, userId: user.id, email: user.email ?? "" };
+
+  // The binding is a no-op after the first call and `last_seen_at` doesn't
+  // need to be exact, so an organizer clicking around pays for the round trip
+  // once a minute rather than before every page's queries. This is bookkeeping,
+  // not the gate: `requireAdmin` above and the RLS policies run every time.
+  const last = touched.get(user.id);
+  if (last && Date.now() - last < TOUCH_INTERVAL_MS) return { ...context, ready: true };
+
   const { error } = await supabase.rpc("admin_touch_self");
-  return {
-    supabase,
-    userId: user.id,
-    email: user.email ?? "",
-    ready: !isSchemaMissing(error),
-  };
+  if (!error) touched.set(user.id, Date.now());
+  return { ...context, ready: !isSchemaMissing(error) };
 });
+
+/** When this server last ran `admin_touch_self` for each organizer. */
+const touched = new Map<string, number>();
+const TOUCH_INTERVAL_MS = 60_000;
 
 /** ilike patterns are built by hand, so the needle can't carry PostgREST syntax. */
 function sanitize(term: string) {
