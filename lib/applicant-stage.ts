@@ -34,7 +34,8 @@ export const APPLICANT_STAGE_LABEL: Record<ApplicantStage, string> = {
  * confirmed, which is attendance and only an organizer can set. Confirmed wins
  * over the waiver timestamp, so someone whose emailed waivers were reviewed
  * without them ever pressing the button still lands on "you're in". Checked in
- * wins over everything, including a desk override for someone never confirmed.
+ * (on either day) wins over everything, including a desk override for someone
+ * never confirmed.
  */
 export function applicantStage(row: {
   completed: boolean;

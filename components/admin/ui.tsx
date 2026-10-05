@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { ComponentProps, ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { formatDelta } from "@/lib/admin/format";
+import { STAGE_LABEL, type Stage } from "@/lib/admin/stage";
 import {
   ATTENDANCE_LABEL,
   STATUS_LABEL,
@@ -172,6 +173,37 @@ export function StatusBadge({ status, className }: { status: Status; className?:
       )}
     >
       {STATUS_LABEL[status] ?? status}
+    </span>
+  );
+}
+
+/**
+ * Gold is spent on one stage: waivers waiting on an organizer. It's the only
+ * stage where the next move is ours, and the accent is how the list says so.
+ */
+export const STAGE_STYLE: Record<Stage, string> = {
+  draft: "border-border bg-muted/60 text-muted-foreground",
+  submitted: "border-sky-400/20 bg-sky-400/10 text-sky-200",
+  in_review: "border-violet-400/20 bg-violet-400/10 text-violet-200",
+  accepted: "border-emerald-400/25 text-emerald-200",
+  waivers_review: "border-[var(--ring)]/50 bg-[var(--ring)]/10 text-[var(--ring)]",
+  confirmed: "border-emerald-400/30 bg-emerald-400/15 text-emerald-200",
+  declined: "border-border bg-muted/60 text-muted-foreground",
+  waitlisted: "border-amber-400/25 bg-amber-400/10 text-amber-200",
+  rejected: "border-rose-400/25 bg-rose-400/10 text-rose-200",
+  withdrawn: "border-border bg-muted/60 text-muted-foreground",
+};
+
+export function StageBadge({ stage, className }: { stage: Stage; className?: string }) {
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center rounded-md border px-1.5 py-0.5 text-xs whitespace-nowrap",
+        STAGE_STYLE[stage],
+        className
+      )}
+    >
+      {STAGE_LABEL[stage]}
     </span>
   );
 }

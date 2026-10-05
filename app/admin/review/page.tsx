@@ -12,6 +12,7 @@ import {
   fetchFacets,
   fetchOverview,
   fetchSavedViews,
+  fetchStageCounts,
   fetchTags,
 } from "@/lib/admin/queries";
 
@@ -41,13 +42,14 @@ export default async function ReviewQueuePage({
   }
   const filters = parseFilters(params);
 
-  const [page, facets, tags, admins, savedViews, stats] = await Promise.all([
+  const [page, facets, tags, admins, savedViews, stats, stageCounts] = await Promise.all([
     fetchApplicants(ctx, filters),
     fetchFacets(ctx),
     fetchTags(ctx),
     fetchAdmins(ctx),
     fetchSavedViews(ctx),
     fetchOverview(ctx, 30),
+    fetchStageCounts(ctx),
   ]);
 
   if (page.schemaMissing) return <SetupNotice detail={page.error} />;
@@ -90,6 +92,7 @@ export default async function ReviewQueuePage({
           admins={admins}
           savedViews={savedViews}
           viewerId={ctx.userId}
+          stageCounts={stageCounts}
           error={page.error}
         />
       </Suspense>

@@ -10,6 +10,7 @@ import {
   fetchApplicants,
   fetchFacets,
   fetchSavedViews,
+  fetchStageCounts,
   fetchTags,
 } from "@/lib/admin/queries";
 
@@ -26,12 +27,13 @@ export default async function ApplicantsPage({
 
   // The page of rows is the only query that depends on the filters; the rest
   // are small, cacheable lists that populate the menus.
-  const [page, facets, tags, admins, savedViews] = await Promise.all([
+  const [page, facets, tags, admins, savedViews, stageCounts] = await Promise.all([
     fetchApplicants(ctx, filters),
     fetchFacets(ctx),
     fetchTags(ctx),
     fetchAdmins(ctx),
     fetchSavedViews(ctx),
+    fetchStageCounts(ctx),
   ]);
 
   if (page.schemaMissing) return <SetupNotice detail={page.error} />;
@@ -52,6 +54,7 @@ export default async function ApplicantsPage({
           admins={admins}
           savedViews={savedViews}
           viewerId={ctx.userId}
+          stageCounts={stageCounts}
           error={page.error}
         />
       </Suspense>

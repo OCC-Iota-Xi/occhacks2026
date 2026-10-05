@@ -63,12 +63,22 @@ const VIEWS: Record<ApplicantStage, View> = {
     qr: true,
     body: "Your waivers are reviewed and your spot is confirmed. You're in, see you there.",
   },
+  // Day 1 of two. The same code checks them in again tomorrow, so it stays up.
   checked_in: {
     label: "checked in",
     accent: true,
     details: true,
-    body: "You're checked in. Welcome to OCC Hacks.",
+    qr: true,
+    body: "You're checked in for day 1. Welcome to OCC Hacks. Keep this code: you'll show it again to check in on day 2.",
   },
+};
+
+/** Checked in on the second day: nothing left to scan. */
+const CHECKED_IN_DAY_2: View = {
+  label: "checked in",
+  accent: true,
+  details: true,
+  body: "You're checked in for day 2. Welcome back.",
 };
 
 /**
@@ -82,7 +92,8 @@ const PREVIEWS = [
   { key: "accepted", label: "accepted", view: VIEWS.accepted },
   { key: "waivers-sent", label: "waivers sent", view: VIEWS.waivers_review },
   { key: "confirmed", label: "confirmed", view: VIEWS.confirmed },
-  { key: "checked-in", label: "checked in", view: VIEWS.checked_in },
+  { key: "checked-in", label: "checked in, day 1", view: VIEWS.checked_in },
+  { key: "checked-in-day-2", label: "checked in, day 2", view: CHECKED_IN_DAY_2 },
   // Preview only: a rejected applicant still reads as "under review" above.
   {
     key: "rejected",
@@ -99,15 +110,17 @@ interface Decision {
   attendance: string;
   waivers_sent_at?: string | null;
   checked_in_at?: string | null;
+  checked_in_day2_at?: string | null;
 }
 
 /** Stands in for the caller's id when a preview is drawn without a session. */
 const PREVIEW_USER_ID = "00000000-0000-4000-8000-000000000000";
 
 /**
- * `waivers_sent_at` arrives with migration 0024. Against a database that hasn't
- * had it yet, read the decision without it rather than losing the whole row —
- * an accepted applicant would otherwise be told they're still under review.
+ * `waivers_sent_at` arrives with migration 0024 and `checked_in_day2_at` with
+ * 0026. Against a database that hasn't had one yet, read the decision without
+ * it rather than losing the whole row — an accepted applicant would otherwise
+ * be told they're still under review.
  */
 async function readDecision(
   supabase: Awaited<ReturnType<typeof createClient>>,
@@ -120,9 +133,16 @@ async function readDecision(
       .eq("user_id", userId)
       .maybeSingle<Decision>();
 
-  const first = await read("status, attendance, waivers_sent_at, checked_in_at");
-  if (first.error?.code !== "42703") return first.data;
-  return (await read("status, attendance, checked_in_at")).data;
+  const attempts = [
+    "status, attendance, checked_in_at, waivers_sent_at, checked_in_day2_at",
+    "status, attendance, checked_in_at, waivers_sent_at",
+    "status, attendance, checked_in_at",
+  ];
+  for (const columns of attempts) {
+    const { data, error } = await read(columns);
+    if (error?.code !== "42703") return data;
+  }
+  return null;
 }
 
 export default async function StatusPage({
@@ -154,17 +174,16 @@ export default async function StatusPage({
       ])
     : [{ data: null }, null];
 
+  const stage = applicantStage({
+    completed: !!hacker?.completed_at,
+    status: decision?.status,
+    attendance: decision?.attendance,
+    waiversSent: !!decision?.waivers_sent_at,
+    checkedIn: !!decision?.checked_in_at || !!decision?.checked_in_day2_at,
+  });
   const view: View =
     preview?.view ??
-    VIEWS[
-      applicantStage({
-        completed: !!hacker?.completed_at,
-        status: decision?.status,
-        attendance: decision?.attendance,
-        waiversSent: !!decision?.waivers_sent_at,
-        checkedIn: !!decision?.checked_in_at,
-      })
-    ];
+    (stage === "checked_in" && decision?.checked_in_day2_at ? CHECKED_IN_DAY_2 : VIEWS[stage]);
 
   return (
     <SidebarProvider>

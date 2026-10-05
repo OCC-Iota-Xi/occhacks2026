@@ -43,6 +43,40 @@ the rest: it moves the welcome-email claim into `claim_welcome_email()` and
 blocks direct writes to `welcome_email_sent_at`. Without it sign-ups still save
 and no welcome email is sent.
 
+`0026_checkin_days.sql` adds `application_status.checked_in_day2_at` and carries
+it into the `admin_applicants` view. Without it day 1 check-in works and day 2
+refuses with a message naming this file.
+
+## Stages (`/admin/applicants`)
+
+The list is organized by stage: one word for where an applicant is, read off
+status, attendance and `waivers_sent_at` by `stageOf` (`lib/admin/stage.ts`).
+The tabs are the stages in pipeline order with a count on each, and `stage=` is
+a URL filter like any other.
+
+| Stage | Stored as |
+| --- | --- |
+| Draft, Submitted, In review, Waitlisted, Rejected, Withdrawn | `status` of the same name |
+| Accepted, waivers due | `status = accepted`, `attendance = pending`, `waivers_sent_at` null |
+| Waivers to review | same, `waivers_sent_at` set |
+| Confirmed | `status = accepted`, `attendance = confirmed` |
+| Declined | `status = accepted`, `attendance = declined` |
+
+Each row's stage pill is a menu of the moves that make sense from there, and the
+button beside it is the usual next one (Accept, then Confirm). A move from a row
+is immediate, with no dialog. Selecting rows and using Move to does the same for
+many, behind a dialog that says what they will each see. Nobody is emailed
+either way.
+
+Every move goes through `setStage`. Two are deliberately not blunt, because bulk
+selections are mixed: Accept leaves anyone already accepted untouched, so it
+cannot unconfirm them, and Back to waivers due (unconfirm, or return a bad
+packet; it clears `waivers_sent_at`) only applies to accepted applicants.
+
+Filters for anything other than stage (school, shirt, class, problems, reviewer,
+score, dates), the column picker and Save this view are behind the Filters
+button.
+
 ## Waivers
 
 An accepted applicant's `/status` page walks three steps:
@@ -51,13 +85,12 @@ An accepted applicant's `/status` page walks three steps:
 | --- | --- | --- |
 | accepted, with the packet and where to email it | `status = accepted`, `waivers_sent_at` null | organizer accepts |
 | under review | `waivers_sent_at` set | applicant presses "i've sent my waivers" |
-| confirmed, with their check-in QR | `attendance = confirmed` | organizer presses Mark reviewed |
-| checked in | `checked_in_at` set | organizer scans or checks them in |
+| confirmed, with their check-in QR | `attendance = confirmed` | organizer confirms them |
+| checked in (QR stays up after day 1) | `checked_in_at` or `checked_in_day2_at` set | organizer scans or checks them in |
 
-Mark reviewed is the Waivers row on an applicant's profile; it sets attendance
-to confirmed, the same as the Attendance menu. For a batch, open the "Waivers to
-review" view (`flag=waivers_to_review`), select the rows, and set attendance to
-Confirmed from the bulk menu. `waivers_sent_at` is the applicant's word, not
+To confirm someone, open the Waivers to review tab on the applicant list and
+press Confirm on their row, or select several and use Move to. Mark reviewed, on
+the Waivers row of a profile, does the same. `waivers_sent_at` is the applicant's word, not
 proof — check the inbox before confirming.
 
 None of these is a stored value. `status` and `attendance` are text columns
@@ -75,6 +108,12 @@ as "under review" on `/status`.
 
 ## Check-in (`/admin/checkin`)
 
+People check in on both days, October 10 and 11. The page works one day at a
+time: today's by the event's clock (anything before the 11th counts as day 1),
+or the one picked with the Day 1 / Day 2 switch (`?day=`). Day 1 is stored in
+`checked_in_at` and day 2 in `checked_in_day2_at`. The QR is the same both days;
+it identifies the person and the desk records which day it was read on.
+
 A confirmed applicant's `/status` page shows a QR, drawn on the server
 (`components/CheckInQr.tsx`). It encodes `https://occhacks.com/admin/checkin?code=<user id>`
 (`lib/checkin.ts`), and under it is a backup code: the first eight characters of
@@ -90,8 +129,8 @@ Ways to check someone in, each a fallback for the one before:
 3. **Search** by name, email, school, student ID, or backup code. The list is
    already on the page, so this needs no network.
 
-All three end in the `checkIn` action, which is safe to repeat: a second scan
-reports "already checked in" and leaves the original time alone. Anyone who
+All three end in the `checkIn` action, which is safe to repeat: a second scan on
+the same day reports "already checked in" and leaves the original time alone. Anyone who
 isn't accepted and confirmed is refused, with a Check in anyway override for a
 waiver handed over at the desk.
 

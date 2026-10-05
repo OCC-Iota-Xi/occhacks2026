@@ -2,6 +2,7 @@ import { cache } from "react";
 import type { PostgrestError, SupabaseClient } from "@supabase/supabase-js";
 import { requireAdmin } from "@/lib/admin/auth";
 import type { ApplicantFilters, Flag } from "@/lib/admin/filters";
+import { STAGES, STAGE_CONDITION, stageOf, type Stage } from "@/lib/admin/stage";
 import { dayEnd, dayStart } from "@/lib/admin/time";
 import type {
   ActivityEvent,
@@ -101,6 +102,11 @@ function applyFilters<Q>(query: Q, f: ApplicantFilters, viewerId: string): Q {
     }
   }
 
+  // Several stages are an "either": each is its own combination of columns, so
+  // they go in as one OR. The conditions come from a fixed table, never the URL.
+  if (f.stage.length) {
+    q = q.or(f.stage.map((stage) => STAGE_CONDITION[stage as Stage]).join(","));
+  }
   if (f.status.length) q = q.in("status", f.status);
   if (f.attendance.length) q = q.in("attendance", f.attendance);
   if (f.school.length) q = q.in("school", f.school);
@@ -144,6 +150,23 @@ function applyFilters<Q>(query: Q, f: ApplicantFilters, viewerId: string): Q {
   }
 
   return q as Q;
+}
+
+/**
+ * How many applicants are at each stage, for the tabs above the list. Counted
+ * here from three columns of every row rather than with ten count queries: the
+ * whole table is a few hundred rows.
+ */
+export async function fetchStageCounts(ctx: AdminContext): Promise<Record<Stage, number>> {
+  const counts = Object.fromEntries(STAGES.map((stage) => [stage, 0])) as Record<Stage, number>;
+  const { data } = await ctx.supabase
+    .from("admin_applicants")
+    .select("status, attendance, waivers_sent_at")
+    .limit(5000);
+  for (const row of (data ?? []) as Pick<Applicant, "status" | "attendance" | "waivers_sent_at">[]) {
+    counts[stageOf(row)] += 1;
+  }
+  return counts;
 }
 
 export interface ApplicantPage {

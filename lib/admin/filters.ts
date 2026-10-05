@@ -1,3 +1,4 @@
+import { STAGES, STAGE_LABEL, type Stage } from "@/lib/admin/stage";
 import { ATTENDANCE, STATUSES } from "@/lib/admin/types";
 
 /**
@@ -48,6 +49,8 @@ export const PAGE_SIZES = [25, 50, 100, 200];
 
 export interface ApplicantFilters {
   q: string;
+  /** Stages (lib/admin/stage.ts); what the tabs above the list set. */
+  stage: string[];
   status: string[];
   attendance: string[];
   school: string[];
@@ -72,6 +75,7 @@ export interface ApplicantFilters {
 }
 
 const MULTI = [
+  ["stage", "stage"],
   ["status", "status"],
   ["attendance", "attendance"],
   ["school", "school"],
@@ -115,6 +119,7 @@ export function parseFilters(input: URLSearchParams): ApplicantFilters {
 
   const filters: ApplicantFilters = {
     q: one("q"),
+    stage: [],
     status: [],
     attendance: [],
     school: [],
@@ -149,6 +154,7 @@ export function parseFilters(input: URLSearchParams): ApplicantFilters {
     (filters[key] as string) = one(param);
   }
 
+  filters.stage = filters.stage.filter((s) => (STAGES as readonly string[]).includes(s));
   filters.status = filters.status.filter((s) => (STATUSES as readonly string[]).includes(s));
   filters.attendance = filters.attendance.filter((a) =>
     (ATTENDANCE as readonly string[]).includes(a)
@@ -171,6 +177,7 @@ export function parseFilters(input: URLSearchParams): ApplicantFilters {
 export function hasActiveFilters(f: ApplicantFilters): boolean {
   return Boolean(
     f.q ||
+      f.stage.length ||
       f.status.length ||
       f.attendance.length ||
       f.school.length ||
@@ -210,6 +217,7 @@ export function activeChips(
     chips.push({ param, value, label });
 
   if (f.q) chips.push({ param: "q", label: `Search: ${f.q}` });
+  for (const s of f.stage) push("stage", s, STAGE_LABEL[s as Stage] ?? labelize(s));
   for (const s of f.status) push("status", s, `Status: ${labelize(s)}`);
   for (const a of f.attendance) push("attendance", a, `Attendance: ${labelize(a)}`);
   for (const s of f.school) push("school", s, `School: ${s}`);

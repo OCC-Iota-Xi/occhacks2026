@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { assertAdmin } from "@/lib/admin/auth";
+import { MOVES, type Move } from "@/lib/admin/stage";
 import {
   ATTENDANCE,
   DECISION_STATUSES,
@@ -9,6 +10,7 @@ import {
   type Attendance,
   type Status,
 } from "@/lib/admin/types";
+import { parseCheckInDay, type CheckInDay } from "@/lib/checkin";
 
 /**
  * Every write the organizer dashboard makes.
@@ -102,26 +104,148 @@ export async function setAttendance(
   return { ok: true, count: targets.length };
 }
 
+/** Day 1 lives in the original column; day 2 arrived with migration 0026. */
+const CHECKIN_COLUMN: Record<CheckInDay, string> = {
+  1: "checked_in_at",
+  2: "checked_in_day2_at",
+};
+
+const DAY2_NOT_SET_UP =
+  "Day 2 check-in isn't set up yet. Run migration 0026_checkin_days.sql in the Supabase SQL editor.";
+
+/** Postgres's "no such column": the day 2 column before its migration has run. */
+function missingColumn(error: { code?: string } | null) {
+  return error?.code === "42703" || error?.code === "PGRST204";
+}
+
 export async function setCheckedIn(
   ids: string[],
-  checkedIn: boolean
+  checkedIn: boolean,
+  day: CheckInDay = 1
 ): Promise<ActionResult> {
   const { supabase } = await assertAdmin();
   const targets = validIds(ids);
   if (!targets.length) return { ok: false, message: "No applicants selected." };
+  const column = CHECKIN_COLUMN[parseCheckInDay(day) ?? 1];
 
   const rows = targets.map((user_id) => ({
     user_id,
-    checked_in_at: checkedIn ? new Date().toISOString() : null,
+    [column]: checkedIn ? new Date().toISOString() : null,
   }));
 
   const { error } = await supabase
     .from("application_status")
     .upsert(rows, { onConflict: "user_id" });
+  if (missingColumn(error)) return { ok: false, message: DAY2_NOT_SET_UP };
   if (error) return fail(error, "Could not update check-in.");
 
   refresh();
   return { ok: true, count: targets.length };
+}
+
+/* -------------------------------------------------------------------------- */
+/* Stages                                                                      */
+/* -------------------------------------------------------------------------- */
+
+/** Which of these applicants are accepted right now. Read in slices: ids go in the URL. */
+async function acceptedAmong(
+  supabase: Awaited<ReturnType<typeof assertAdmin>>["supabase"],
+  ids: string[]
+): Promise<{ accepted: Set<string>; error: { message: string } | null }> {
+  const accepted = new Set<string>();
+  for (let start = 0; start < ids.length; start += 150) {
+    const { data, error } = await supabase
+      .from("application_status")
+      .select("user_id")
+      .in("user_id", ids.slice(start, start + 150))
+      .eq("status", "accepted");
+    if (error) return { accepted, error };
+    for (const row of data ?? []) accepted.add((row as { user_id: string }).user_id);
+  }
+  return { accepted, error: null };
+}
+
+/**
+ * Moves applicants to a stage (see lib/admin/stage.ts): the one write behind
+ * the stage menu on each row and the bulk "Move to".
+ *
+ * A stage is a combination of status and attendance, and the point of doing it
+ * here is that the combination is always written whole. Two things are
+ * deliberately not blunt, because this runs on selections of mixed people:
+ * accepting never touches someone who is already accepted (so it can't
+ * unconfirm anyone or restamp when they were decided), and stepping back to
+ * "waivers due" only applies to people who are accepted.
+ */
+export async function setStage(ids: string[], move: Move): Promise<ActionResult> {
+  const { supabase, user } = await assertAdmin();
+  const targets = validIds(ids);
+  if (!targets.length) return { ok: false, message: "No applicants selected." };
+  if (!(MOVES as readonly string[]).includes(move)) {
+    return { ok: false, message: "Unknown stage." };
+  }
+
+  // The plain decisions are exactly a status change.
+  if (move !== "accepted" && move !== "confirmed" && move !== "waivers_due") {
+    return setStatus(targets, move);
+  }
+
+  const { accepted, error: readError } = await acceptedAmong(supabase, targets);
+  if (readError) return fail(readError, "Could not read those applications.");
+
+  const now = new Date().toISOString();
+  const already = targets.filter((id) => accepted.has(id));
+  const fresh = targets.filter((id) => !accepted.has(id));
+  const writes: Record<string, unknown>[][] = [];
+
+  if (move === "accepted") {
+    writes.push(
+      fresh.map((user_id) => ({ user_id, status: "accepted", decided_at: now, decided_by: user.id }))
+    );
+  } else if (move === "confirmed") {
+    writes.push(
+      fresh.map((user_id) => ({
+        user_id,
+        status: "accepted",
+        decided_at: now,
+        decided_by: user.id,
+        attendance: "confirmed",
+        confirmed_at: now,
+      })),
+      already.map((user_id) => ({ user_id, attendance: "confirmed", confirmed_at: now }))
+    );
+  } else {
+    writes.push(
+      already.map((user_id) => ({
+        user_id,
+        attendance: "pending",
+        confirmed_at: null,
+        waivers_sent_at: null,
+      }))
+    );
+  }
+
+  let count = 0;
+  for (const rows of writes) {
+    if (!rows.length) continue;
+    const { error } = await supabase
+      .from("application_status")
+      .upsert(rows, { onConflict: "user_id" });
+    if (error) return fail(error, "Could not update those applications.");
+    count += rows.length;
+  }
+
+  if (!count) {
+    return {
+      ok: false,
+      message:
+        move === "accepted"
+          ? "Already accepted. Nothing changed."
+          : "Only accepted applicants can go back to waivers due. Nothing changed.",
+    };
+  }
+
+  refresh();
+  return { ok: true, count };
 }
 
 /**
@@ -190,33 +314,33 @@ export type CheckInResult =
  */
 export async function checkIn(
   id: string,
-  options: { force?: boolean } = {}
+  options: { force?: boolean; day?: CheckInDay } = {}
 ): Promise<CheckInResult> {
   let supabase: Awaited<ReturnType<typeof assertAdmin>>["supabase"];
+  let user: Awaited<ReturnType<typeof assertAdmin>>["user"];
   try {
-    ({ supabase } = await assertAdmin());
+    ({ supabase, user } = await assertAdmin());
   } catch {
     return { outcome: "error", message: "You're signed out. Sign in again to check people in." };
   }
   if (typeof id !== "string" || !UUID.test(id)) return { outcome: "not_found" };
 
-  const read = () =>
-    supabase
-      .from("admin_applicants")
-      .select("id, full_name, email, shirt, needs, status, attendance, checked_in_at")
-      .eq("id", id)
-      .maybeSingle<{
-        id: string;
-        full_name: string | null;
-        email: string | null;
-        shirt: string | null;
-        needs: string | null;
-        status: Status;
-        attendance: Attendance;
-        checked_in_at: string | null;
-      }>();
+  const day = parseCheckInDay(options.day) ?? 1;
+  const column = CHECKIN_COLUMN[day];
 
-  const found = await read();
+  const found = await supabase
+    .from("admin_applicants")
+    .select("id, full_name, email, shirt, needs, status, attendance")
+    .eq("id", id)
+    .maybeSingle<{
+      id: string;
+      full_name: string | null;
+      email: string | null;
+      shirt: string | null;
+      needs: string | null;
+      status: Status;
+      attendance: Attendance;
+    }>();
   if (found.error) return { outcome: "error", message: found.error.message };
   if (!found.data) return { outcome: "not_found" };
 
@@ -231,7 +355,20 @@ export async function checkIn(
     attendance: row.attendance,
   };
 
-  if (row.checked_in_at) return { outcome: "already", person, at: row.checked_in_at };
+  // That day's time comes from the table rather than the view, so day 2 works
+  // as soon as its column exists, whether or not the view has caught up.
+  const stamp = () =>
+    supabase
+      .from("application_status")
+      .select(column)
+      .eq("user_id", id)
+      .maybeSingle<Record<string, string | null>>();
+
+  const before = await stamp();
+  if (missingColumn(before.error)) return { outcome: "error", message: DAY2_NOT_SET_UP };
+  if (before.error) return { outcome: "error", message: before.error.message };
+  const existing = before.data?.[column];
+  if (existing) return { outcome: "already", person, at: existing };
 
   const expected = row.status === "accepted" && row.attendance === "confirmed";
   if (!expected && !options.force) return { outcome: "not_confirmed", person };
@@ -239,24 +376,34 @@ export async function checkIn(
   const at = new Date().toISOString();
   const updated = await supabase
     .from("application_status")
-    .update({ checked_in_at: at })
+    .update({ [column]: at })
     .eq("user_id", id)
-    .is("checked_in_at", null)
-    .select("checked_in_at");
+    .is(column, null)
+    .select("user_id");
   if (updated.error) return { outcome: "error", message: updated.error.message };
 
   if (!updated.data?.length) {
     // Nothing matched: either someone else checked them in between the read and
     // the write, or (only with `force`) they have no decision row to update yet.
-    const again = await read();
+    const again = await stamp();
     if (again.error) return { outcome: "error", message: again.error.message };
-    if (again.data?.checked_in_at) {
-      return { outcome: "already", person, at: again.data.checked_in_at };
-    }
+    const raced = again.data?.[column];
+    if (raced) return { outcome: "already", person, at: raced };
     const inserted = await supabase
       .from("application_status")
-      .upsert({ user_id: id, checked_in_at: at }, { onConflict: "user_id" });
+      .upsert({ user_id: id, [column]: at }, { onConflict: "user_id" });
     if (inserted.error) return { outcome: "error", message: inserted.error.message };
+  }
+
+  // The trigger that writes the activity log knows about day 1's column only.
+  // Best effort: a missing log line must not undo a check-in that happened.
+  if (day === 2) {
+    await supabase.from("application_activity").insert({
+      applicant_id: id,
+      actor_id: user.id,
+      kind: "checkin",
+      summary: "Checked in (day 2)",
+    });
   }
 
   refresh();

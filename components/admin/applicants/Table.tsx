@@ -2,11 +2,27 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { AlertTriangle, ArrowDown, ArrowUp, Check } from "lucide-react";
+import { AlertTriangle, ArrowDown, ArrowUp, Check, ChevronDown } from "lucide-react";
 import { COLUMNS, rowFlags, type ColumnDef } from "@/components/admin/applicants/columns";
-import { AttendanceBadge, Score, StatusBadge, TagPill } from "@/components/admin/ui";
+import { ActionMenu, MenuItem, MenuLabel } from "@/components/admin/Menu";
+import {
+  AttendanceBadge,
+  Score,
+  STAGE_STYLE,
+  StatusBadge,
+  TagPill,
+} from "@/components/admin/ui";
+import { Button } from "@/components/ui/button";
 import { displayName, formatDate, initials } from "@/lib/admin/format";
 import type { ApplicantFilters } from "@/lib/admin/filters";
+import {
+  MOVE_LABEL,
+  STAGE_LABEL,
+  movesFrom,
+  nextMove,
+  stageOf,
+  type Move,
+} from "@/lib/admin/stage";
 import type { Applicant } from "@/lib/admin/types";
 import { cn } from "@/lib/utils";
 
@@ -38,6 +54,8 @@ export default function ApplicantTable({
   onToggleRow,
   onToggleAll,
   onSort,
+  onMove,
+  moving,
   backQuery,
 }: {
   rows: Applicant[];
@@ -47,6 +65,10 @@ export default function ApplicantTable({
   onToggleRow: (id: string, shiftKey: boolean, index: number) => void;
   onToggleAll: () => void;
   onSort: (column: ColumnDef) => void;
+  /** Moves one applicant to a stage, straight from their row. */
+  onMove: (applicant: Applicant, move: Move) => void;
+  /** True while a move is in flight, so a second click can't stack on it. */
+  moving: boolean;
   backQuery: string;
 }) {
   const router = useRouter();
@@ -55,7 +77,7 @@ export default function ApplicantTable({
 
   return (
     <div className="scroll-soft max-h-[calc(100vh-19rem)] min-h-40 overflow-auto">
-      <table className="w-full min-w-[900px] border-separate border-spacing-0 text-sm">
+      <table className="w-full min-w-[720px] border-separate border-spacing-0 text-sm">
         <thead>
           <tr className="text-xs text-muted-foreground">
             <th className="sticky top-0 z-20 w-9 border-b border-border bg-background px-3 py-2">
@@ -150,8 +172,18 @@ export default function ApplicantTable({
                       "border-b border-border/60 px-3 py-2 align-middle",
                       column.align === "right" && "text-right"
                     )}
+                    // The stage cell is a control, not part of the row's link.
+                    // Its menu is portalled, but React still bubbles the click
+                    // up through here.
+                    onClick={
+                      column.key === "stage" ? (event) => event.stopPropagation() : undefined
+                    }
                   >
-                    <Cell column={column.key} applicant={applicant} flags={flags} />
+                    {column.key === "stage" ? (
+                      <StageCell applicant={applicant} onMove={onMove} moving={moving} />
+                    ) : (
+                      <Cell column={column.key} applicant={applicant} flags={flags} />
+                    )}
                   </td>
                 ))}
               </tr>
@@ -160,6 +192,83 @@ export default function ApplicantTable({
         </tbody>
       </table>
     </div>
+  );
+}
+
+/**
+ * Where someone is, and the way to change it. The pill opens every move that
+ * makes sense from here; the button beside it is the one most rows want next,
+ * so working down a tab is one click a row.
+ */
+function StageCell({
+  applicant,
+  onMove,
+  moving,
+}: {
+  applicant: Applicant;
+  onMove: (applicant: Applicant, move: Move) => void;
+  moving: boolean;
+}) {
+  const stage = stageOf(applicant);
+  const next = nextMove(stage);
+
+  return (
+    <div className="flex items-center gap-1.5">
+      <ActionMenu
+        align="start"
+        width="w-48"
+        trigger={
+          <button
+            type="button"
+            aria-label={`Stage: ${STAGE_LABEL[stage]}. Change`}
+            className={cn(
+              "inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-xs whitespace-nowrap transition-opacity hover:opacity-80",
+              STAGE_STYLE[stage]
+            )}
+          >
+            {STAGE_LABEL[stage]}
+            <ChevronDown className="size-3 opacity-70" />
+          </button>
+        }
+      >
+        <MenuLabel>Move to</MenuLabel>
+        {movesFrom(stage).map((move) => (
+          <MenuItem
+            key={move}
+            disabled={moving}
+            destructive={move === "rejected"}
+            onSelect={() => onMove(applicant, move)}
+          >
+            {MOVE_LABEL[move]}
+          </MenuItem>
+        ))}
+      </ActionMenu>
+
+      {next && (
+        <Button
+          size="xs"
+          variant={stage === "waivers_review" ? "default" : "outline"}
+          disabled={moving}
+          onClick={() => onMove(applicant, next)}
+        >
+          {MOVE_LABEL[next]}
+        </Button>
+      )}
+
+      {applicant.checked_in && <CheckedIn day={1} />}
+      {applicant.checked_in_day2_at && <CheckedIn day={2} />}
+    </div>
+  );
+}
+
+function CheckedIn({ day }: { day: 1 | 2 }) {
+  return (
+    <span
+      title={`Checked in, day ${day}`}
+      className="inline-flex items-center gap-0.5 text-xs text-emerald-300"
+    >
+      <Check className="size-3" />D{day}
+    </span>
   );
 }
 
@@ -181,18 +290,26 @@ function Cell({
           <span className="flex size-6 shrink-0 items-center justify-center rounded-full border border-border text-[10px] text-muted-foreground">
             {initials(applicant.full_name, "?")}
           </span>
-          <Link
-            href={`/admin/applicants/${applicant.id}`}
-            onClick={(event) => event.stopPropagation()}
-            className="truncate hover:text-[var(--ring)]"
-          >
-            {displayName(applicant)}
-          </Link>
-          {flags.length > 0 && (
-            <span title={flags.join(" · ")}>
-              <AlertTriangle className="size-3.5 shrink-0 text-amber-400/80" />
-            </span>
-          )}
+          <div className="min-w-0">
+            <div className="flex items-center gap-1.5">
+              <Link
+                href={`/admin/applicants/${applicant.id}`}
+                onClick={(event) => event.stopPropagation()}
+                className="truncate hover:text-[var(--ring)]"
+              >
+                {displayName(applicant)}
+              </Link>
+              {flags.length > 0 && (
+                <span title={flags.join(" · ")}>
+                  <AlertTriangle className="size-3.5 shrink-0 text-amber-400/80" />
+                </span>
+              )}
+            </div>
+            {/* Under the name unless it is the name, or has its own column. */}
+            {applicant.full_name?.trim() && applicant.email && (
+              <div className="truncate text-xs text-muted-foreground">{applicant.email}</div>
+            )}
+          </div>
         </div>
       );
     case "email":
