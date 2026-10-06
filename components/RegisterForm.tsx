@@ -9,7 +9,7 @@ import {
   saveRegistrationDraft,
   submitRegistration,
   type RegistrationState,
-} from "@/app/register/actions";
+} from "@/app/(account)/register/actions";
 import RevealLines from "@/components/motion/RevealLines";
 import Reveal from "@/components/motion/Reveal";
 import FieldRow from "@/components/FieldRow";

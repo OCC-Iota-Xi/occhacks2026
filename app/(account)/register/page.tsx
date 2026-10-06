@@ -1,14 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import AccountBackdrop from "@/components/AccountBackdrop";
-import AccountSidebar from "@/components/AccountSidebar";
 import FloatingVideo from "@/components/FloatingVideo";
 import RegisterForm, { type RegistrationDefaults } from "@/components/RegisterForm";
-import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { applicationsClosed, WALK_IN_POLICY } from "@/lib/deadline";
 import { TRACKS } from "@/lib/form-options";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getSessionUser } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
   title: "register — OCC Hacks 2026",
@@ -64,9 +61,7 @@ function SavedAnswers({ answers }: { answers: Partial<RegistrationDefaults> }) {
 
 export default async function RegisterPage() {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getSessionUser(supabase);
   // Dev-only: allow viewing the form without a session (saving still requires auth).
   if (!user && process.env.NODE_ENV !== "development") redirect("/signin");
 
@@ -109,22 +104,10 @@ export default async function RegisterPage() {
   };
 
   return (
-    <SidebarProvider>
-      <AccountSidebar
-        active="register"
-        userId={user?.id}
-        email={user?.email}
-        name={existing?.full_name}
-      />
-      <SidebarInset className="relative min-h-screen overflow-hidden">
-        <header className="sticky top-0 z-50 flex items-center border-b border-border bg-background/80 px-4 py-3 backdrop-blur-md md:hidden">
-          <SidebarTrigger />
-        </header>
+    <>
+      {!closed && <FloatingVideo />}
 
-        <AccountBackdrop />
-        {!closed && <FloatingVideo />}
-
-        <section className="relative z-10 mx-auto w-full max-w-2xl px-6 py-16 sm:px-12">
+      <section className="relative z-10 mx-auto w-full max-w-2xl px-6 py-16 sm:px-12">
         <div className="text-center">
           <h1 className="font-display text-4xl tracking-tight sm:text-5xl">
             {closed ? "applications are closed" : "register as a hacker"}
@@ -167,7 +150,6 @@ export default async function RegisterPage() {
           )}
         </div>
       </section>
-      </SidebarInset>
-    </SidebarProvider>
+    </>
   );
 }
