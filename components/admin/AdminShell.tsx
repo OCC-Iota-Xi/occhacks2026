@@ -6,6 +6,7 @@ import {
   ArrowUpRight,
   Gauge,
   HeartHandshake,
+  ListFilter,
   LogOut,
   Mail,
   QrCode,
@@ -42,6 +43,7 @@ import { initials } from "@/lib/admin/format";
 const NAV = [
   { href: "/admin", label: "Dashboard", icon: Gauge, exact: true },
   { href: "/admin/applicants", label: "Applicants", icon: Users },
+  { href: "/admin/analysis", label: "Analysis", icon: ListFilter },
   { href: "/admin/checkin", label: "Check-in", icon: QrCode },
   { href: "/admin/helpers", label: "Volunteers & mentors", icon: HeartHandshake },
   { href: "/admin/emails", label: "Emails", icon: Mail },

@@ -95,6 +95,22 @@ Filters for anything other than stage (school, shirt, class, problems, reviewer,
 score, dates), the column picker and Save this view are behind the Filters
 button.
 
+## Analysis (`/admin/analysis`)
+
+The applicants list as it was before the stage tabs, kept as its own page for
+slicing the roster rather than working the pipeline. Saved views run across the
+top, starting with the built-in ones (Needs review, Accepted, Waitlisted,
+Missing confirmation, Data problems and the rest). Status, Attendance, School,
+Tags, Reviewer and Data quality are menus on the filter bar itself, with the
+remaining filters under More. A selection gets Accept, Waitlist and Reject as
+buttons, which set `status` through `setStatus` behind a dialog and email
+nobody.
+
+It reads the same rows, the same URL filters and the same export as
+`/admin/applicants`, so a saved view or a pasted link opens in either. Its
+column choices are remembered separately (`ANALYSIS_COLUMN_STORAGE_KEY`), and a
+profile opened from it links back to it (`?from=analysis`).
+
 ## Waivers
 
 An accepted applicant's `/status` page walks three steps:

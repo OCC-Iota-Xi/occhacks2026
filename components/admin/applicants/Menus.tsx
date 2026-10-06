@@ -35,6 +35,11 @@ export function ApplicantMenusProvider({
   return <MenusContext.Provider value={value}>{children}</MenusContext.Provider>;
 }
 
+/** For the other list that shares these menus — the analysis tab. */
+export function useApplicantMenus() {
+  return useContext(MenusContext);
+}
+
 /** The workspace, with its menus supplied by the layout instead of the page. */
 export function ApplicantsList(
   props: Omit<ComponentProps<typeof ApplicantsWorkspace>, keyof ApplicantMenus>

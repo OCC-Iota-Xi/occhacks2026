@@ -48,6 +48,24 @@ export const DEFAULT_COLUMNS = ["applicant", "school", "stage", "submitted", "ed
 /** Versioned: a saved choice from before a default column would hide it. */
 export const COLUMN_STORAGE_KEY = "occhacks:admin-columns-v3";
 
+/**
+ * The analysis tab's defaults: the decision columns the list opened with before
+ * it was rebuilt around stages. Kept under their own key, so an organizer's
+ * choice of columns there doesn't rearrange the applicants list or the reverse.
+ */
+export const ANALYSIS_DEFAULT_COLUMNS = [
+  "applicant",
+  "email",
+  "school",
+  "status",
+  "score",
+  "tags",
+  "reviewer",
+  "submitted",
+];
+
+export const ANALYSIS_COLUMN_STORAGE_KEY = "occhacks:admin-analysis-columns";
+
 /** The flags worth showing inline as a warning triangle on the row. */
 export function rowFlags(applicant: Applicant): string[] {
   const flags: string[] = [];

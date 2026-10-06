@@ -19,7 +19,7 @@ export const FAQS: { question: string; answer: string; rich?: React.ReactNode }[
   },
   {
     question: "Do you accept walk-ins?",
-    answer: `No. ${WALK_IN_POLICY} You need to have applied by October 5th at 11:59 PM and been accepted.`,
+    answer: `No. ${WALK_IN_POLICY}`,
   },
   {
     question: "What does it cost?",
