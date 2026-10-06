@@ -5,17 +5,19 @@ import posthog from "posthog-js";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-const CTAS = [
-  { label: "Become a Hacker", href: "/register", primary: true },
-  {
-    label: "Sponsor Us",
-    href: "mailto:lnguyen1509@student.cccd.edu?subject=Sponsoring%20OCC%20Hacks%202026",
-  },
-];
+const APPLY = { label: "Become a Hacker", href: "/register", primary: true };
+/** Takes the apply button's place once the deadline passes. */
+const STATUS = { label: "Check Your Status", href: "/status", primary: true };
+const SPONSOR = {
+  label: "Sponsor Us",
+  href: "mailto:lnguyen1509@student.cccd.edu?subject=Sponsoring%20OCC%20Hacks%202026",
+  primary: false,
+};
 
 /**
  * The site's one CTA set — register / sponsor — as liquid-glass pills,
- * shared by the hero and the join section.
+ * shared by the hero and the join section. After the application deadline the
+ * register pill becomes a status check.
  *
  * `location` tags the cta_clicked event, the first step of the registration
  * funnel in PostHog.
@@ -23,10 +25,15 @@ const CTAS = [
 export default function CtaButtons({
   className,
   location,
+  closed,
 }: {
   className?: string;
   location: "hero" | "join";
+  /** Past the application deadline — the caller keeps this live. */
+  closed: boolean;
 }) {
+  const ctas = [closed ? STATUS : APPLY, SPONSOR];
+
   const handleMouseMove = (e: React.MouseEvent<HTMLElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
     e.currentTarget.style.setProperty("--mouse-x", `${e.clientX - rect.left}px`);
@@ -37,7 +44,7 @@ export default function CtaButtons({
 
   return (
     <div className={cn("flex flex-wrap items-center gap-4 md:gap-6", className)}>
-      {CTAS.map((cta) => (
+      {ctas.map((cta) => (
         <Button
           key={cta.label}
           variant="ghost"

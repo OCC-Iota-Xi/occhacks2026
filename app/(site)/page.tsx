@@ -9,6 +9,7 @@ import FAQ from "@/components/sections/FAQ";
 import Sponsors from "@/components/sections/Sponsors";
 import Mentors from "@/components/sections/Mentors";
 import Closer from "@/components/sections/Closer";
+import { APPLICATION_DEADLINE, applicationsClosed } from "@/lib/deadline";
 import { faqJsonLd } from "@/lib/faq";
 
 const SITE_URL = "https://occhacks.com";
@@ -18,6 +19,11 @@ const SITE_URL = "https://occhacks.com";
 export const metadata: Metadata = {
   alternates: { canonical: "/" },
 };
+
+/* The page is prerendered, and whether applications are open is baked into
+   that markup. Re-rendering every few minutes lets it cross the deadline on
+   its own instead of waiting for the next deploy. */
+export const revalidate = 300;
 
 /** Branded spellings people search for, so they all resolve to this page. */
 const ALTERNATE_NAMES = ["OCCHacks", "OCC Hack", "OCC Hackathon", "OC Hacks", "Orange Coast College Hackathon"];
@@ -67,7 +73,7 @@ const siteJsonLd = {
         priceCurrency: "USD",
         availability: "https://schema.org/InStock",
         url: `${SITE_URL}/register`,
-        validThrough: "2026-10-05T23:59:00-07:00",
+        validThrough: APPLICATION_DEADLINE,
       },
     },
     faqJsonLd,
@@ -75,6 +81,8 @@ const siteJsonLd = {
 };
 
 export default function Home() {
+  const closed = applicationsClosed();
+
   return (
     <>
       <script
@@ -86,8 +94,8 @@ export default function Home() {
           appended rather than uncovered. */}
       <main className="relative z-10">
         <SpaceBackdrop />
-        <Navbar />
-        <Hero />
+        <Navbar closed={closed} />
+        <Hero closed={closed} />
         <AboutSection />
         <Tracks />
         <Mentors />
@@ -95,7 +103,7 @@ export default function Home() {
         <Schedule />
         <FAQ />
       </main>
-      <Closer />
+      <Closer closed={closed} />
     </>
   );
 }

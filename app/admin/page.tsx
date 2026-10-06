@@ -16,7 +16,7 @@ import {
 import {
   delta,
   displayName,
-  formatDate,
+  formatDateTime,
   formatNumber,
   formatPercent,
   relativeTime,
@@ -321,7 +321,7 @@ export default async function AdminDashboard({
                       <Score value={applicant.avg_score} />
                     </td>
                     <td className="px-4 py-2 text-right text-xs whitespace-nowrap text-muted-foreground">
-                      {formatDate(applicant.completed_at)}
+                      {formatDateTime(applicant.completed_at)}
                     </td>
                   </tr>
                 ))}

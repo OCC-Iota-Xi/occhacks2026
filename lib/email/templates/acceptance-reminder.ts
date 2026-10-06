@@ -16,7 +16,7 @@ import {
   WAIVER_DUE_DAY_SHORT,
 } from "./waivers";
 
-/** Where an applicant reads their decision — app/status/page.tsx. */
+/** Where an applicant reads their decision — app/(account)/status/page.tsx. */
 const STATUS_URL = `${SITE}/status`;
 
 /**

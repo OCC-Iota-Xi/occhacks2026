@@ -4,6 +4,7 @@ import { Empty, PageHeader, Panel, PanelHeader, StatCard } from "@/components/ad
 import { displayName, formatDate, formatNumber } from "@/lib/admin/format";
 import { adminContext, fetchHelpers } from "@/lib/admin/queries";
 import type { Helper } from "@/lib/admin/types";
+import { AVAILABILITY_BLOCKS } from "@/lib/form-options";
 
 /**
  * Volunteers and mentors.
@@ -84,7 +85,7 @@ export default async function HelpersPage() {
         people={volunteers}
         columns={["Availability", "Preferences"]}
         render={(person) => [
-          person.availability?.join(", ") || "—",
+          <Availability key="availability" blocks={person.availability} />,
           person.expertise || "—",
         ]}
       />
@@ -94,7 +95,7 @@ export default async function HelpersPage() {
         people={mentors}
         columns={["Availability", "Can mentor on", "Résumé"]}
         render={(person) => [
-          person.availability?.join(", ") || "—",
+          <Availability key="availability" blocks={person.availability} />,
           person.expertise || "—",
           person.resume_path && resumeUrl.get(person.resume_path) ? (
             <a
@@ -165,7 +166,8 @@ function Roster({
                   </td>
                   {render(person).map((cell, index) => (
                     <td key={index} className="max-w-[260px] px-3 py-2 text-xs">
-                      <div className="line-clamp-2">{cell}</div>
+                      {/* Availability is what shifts get built from, so it's never clamped. */}
+                      {index === 0 ? cell : <div className="line-clamp-2">{cell}</div>}
                     </td>
                   ))}
                   <td className="px-3 py-2 text-xs uppercase">{person.shirt ?? "—"}</td>
@@ -184,6 +186,39 @@ function Roster({
         />
       )}
     </Panel>
+  );
+}
+
+/**
+ * Someone's blocks, one line per day. The stored labels read
+ * "oct 10 · morning (8 am–12 pm)"; the hours are on the coverage panel above,
+ * so each line keeps just the day and the block names.
+ */
+function Availability({ blocks }: { blocks: string[] | null }) {
+  if (!blocks?.length) return "—";
+
+  // Form order, with any label the form no longer offers kept at the end.
+  const ordered = [
+    ...AVAILABILITY_BLOCKS.filter((known) => blocks.includes(known)),
+    ...blocks.filter((block) => !AVAILABILITY_BLOCKS.includes(block)),
+  ];
+
+  const days = new Map<string, string[]>();
+  for (const block of ordered) {
+    const [day, shift] = block.split(" · ");
+    const name = shift?.replace(/\s*\(.*\)$/, "") ?? "";
+    days.set(day, [...(days.get(day) ?? []), name].filter(Boolean));
+  }
+
+  return (
+    <ul className="space-y-0.5">
+      {Array.from(days.entries()).map(([day, shifts]) => (
+        <li key={day} className="flex gap-2">
+          <span className="shrink-0 text-muted-foreground">{day}</span>
+          <span>{shifts.join(", ")}</span>
+        </li>
+      ))}
+    </ul>
   );
 }
 

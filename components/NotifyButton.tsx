@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import posthog from "posthog-js";
-import { optInNotify, optOutNotify } from "@/app/register/actions";
+import { optInNotify, optOutNotify } from "@/app/(account)/register/actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 

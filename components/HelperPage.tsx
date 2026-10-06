@@ -1,11 +1,8 @@
 import { redirect } from "next/navigation";
-import AccountBackdrop from "@/components/AccountBackdrop";
-import AccountSidebar from "@/components/AccountSidebar";
 import FloatingVideo from "@/components/FloatingVideo";
 import HelperForm, { type HelperDefaults } from "@/components/HelperForm";
-import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { HELPER_TABLE, type HelperCopy } from "@/lib/helper-roles";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getSessionUser } from "@/lib/supabase/server";
 
 /** A stored sign-up from either table, as the form wants to read it. */
 type StoredSignup = Partial<HelperDefaults> & { completed_at: string | null };
@@ -53,9 +50,7 @@ async function loadSignup(
  */
 export default async function HelperPage({ copy }: { copy: HelperCopy }) {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getSessionUser(supabase);
   // Dev-only: allow viewing the form without a session (saving still requires auth).
   if (!user && process.env.NODE_ENV !== "development") redirect("/signin");
 
@@ -79,34 +74,21 @@ export default async function HelperPage({ copy }: { copy: HelperCopy }) {
   };
 
   return (
-    <SidebarProvider>
-      <AccountSidebar
-        active={copy.role}
-        userId={user?.id}
-        email={user?.email}
-        name={existing?.full_name}
-      />
-      <SidebarInset className="relative min-h-screen overflow-hidden">
-        <header className="sticky top-0 z-50 flex items-center border-b border-border bg-background/80 px-4 py-3 backdrop-blur-md md:hidden">
-          <SidebarTrigger />
-        </header>
+    <>
+      {copy.showsVideo && <FloatingVideo />}
 
-        <AccountBackdrop />
-        {copy.showsVideo && <FloatingVideo />}
+      <section className="relative z-10 mx-auto w-full max-w-2xl px-6 py-16 sm:px-12">
+        <div className="text-center">
+          <h1 className="font-display text-4xl tracking-tight sm:text-5xl">
+            {copy.heading}
+          </h1>
+        </div>
 
-        <section className="relative z-10 mx-auto w-full max-w-2xl px-6 py-16 sm:px-12">
-          <div className="text-center">
-            <h1 className="font-display text-4xl tracking-tight sm:text-5xl">
-              {copy.heading}
-            </h1>
-          </div>
-
-          <div className="mt-10">
-            {/* A draft row isn't an update — only a finished sign-up is. */}
-            <HelperForm copy={copy} defaults={defaults} isUpdate={!!existing?.completed_at} />
-          </div>
-        </section>
-      </SidebarInset>
-    </SidebarProvider>
+        <div className="mt-10">
+          {/* A draft row isn't an update — only a finished sign-up is. */}
+          <HelperForm copy={copy} defaults={defaults} isUpdate={!!existing?.completed_at} />
+        </div>
+      </section>
+    </>
   );
 }

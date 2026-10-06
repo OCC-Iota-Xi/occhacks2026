@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Check } from "lucide-react";
-import { markWaiversSent } from "@/app/status/actions";
+import { markWaiversSent } from "@/app/(account)/status/actions";
 
 /**
  * The applicant's "I've emailed them" — moves the status page to waivers sent.

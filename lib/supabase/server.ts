@@ -27,3 +27,28 @@ export async function createClient() {
     }
   );
 }
+
+/**
+ * Who is signed in, read from the session token itself. The token is verified
+ * against the project's public signing key, so unlike `auth.getUser()` this
+ * doesn't cost a trip to Supabase — and on the signed-in pages the proxy has
+ * already made that trip for the same request.
+ *
+ * If the token can't be verified that way, this asks Supabase after all rather
+ * than treating the reader as signed out: a page that redirects on a null here
+ * would otherwise lock out someone with a perfectly good session.
+ */
+export async function getSessionUser(
+  supabase: Awaited<ReturnType<typeof createClient>>
+): Promise<{ id: string; email: string | null } | null> {
+  const { data } = await supabase.auth.getClaims();
+  const claims = data?.claims;
+  if (claims?.sub) {
+    return { id: claims.sub, email: typeof claims.email === "string" ? claims.email : null };
+  }
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  return user ? { id: user.id, email: user.email ?? null } : null;
+}

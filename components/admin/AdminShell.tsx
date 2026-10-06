@@ -12,7 +12,7 @@ import {
   Settings,
   Users,
 } from "lucide-react";
-import { signOut } from "@/app/register/actions";
+import { signOut } from "@/app/(account)/register/actions";
 import CommandPalette from "@/components/admin/CommandPalette";
 import { ToastProvider } from "@/components/admin/Toast";
 import {

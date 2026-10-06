@@ -2,15 +2,13 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Download } from "lucide-react";
-import AccountBackdrop from "@/components/AccountBackdrop";
-import AccountSidebar from "@/components/AccountSidebar";
 import AutoRefresh from "@/components/AutoRefresh";
 import CheckInQr from "@/components/CheckInQr";
 import WaiversSentButton from "@/components/WaiversSentButton";
-import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { applicantStage, type ApplicantStage } from "@/lib/applicant-stage";
+import { applicationsClosed, WALK_IN_POLICY } from "@/lib/deadline";
 import { EVENT, MEDICAL_NOTE, WAIVER_DUE_DAY, WAIVER_REPLY_TO } from "@/lib/email/templates";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getSessionUser } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
   title: "application status — OCC Hacks 2026",
@@ -84,6 +82,19 @@ const VIEWS: Record<ApplicantStage, View> = {
 };
 
 /**
+ * `not_submitted` once the deadline has passed. There's nothing left to finish,
+ * and this is also where someone who never applied lands from the homepage's
+ * status button.
+ */
+const CLOSED_VIEW: View = {
+  label: "not submitted",
+  body: [
+    "Hacker applications closed on October 5 at 11:59 PM, and we don't have a submitted application from this account.",
+    WALK_IN_POLICY,
+  ],
+};
+
+/**
  * Every state the page can show, so each one can be looked at without the
  * database row to match: `?preview=<key>` renders that state in place of the
  * caller's own. Development only, and not linked from anywhere — the page
@@ -91,6 +102,7 @@ const VIEWS: Record<ApplicantStage, View> = {
  */
 const PREVIEWS = [
   { key: "not-submitted", label: "not submitted", view: VIEWS.not_submitted },
+  { key: "closed", label: "closed", view: CLOSED_VIEW },
   { key: "under-review", label: "under review", view: VIEWS.under_review },
   { key: "accepted", label: "accepted", view: VIEWS.accepted },
   { key: "waivers-sent", label: "waivers sent", view: VIEWS.waivers_review },
@@ -148,9 +160,7 @@ export default async function StatusPage({
   const preview = PREVIEWS.find((p) => p.key === previewKey);
 
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getSessionUser(supabase);
   // Dev-only: allow viewing the page without a session.
   if (!user && process.env.NODE_ENV !== "development") redirect("/signin");
 
@@ -160,7 +170,7 @@ export default async function StatusPage({
     ? await Promise.all([
         supabase
           .from("hackers")
-          .select("full_name, completed_at")
+          .select("completed_at")
           .eq("user_id", user.id)
           .maybeSingle(),
         readDecision(supabase, user.id),
@@ -174,149 +184,138 @@ export default async function StatusPage({
     waiversSent: !!decision?.waivers_sent_at,
     checkedIn: !!decision?.checked_in_at,
   });
-  const view: View = preview?.view ?? VIEWS[stage];
+  const view: View =
+    preview?.view ??
+    (stage === "not_submitted" && applicationsClosed() ? CLOSED_VIEW : VIEWS[stage]);
 
   return (
-    <SidebarProvider>
-      <AccountSidebar
-        active="status"
-        userId={user?.id}
-        email={user?.email}
-        name={hacker?.full_name}
-      />
-      <SidebarInset className="relative min-h-screen overflow-hidden">
-        <header className="sticky top-0 z-50 flex items-center border-b border-border bg-background/80 px-4 py-3 backdrop-blur-md md:hidden">
-          <SidebarTrigger />
-        </header>
+    <>
+      {/* A preview is fixed by its URL; there's nothing for it to catch up to. */}
+      {!preview && <AutoRefresh />}
 
-        <AccountBackdrop />
-        {/* A preview is fixed by its URL; there's nothing for it to catch up to. */}
-        {!preview && <AutoRefresh />}
+      <section className="relative z-10 mx-auto w-full max-w-2xl px-6 py-16 sm:px-12">
+        <h1 className="text-center font-display text-4xl tracking-tight sm:text-5xl">
+          application status
+        </h1>
 
-        <section className="relative z-10 mx-auto w-full max-w-2xl px-6 py-16 sm:px-12">
-          <h1 className="text-center font-display text-4xl tracking-tight sm:text-5xl">
-            application status
-          </h1>
+        <div className="mt-10 rounded-2xl border border-border bg-background/60 p-6 backdrop-blur-md sm:p-8">
+          <span
+            className={
+              view.accent
+                ? "inline-flex rounded-full border border-ring/60 px-3 py-1 text-sm text-ring"
+                : "inline-flex rounded-full border border-border px-3 py-1 text-sm text-muted-foreground"
+            }
+          >
+            {view.label}
+          </span>
 
-          <div className="mt-10 rounded-2xl border border-border bg-background/60 p-6 backdrop-blur-md sm:p-8">
-            <span
-              className={
-                view.accent
-                  ? "inline-flex rounded-full border border-ring/60 px-3 py-1 text-sm text-ring"
-                  : "inline-flex rounded-full border border-border px-3 py-1 text-sm text-muted-foreground"
-              }
-            >
-              {view.label}
-            </span>
+          <div className="mt-5 space-y-4 text-base leading-relaxed text-foreground/90">
+            {[view.body].flat().map((paragraph) => (
+              <p key={paragraph}>{paragraph}</p>
+            ))}
+          </div>
 
-            <div className="mt-5 space-y-4 text-base leading-relaxed text-foreground/90">
-              {[view.body].flat().map((paragraph) => (
-                <p key={paragraph}>{paragraph}</p>
-              ))}
-            </div>
+          {view.waivers && (
+            <>
+              <a
+                href="/email/OCCHacksWaivers.pdf"
+                download="OCCHacksWaivers.pdf"
+                className="mt-6 inline-flex items-center gap-2 rounded-full bg-foreground px-6 py-3 text-sm text-background transition-colors hover:bg-foreground/85"
+              >
+                <Download className="size-4" />
+                download waiver packet
+              </a>
 
-            {view.waivers && (
-              <>
-                <a
-                  href="/email/OCCHacksWaivers.pdf"
-                  download="OCCHacksWaivers.pdf"
-                  className="mt-6 inline-flex items-center gap-2 rounded-full bg-foreground px-6 py-3 text-sm text-background transition-colors hover:bg-foreground/85"
-                >
-                  <Download className="size-4" />
-                  download waiver packet
-                </a>
-
-                <dl className="mt-6 grid grid-cols-[auto_1fr] gap-x-6 gap-y-2 border-t border-border pt-6 text-sm">
-                  <dt className="text-muted-foreground">send to</dt>
-                  <dd className="space-y-1">
-                    {WAIVER_REPLY_TO.map((to) => (
-                      <a
-                        key={to}
-                        href={`mailto:${to}`}
-                        className="block break-all text-ring underline-offset-4 hover:underline"
-                      >
-                        {to}
-                      </a>
-                    ))}
-                  </dd>
-                </dl>
-
-                <p className="mt-6 text-sm leading-relaxed text-muted-foreground">{MEDICAL_NOTE}</p>
-                <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-                  Once it&apos;s sent, let us know with the button below.
-                </p>
-
-                <WaiversSentButton
-                  previewNext={preview ? "/status?preview=waivers-sent" : undefined}
-                />
-              </>
-            )}
-
-            {view.qr && <CheckInQr userId={user?.id ?? PREVIEW_USER_ID} />}
-
-            {view.details && (
               <dl className="mt-6 grid grid-cols-[auto_1fr] gap-x-6 gap-y-2 border-t border-border pt-6 text-sm">
-                <dt className="text-muted-foreground">when</dt>
-                <dd>october 10–11</dd>
-                <dt className="text-muted-foreground">where</dt>
-                <dd>orange coast college, college center, floor 3 ballroom</dd>
-                <dt className="text-muted-foreground">check-in</dt>
-                <dd>8:00–8:40am saturday</dd>
-                <dt className="text-muted-foreground">kickoff</dt>
-                <dd>9:00am</dd>
-                <dt className="text-muted-foreground">parking</dt>
-                <dd>
-                  free in{" "}
-                  <a
-                    href={EVENT.parkingUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-ring underline-offset-4 hover:underline"
-                  >
-                    Lot C
-                  </a>
-                  , at merrimac way and fairview road
+                <dt className="text-muted-foreground">send to</dt>
+                <dd className="space-y-1">
+                  {WAIVER_REPLY_TO.map((to) => (
+                    <a
+                      key={to}
+                      href={`mailto:${to}`}
+                      className="block break-all text-ring underline-offset-4 hover:underline"
+                    >
+                      {to}
+                    </a>
+                  ))}
                 </dd>
               </dl>
-            )}
 
-            {view.outro && (
-              <div className="mt-6 space-y-4 border-t border-border pt-6 text-sm leading-relaxed text-foreground/90">
-                <p>
-                  Then get ready for a weekend of $2,000 in prizes, free food, and guest speakers
-                  you won&apos;t want to miss.
-                </p>
-                <p>
-                  Join the Discord if you haven&apos;t already. That&apos;s where we post
-                  announcements and run team formation.
-                </p>
-                <p className="flex flex-wrap gap-x-6 gap-y-2">
-                  <a
-                    href={EVENT.discordUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-ring underline-offset-4 hover:underline"
-                  >
-                    join the discord
-                  </a>
-                  <Link href="/#schedule" className="text-ring underline-offset-4 hover:underline">
-                    see the schedule
-                  </Link>
-                </p>
-              </div>
-            )}
+              <p className="mt-6 text-sm leading-relaxed text-muted-foreground">{MEDICAL_NOTE}</p>
+              <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+                Once it&apos;s sent, let us know with the button below.
+              </p>
 
-            {view.link && (
-              <Link
-                href={view.link.href}
-                className="mt-6 inline-flex rounded-full bg-foreground px-6 py-3 text-sm text-background transition-colors hover:bg-foreground/85"
-              >
-                {view.link.label}
-              </Link>
-            )}
-          </div>
-        </section>
-      </SidebarInset>
-    </SidebarProvider>
+              <WaiversSentButton
+                previewNext={preview ? "/status?preview=waivers-sent" : undefined}
+              />
+            </>
+          )}
+
+          {view.qr && <CheckInQr userId={user?.id ?? PREVIEW_USER_ID} />}
+
+          {view.details && (
+            <dl className="mt-6 grid grid-cols-[auto_1fr] gap-x-6 gap-y-2 border-t border-border pt-6 text-sm">
+              <dt className="text-muted-foreground">when</dt>
+              <dd>october 10–11</dd>
+              <dt className="text-muted-foreground">where</dt>
+              <dd>orange coast college, college center, floor 3 ballroom</dd>
+              <dt className="text-muted-foreground">check-in</dt>
+              <dd>8:00–8:40am saturday</dd>
+              <dt className="text-muted-foreground">kickoff</dt>
+              <dd>9:00am</dd>
+              <dt className="text-muted-foreground">parking</dt>
+              <dd>
+                free in{" "}
+                <a
+                  href={EVENT.parkingUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-ring underline-offset-4 hover:underline"
+                >
+                  Lot C
+                </a>
+                , at merrimac way and fairview road
+              </dd>
+            </dl>
+          )}
+
+          {view.outro && (
+            <div className="mt-6 space-y-4 border-t border-border pt-6 text-sm leading-relaxed text-foreground/90">
+              <p>
+                Then get ready for a weekend of $2,000 in prizes, free food, and guest speakers
+                you won&apos;t want to miss.
+              </p>
+              <p>
+                Join the Discord if you haven&apos;t already. That&apos;s where we post
+                announcements and run team formation.
+              </p>
+              <p className="flex flex-wrap gap-x-6 gap-y-2">
+                <a
+                  href={EVENT.discordUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-ring underline-offset-4 hover:underline"
+                >
+                  join the discord
+                </a>
+                <Link href="/#schedule" className="text-ring underline-offset-4 hover:underline">
+                  see the schedule
+                </Link>
+              </p>
+            </div>
+          )}
+
+          {view.link && (
+            <Link
+              href={view.link.href}
+              className="mt-6 inline-flex rounded-full bg-foreground px-6 py-3 text-sm text-background transition-colors hover:bg-foreground/85"
+            >
+              {view.link.label}
+            </Link>
+          )}
+        </div>
+      </section>
+    </>
   );
 }

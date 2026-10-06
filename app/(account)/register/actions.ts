@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { after } from "next/server";
 import { sendHackerWelcome, sendHelperWelcome } from "@/lib/email/welcome";
 import { HELPER_TABLE, type HelperRole, type HelperTable } from "@/lib/helper-roles";
+import { applicationsClosed } from "@/lib/deadline";
 import { isOldEnough, UNDER_18_MESSAGE } from "@/lib/eligibility";
 import { createClient } from "@/lib/supabase/server";
 
@@ -37,6 +38,14 @@ const MENTOR_REQUIRED = ["expertise"] as const;
 function requiredFor(role: HelperRole): readonly string[] {
   return role === "mentor" ? [...HELPER_REQUIRED, ...MENTOR_REQUIRED] : HELPER_REQUIRED;
 }
+
+/**
+ * Past the deadline the hacker form is frozen for everyone: nobody new can
+ * apply, a draft can't be finished, and a submitted application can't be
+ * edited. Checked in the actions themselves because a server action is a
+ * public endpoint — hiding the form on the page doesn't stop a request.
+ */
+const CLOSED_MESSAGE = "applications are closed, so this form can no longer be submitted or edited.";
 
 /** Trimmed string, or null — a draft stores an unanswered question as null. */
 function reader(formData: FormData) {
@@ -150,6 +159,7 @@ async function saveDraft(
   // No redirect here: this runs in the background, and bouncing someone to the
   // sign-in page mid-keystroke would throw away what they were typing.
   if (!user) return { ok: false };
+  if (table === "hackers" && applicationsClosed()) return { ok: false };
 
   const { error } = await supabase
     .from(table)
@@ -184,6 +194,7 @@ export async function submitRegistration(
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect("/signin");
+  if (applicationsClosed()) return { ok: false, message: CLOSED_MESSAGE };
 
   const field = (key: string) => String(formData.get(key) ?? "").trim();
   for (const key of HACKER_REQUIRED) {

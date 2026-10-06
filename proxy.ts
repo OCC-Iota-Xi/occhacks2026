@@ -68,7 +68,7 @@ export async function proxy(request: NextRequest) {
 
   // Dev-only: allow viewing the form without a session (saving still requires auth).
   if (!user && process.env.NODE_ENV !== "development") {
-    return bounce(SIGN_IN_REDIRECT);
+    return bounce(SIGN_IN_REDIRECT, request.nextUrl.pathname);
   }
 
   return response;

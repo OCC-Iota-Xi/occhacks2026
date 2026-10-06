@@ -1,9 +1,9 @@
 "use client";
 
 import { Fragment, useSyncExternalStore } from "react";
+import { APPLICATION_DEADLINE_MS } from "@/lib/deadline";
 
-/** Applications close Oct 5, 2026 at 11:59 PM Pacific (PDT). */
-const DEADLINE_SECONDS = Date.parse("2026-10-05T23:59:00-07:00") / 1000;
+const DEADLINE_SECONDS = APPLICATION_DEADLINE_MS / 1000;
 
 // One shared 1s clock. The server snapshot is null so the markup hydrates
 // cleanly, then the client swaps in the live time on its first render.
@@ -35,7 +35,10 @@ function RollingNumber({ value, max }: { value: number; max: number }) {
   );
 }
 
-/** Countdown to the application deadline. Renders nothing once it passes. */
+/**
+ * Countdown to the application deadline. Renders nothing once it passes — the
+ * hero swaps in its closed notice at the same moment.
+ */
 export default function Countdown() {
   const now = useSyncExternalStore(subscribe, getNowSeconds, getServerNowSeconds);
   const remaining = now === null ? null : Math.max(0, DEADLINE_SECONDS - now);

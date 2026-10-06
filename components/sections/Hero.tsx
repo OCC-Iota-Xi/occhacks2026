@@ -5,14 +5,16 @@ import { AnimatedGradientText } from "@/components/ui/animated-gradient-text";
 import CtaButtons from "@/components/CtaButtons";
 import Countdown from "@/components/Countdown";
 import HeroAstronaut from "@/components/HeroAstronaut";
+import { useApplicationsClosed } from "@/lib/use-applications-closed";
 
 /**
  * The original space pirate hero: left-aligned OCCHacks title with the gold
  * gradient sweep, date line, and the clipped cyber CTAs. The backdrop is the
  * global WebGL particle field rendered in the root layout.
  */
-export default function Hero() {
+export default function Hero({ closed: initialClosed }: { closed: boolean }) {
   const reduceMotion = useReducedMotion();
+  const closed = useApplicationsClosed(initialClosed);
 
   return (
     <section
@@ -57,17 +59,27 @@ export default function Hero() {
                   Orange Coast College
                 </a>
               </span>
-              <span aria-hidden className="hidden text-white/40 sm:inline">|</span>
-              <span>Apply by Monday, October 5th, 11:59pm</span>
+              {!closed && (
+                <>
+                  <span aria-hidden className="hidden text-white/40 sm:inline">|</span>
+                  <span>Apply by Monday, October 5th, 11:59pm</span>
+                </>
+              )}
             </p>
           </div>
 
-          {/* Application deadline countdown */}
-          <Countdown />
+          {/* Application deadline countdown, then the closed notice in its place */}
+          {closed ? (
+            <p className="inline-flex rounded-2xl border border-white/10 bg-white/[0.03] px-5 py-4 font-header text-xl text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.5)] backdrop-blur-sm sm:px-6 sm:text-2xl md:text-3xl">
+              Applications are closed
+            </p>
+          ) : (
+            <Countdown />
+          )}
 
           {/* CTA Buttons — shared with the join section */}
           <div className="mt-8 md:mt-10">
-            <CtaButtons location="hero" />
+            <CtaButtons location="hero" closed={closed} />
           </div>
         </motion.div>
       </div>

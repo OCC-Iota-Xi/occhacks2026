@@ -14,7 +14,7 @@ import {
   TagPill,
 } from "@/components/admin/ui";
 import { Button } from "@/components/ui/button";
-import { displayName, formatDate, initials } from "@/lib/admin/format";
+import { displayName, formatDate, formatDateTime, initials } from "@/lib/admin/format";
 import type { ApplicantFilters } from "@/lib/admin/filters";
 import {
   EXITS,
@@ -405,16 +405,20 @@ function Cell({
     case "submitted":
       return (
         <span className={cn(muted, "whitespace-nowrap")}>
-          {applicant.completed_at ? formatDate(applicant.completed_at) : "Draft"}
+          {applicant.completed_at ? formatDateTime(applicant.completed_at) : "Draft"}
         </span>
       );
     case "edited":
       return (
-        <span className={cn(muted, "whitespace-nowrap")}>{formatDate(applicant.updated_at)}</span>
+        <span className={cn(muted, "whitespace-nowrap")}>
+          {formatDateTime(applicant.updated_at)}
+        </span>
       );
     case "started":
       return (
-        <span className={cn(muted, "whitespace-nowrap")}>{formatDate(applicant.created_at)}</span>
+        <span className={cn(muted, "whitespace-nowrap")}>
+          {formatDateTime(applicant.created_at)}
+        </span>
       );
     default:
       return null;

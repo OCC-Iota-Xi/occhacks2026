@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Menu, X } from "lucide-react";
 import posthog from "posthog-js";
 import { Button } from "@/components/ui/button";
+import { useApplicationsClosed } from "@/lib/use-applications-closed";
 
 const LINKS = [
   { label: "Home", href: "/" },
@@ -43,7 +44,12 @@ function scrollToSamePageLink(href: string) {
 /** Cursor within this many px of the top edge keeps the nav shown. */
 const HOVER_ZONE = 80;
 
-export default function Navbar() {
+export default function Navbar({ closed: initialClosed }: { closed: boolean }) {
+  const closed = useApplicationsClosed(initialClosed);
+  // Once applications close, the pill checks on one instead of starting one.
+  const cta = closed
+    ? { label: "Check Status", href: "/status" }
+    : { label: "Register Now", href: "/register" };
   // Shown on load; hides on scroll down, returns on any scroll up or when
   // the cursor sits near the top edge.
   const [scrollVisible, setScrollVisible] = useState(true);
@@ -168,12 +174,12 @@ export default function Navbar() {
             asChild
           >
             <Link
-              href="/register"
+              href={cta.href}
               target="_blank"
               rel="noopener noreferrer"
-              onClick={() => posthog.capture("cta_clicked", { cta: "Register Now", location: "nav" })}
+              onClick={() => posthog.capture("cta_clicked", { cta: cta.label, location: "nav" })}
             >
-              Register Now
+              {cta.label}
             </Link>
           </Button>
         </div>
