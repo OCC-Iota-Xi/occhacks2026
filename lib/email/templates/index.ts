@@ -12,4 +12,5 @@ export { helperWelcomeEmail } from "./helper-welcome";
 export { MEDICAL_NOTE, WAIVER_ATTACHMENT, WAIVER_DUE_DAY, WAIVER_REPLY_TO } from "./waivers";
 export { acceptanceEmail } from "./acceptance";
 export { acceptanceReminderEmail } from "./acceptance-reminder";
+export { waitlistEmail } from "./waitlist";
 export { broadcastEmail, type BroadcastArgs } from "./broadcast";
