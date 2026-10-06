@@ -92,7 +92,7 @@ export default async function ApplicantProfile({
               )}
               <span>
                 {applicant.completed_at
-                  ? `Submitted ${formatDate(applicant.completed_at)}`
+                  ? `Submitted ${formatDateTime(applicant.completed_at)}`
                   : `Draft, started ${formatDate(applicant.created_at)}`}
               </span>
             </div>
