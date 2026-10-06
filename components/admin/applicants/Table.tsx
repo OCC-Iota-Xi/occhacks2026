@@ -408,6 +408,10 @@ function Cell({
           {applicant.completed_at ? formatDate(applicant.completed_at) : "Draft"}
         </span>
       );
+    case "edited":
+      return (
+        <span className={cn(muted, "whitespace-nowrap")}>{formatDate(applicant.updated_at)}</span>
+      );
     case "started":
       return (
         <span className={cn(muted, "whitespace-nowrap")}>{formatDate(applicant.created_at)}</span>

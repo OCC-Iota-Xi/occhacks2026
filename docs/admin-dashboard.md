@@ -38,6 +38,12 @@ list sorts by. Without it the list still loads, but drafts sort to the end.
 page still loads, but the "i've sent my waivers" button fails and the "Waivers
 to review" view errors.
 
+`0026_first_submission.sql` makes `hackers.completed_at` the first submit
+rather than the latest one: it restores the dates that re-saves had already
+overwritten and adds a trigger that keeps the original from then on. Without it
+the Date submitted column and the list's default order follow the applicant's
+last edit, the same as Last edited.
+
 `0025_welcome_email_guard.sql` isn't an admin migration, but it has to run with
 the rest: it moves the welcome-email claim into `claim_welcome_email()` and
 blocks direct writes to `welcome_email_sent_at`. Without it sign-ups still save

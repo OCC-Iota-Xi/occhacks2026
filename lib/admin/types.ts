@@ -90,8 +90,10 @@ export interface Applicant {
   eligibility_agreed: boolean;
   email_opt_in: boolean;
   welcome_email_sent_at: string | null;
+  /** The first submit. Later saves leave it alone (migration 0026). */
   completed_at: string | null;
   created_at: string;
+  /** The last save, by the applicant or an organizer's correction. */
   updated_at: string;
   /** `completed_at`, or `created_at` for a draft — what the list sorts by. */
   timeline_at: string;

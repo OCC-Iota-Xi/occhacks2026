@@ -4,9 +4,10 @@ import type { SortKey } from "@/lib/admin/filters";
 /**
  * The applicant table's columns.
  *
- * The default is the four that answer "who is this and where are they": the
+ * The default is the five that answer "who is this and where are they": the
  * applicant, their school, their stage (which is also the control that moves
- * them), and when they applied. Everything else is optional and remembered per
+ * them), when they applied, and when they last touched their answers.
+ * Everything else is optional and remembered per
  * organizer in localStorage — someone doing logistics wants shirt size and
  * dietary needs, and nobody else should have to scroll past them.
  */
@@ -37,14 +38,15 @@ export const COLUMNS: ColumnDef[] = [
   { key: "classes", label: "Extra credit" },
   { key: "needs", label: "Needs" },
   { key: "checked_in", label: "Checked in", sort: "checked_in_at" },
-  { key: "submitted", label: "Submitted", sort: "timeline_at" },
+  { key: "submitted", label: "Date submitted", sort: "timeline_at" },
+  { key: "edited", label: "Last edited", sort: "updated_at" },
   { key: "started", label: "Started", sort: "created_at" },
 ];
 
-export const DEFAULT_COLUMNS = ["applicant", "school", "stage", "submitted"];
+export const DEFAULT_COLUMNS = ["applicant", "school", "stage", "submitted", "edited"];
 
-/** Versioned: a saved choice from before the stage column would hide it. */
-export const COLUMN_STORAGE_KEY = "occhacks:admin-columns-v2";
+/** Versioned: a saved choice from before a default column would hide it. */
+export const COLUMN_STORAGE_KEY = "occhacks:admin-columns-v3";
 
 /** The flags worth showing inline as a warning triangle on the row. */
 export function rowFlags(applicant: Applicant): string[] {

@@ -4,14 +4,12 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   ArrowUpRight,
-  ClipboardCheck,
   Gauge,
   HeartHandshake,
   LogOut,
   Mail,
   QrCode,
   Settings,
-  TrendingUp,
   Users,
 } from "lucide-react";
 import { signOut } from "@/app/register/actions";
@@ -44,8 +42,6 @@ import { initials } from "@/lib/admin/format";
 const NAV = [
   { href: "/admin", label: "Dashboard", icon: Gauge, exact: true },
   { href: "/admin/applicants", label: "Applicants", icon: Users },
-  { href: "/admin/review", label: "Review queue", icon: ClipboardCheck },
-  { href: "/admin/analytics", label: "Analytics", icon: TrendingUp },
   { href: "/admin/checkin", label: "Check-in", icon: QrCode },
   { href: "/admin/helpers", label: "Volunteers & mentors", icon: HeartHandshake },
   { href: "/admin/emails", label: "Emails", icon: Mail },

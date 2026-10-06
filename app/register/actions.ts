@@ -215,7 +215,9 @@ export async function submitRegistration(
     {
       user_id: user.id,
       ...hackerRow(formData),
-      // Promotes the row from draft to finished sign-up.
+      // Promotes the row from draft to finished sign-up. Sent on every save,
+      // kept only from the first: a trigger (migration 0026) holds on to the
+      // original, so editing an application doesn't change when it was submitted.
       completed_at: new Date().toISOString(),
     },
     { onConflict: "user_id" }

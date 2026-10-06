@@ -14,6 +14,7 @@ export const SORTABLE = [
   "timeline_at",
   "completed_at",
   "created_at",
+  "updated_at",
   "full_name",
   "email",
   "school",

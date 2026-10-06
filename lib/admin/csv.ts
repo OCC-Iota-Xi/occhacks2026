@@ -41,6 +41,7 @@ const COLUMNS: Column[] = [
   { header: "assigned_reviewer", value: (r) => r.assigned_name ?? r.assigned_email },
   { header: "tags", value: (r) => r.tags?.join("; ") },
   { header: "submitted_at", value: (r) => r.completed_at },
+  { header: "last_edited_at", value: (r) => r.updated_at },
   { header: "started_at", value: (r) => r.created_at },
   { header: "agreed_to_eligibility", value: (r) => yesNo(r.eligibility_agreed) },
   { header: "email_opt_in", value: (r) => yesNo(r.email_opt_in) },

@@ -15,7 +15,7 @@ const PRESETS = [
  * The dashboard's date range. Written to the URL rather than to component
  * state, so a range someone is looking at is a link they can send.
  */
-export default function RangePicker({ basePath = "/admin" }: { basePath?: string }) {
+export default function RangePicker() {
   const router = useRouter();
   const params = useSearchParams();
   const current = params.get("days") ?? "30";
@@ -25,7 +25,7 @@ export default function RangePicker({ basePath = "/admin" }: { basePath?: string
   });
   const [open, setOpen] = useState(Boolean(params.get("from") && params.get("to")));
 
-  const go = (next: URLSearchParams) => router.push(`${basePath}?${next.toString()}`);
+  const go = (next: URLSearchParams) => router.push(`/admin?${next.toString()}`);
 
   const pick = (value: string) => {
     const next = new URLSearchParams(params);
