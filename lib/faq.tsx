@@ -1,3 +1,4 @@
+import { WALK_IN_POLICY } from "@/lib/deadline";
 import { OCC_CLASSES } from "@/lib/form-options";
 
 /**
@@ -15,6 +16,10 @@ export const FAQS: { question: string; answer: string; rich?: React.ReactNode }[
     question: "Who can come?",
     answer:
       "Any college student who's 18 or older — every major and skill level, beginners included.",
+  },
+  {
+    question: "Do you accept walk-ins?",
+    answer: `No. ${WALK_IN_POLICY} You need to have applied by October 5th at 11:59 PM and been accepted.`,
   },
   {
     question: "What does it cost?",

@@ -9,6 +9,7 @@ import CheckInQr from "@/components/CheckInQr";
 import WaiversSentButton from "@/components/WaiversSentButton";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { applicantStage, type ApplicantStage } from "@/lib/applicant-stage";
+import { applicationsClosed, WALK_IN_POLICY } from "@/lib/deadline";
 import { EVENT, MEDICAL_NOTE, WAIVER_DUE_DAY, WAIVER_REPLY_TO } from "@/lib/email/templates";
 import { createClient } from "@/lib/supabase/server";
 
@@ -84,6 +85,19 @@ const VIEWS: Record<ApplicantStage, View> = {
 };
 
 /**
+ * `not_submitted` once the deadline has passed. There's nothing left to finish,
+ * and this is also where someone who never applied lands from the homepage's
+ * status button.
+ */
+const CLOSED_VIEW: View = {
+  label: "not submitted",
+  body: [
+    "Hacker applications closed on October 5 at 11:59 PM, and we don't have a submitted application from this account.",
+    WALK_IN_POLICY,
+  ],
+};
+
+/**
  * Every state the page can show, so each one can be looked at without the
  * database row to match: `?preview=<key>` renders that state in place of the
  * caller's own. Development only, and not linked from anywhere — the page
@@ -91,6 +105,7 @@ const VIEWS: Record<ApplicantStage, View> = {
  */
 const PREVIEWS = [
   { key: "not-submitted", label: "not submitted", view: VIEWS.not_submitted },
+  { key: "closed", label: "closed", view: CLOSED_VIEW },
   { key: "under-review", label: "under review", view: VIEWS.under_review },
   { key: "accepted", label: "accepted", view: VIEWS.accepted },
   { key: "waivers-sent", label: "waivers sent", view: VIEWS.waivers_review },
@@ -174,7 +189,9 @@ export default async function StatusPage({
     waiversSent: !!decision?.waivers_sent_at,
     checkedIn: !!decision?.checked_in_at,
   });
-  const view: View = preview?.view ?? VIEWS[stage];
+  const view: View =
+    preview?.view ??
+    (stage === "not_submitted" && applicationsClosed() ? CLOSED_VIEW : VIEWS[stage]);
 
   return (
     <SidebarProvider>

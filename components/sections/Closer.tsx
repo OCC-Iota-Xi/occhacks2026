@@ -6,6 +6,7 @@ import { motion, useReducedMotion, useScroll, useTransform } from "motion/react"
 import CtaButtons from "@/components/CtaButtons";
 import SectionHeading from "@/components/SectionHeading";
 import Reveal from "@/components/motion/Reveal";
+import { useApplicationsClosed } from "@/lib/use-applications-closed";
 import { TrackPlanet } from "@/components/sections/Tracks";
 
 /* lucide-react no longer ships brand icons, so these are drawn in the
@@ -77,7 +78,8 @@ const SOCIALS = [
  * short phone screen, and a sticky block taller than the viewport would keep
  * its own top permanently off-screen.
  */
-export default function Closer() {
+export default function Closer({ closed: initialClosed }: { closed: boolean }) {
+  const closed = useApplicationsClosed(initialClosed);
   const ref = useRef<HTMLElement>(null);
   const reduceMotion = useReducedMotion();
   const { scrollY } = useScroll();
@@ -133,10 +135,14 @@ export default function Closer() {
 
       <motion.div style={{ opacity, y }} className="relative">
         <div id="join" className="scroll-mt-24">
-          <SectionHeading plain="Join Now" accent="" className="mb-10" />
+          <SectionHeading
+            plain={closed ? "Applications Are Closed" : "Join Now"}
+            accent=""
+            className="mb-10"
+          />
 
           <Reveal delay={0.1}>
-            <CtaButtons location="join" className="justify-center" />
+            <CtaButtons location="join" className="justify-center" closed={closed} />
           </Reveal>
         </div>
 

@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import AccountBackdrop from "@/components/AccountBackdrop";
 import AccountSidebar from "@/components/AccountSidebar";
 import FloatingVideo from "@/components/FloatingVideo";
 import RegisterForm, { type RegistrationDefaults } from "@/components/RegisterForm";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { applicationsClosed, WALK_IN_POLICY } from "@/lib/deadline";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
@@ -30,6 +32,10 @@ export default async function RegisterPage() {
         .eq("user_id", user.id)
         .maybeSingle()
     : { data: null };
+
+  // Past the deadline the form comes down for everyone, submitted or not.
+  // `submitRegistration` and the autosave enforce the same freeze.
+  const closed = applicationsClosed();
 
   const rank = (value: number | null | undefined) => (value == null ? "" : String(value));
 
@@ -68,18 +74,40 @@ export default async function RegisterPage() {
         </header>
 
         <AccountBackdrop />
-        <FloatingVideo />
+        {!closed && <FloatingVideo />}
 
         <section className="relative z-10 mx-auto w-full max-w-2xl px-6 py-16 sm:px-12">
         <div className="text-center">
           <h1 className="font-display text-4xl tracking-tight sm:text-5xl">
-            register as a hacker
+            {closed ? "applications are closed" : "register as a hacker"}
           </h1>
         </div>
 
         <div className="mt-10">
-          {/* A draft row isn't an update — only a finished registration is. */}
-          <RegisterForm defaults={defaults} isUpdate={!!existing?.completed_at} />
+          {closed ? (
+            <div className="space-y-4 rounded-2xl border border-border bg-background/60 p-6 text-base leading-relaxed text-foreground/90 backdrop-blur-md sm:p-8">
+              <p>Hacker applications closed on October 5 at 11:59 PM.</p>
+              {existing?.completed_at ? (
+                <>
+                  <p>
+                    Your application is in and can no longer be edited. Your decision will show
+                    up on your status page.
+                  </p>
+                  <Link
+                    href="/status"
+                    className="inline-flex rounded-full bg-foreground px-6 py-3 text-sm text-background transition-colors hover:bg-foreground/85"
+                  >
+                    check your status
+                  </Link>
+                </>
+              ) : (
+                <p>{WALK_IN_POLICY}</p>
+              )}
+            </div>
+          ) : (
+            // A draft row isn't an update — only a finished registration is.
+            <RegisterForm defaults={defaults} isUpdate={!!existing?.completed_at} />
+          )}
         </div>
       </section>
       </SidebarInset>
