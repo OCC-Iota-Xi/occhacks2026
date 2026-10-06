@@ -7,6 +7,7 @@ import FloatingVideo from "@/components/FloatingVideo";
 import RegisterForm, { type RegistrationDefaults } from "@/components/RegisterForm";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { applicationsClosed, WALK_IN_POLICY } from "@/lib/deadline";
+import { TRACKS } from "@/lib/form-options";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
@@ -14,6 +15,52 @@ export const metadata: Metadata = {
   description:
     "Register for OCC Hacks 2026 — Oct 10–11 at Orange Coast College. Free to attend, every meal covered.",
 };
+
+/** "2004-03-09" as "March 9, 2004", from its parts so no time zone can shift it. */
+function formatDob(dob: string) {
+  const [year, month, day] = dob.split("-").map(Number);
+  if (!year || !month || !day) return dob;
+  return new Intl.DateTimeFormat("en-US", { timeZone: "UTC", dateStyle: "long" }).format(
+    new Date(Date.UTC(year, month - 1, day))
+  );
+}
+
+/**
+ * The saved answers, read-only — what the form turns into once applications
+ * close. Shows the stored row only: nothing here can be changed, so there's no
+ * browser-side draft to overlay.
+ */
+function SavedAnswers({ answers }: { answers: Partial<RegistrationDefaults> }) {
+  const ranked = TRACKS.filter((t) => answers.ranks?.[t.key])
+    .sort((a, b) => Number(answers.ranks?.[a.key]) - Number(answers.ranks?.[b.key]))
+    .map((t) => `${answers.ranks?.[t.key]}. ${t.label}`);
+
+  const rows: [string, string | undefined][] = [
+    ["full name", answers.full_name],
+    ["school", answers.school],
+    ["major", answers.major],
+    ["OCC student ID", answers.occ_id],
+    ["date of birth", answers.dob && formatDob(answers.dob)],
+    ["email address", answers.email],
+    ["phone number", answers.phone],
+    ["Iota Xi member", answers.iota_xi],
+    ["t-shirt size", answers.shirt],
+    ["accessibility, dietary, or other needs", answers.needs],
+    ["OCC classes", answers.classes?.join(", ")],
+    ["track ranking", ranked.join(", ")],
+  ];
+
+  return (
+    <dl className="grid gap-x-6 gap-y-3 border-t border-border pt-6 text-sm sm:grid-cols-[auto_1fr]">
+      {rows.map(([label, value]) => (
+        <div key={label} className="contents">
+          <dt className="text-muted-foreground">{label}</dt>
+          <dd className="break-words">{value || "—"}</dd>
+        </div>
+      ))}
+    </dl>
+  );
+}
 
 export default async function RegisterPage() {
   const supabase = await createClient();
@@ -33,8 +80,9 @@ export default async function RegisterPage() {
         .maybeSingle()
     : { data: null };
 
-  // Past the deadline the form comes down for everyone, submitted or not.
-  // `submitRegistration` and the autosave enforce the same freeze.
+  // Past the deadline the form comes down for everyone, and anyone with a
+  // saved application or draft gets it back read-only. `submitRegistration`
+  // and the autosave enforce the same freeze.
   const closed = applicationsClosed();
 
   const rank = (value: number | null | undefined) => (value == null ? "" : String(value));
@@ -90,8 +138,8 @@ export default async function RegisterPage() {
               {existing?.completed_at ? (
                 <>
                   <p>
-                    Your application is in and can no longer be edited. Your decision will show
-                    up on your status page.
+                    Your application is in. You can still see it below, but it can no longer be
+                    edited. Your decision will show up on your status page.
                   </p>
                   <Link
                     href="/status"
@@ -100,9 +148,18 @@ export default async function RegisterPage() {
                     check your status
                   </Link>
                 </>
+              ) : existing ? (
+                <>
+                  <p>
+                    Your draft was never submitted, so it wasn&apos;t considered. You can still
+                    see what you saved below, but it can no longer be edited or submitted.
+                  </p>
+                  <p>{WALK_IN_POLICY}</p>
+                </>
               ) : (
                 <p>{WALK_IN_POLICY}</p>
               )}
+              {existing && <SavedAnswers answers={defaults} />}
             </div>
           ) : (
             // A draft row isn't an update — only a finished registration is.
