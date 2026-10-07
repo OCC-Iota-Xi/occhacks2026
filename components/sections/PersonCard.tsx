@@ -79,7 +79,7 @@ function initials(name: string) {
 }
 
 /** What someone is doing at the event. Someone can be doing more than one. */
-export type Involvement = "keynote panel" | "fireside chat" | "mentor";
+export type Involvement = "keynote" | "fireside chat" | "mentor";
 
 export interface Person {
   /** Stable key. Names are shortened to first names on the page, so they collide. */

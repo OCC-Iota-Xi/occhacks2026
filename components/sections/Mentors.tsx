@@ -9,12 +9,12 @@ import { Button } from "@/components/ui/button";
 import { fadeIn, fadeUp, stagger, viewportOnce } from "@/lib/motion";
 
 /*
- * Everyone appears exactly once. What each person is doing — keynote panel,
+ * Everyone appears exactly once. What each person is doing — a keynote,
  * fireside chat, mentoring, or more than one of those — is a tag on their
  * card rather than a separate grid, so nobody is listed twice.
  *
- * Keynote panel conditions from the panelists' side: first names and titles
- * only, and never framed as an AI panel anywhere public. That applies to the
+ * Keynote conditions from the speakers' side: first names and titles only,
+ * and never framed as an AI panel anywhere public. That applies to the
  * rendered name and the image alt text alike.
  */
 
@@ -24,7 +24,7 @@ const PEOPLE: Person[] = [
     name: "Zhen",
     title: "Director of Applied Science",
     company: "Blizzard",
-    involvement: ["keynote panel"],
+    involvement: ["keynote"],
     palette: 1,
     photo: "/guest_speakers/zhen_zhai.jpg",
   },
@@ -33,7 +33,7 @@ const PEOPLE: Person[] = [
     name: "Mike",
     title: "Former Development Director",
     company: "Amazon Game Studios",
-    involvement: ["keynote panel"],
+    involvement: ["keynote"],
     palette: 0,
     photo: "/guest_speakers/michael_boccieri.jpeg",
   },
@@ -42,7 +42,7 @@ const PEOPLE: Person[] = [
     name: "Dailin Hu",
     title: "Senior Applied Scientist",
     company: "Blizzard",
-    involvement: ["keynote panel", "mentor"],
+    involvement: ["mentor"],
     palette: 1,
     photo: "/guest_speakers/dailin_hu.jpeg",
   },
@@ -51,7 +51,7 @@ const PEOPLE: Person[] = [
     name: "Nada Lahjouji",
     title: "Applied Scientist",
     company: "Blizzard",
-    involvement: ["keynote panel", "mentor"],
+    involvement: ["mentor"],
     palette: 2,
     photo: "/guest_speakers/nada_lahjouji.jpeg",
   },
@@ -60,7 +60,7 @@ const PEOPLE: Person[] = [
     name: "Owen Wolf",
     title: "Lead SRE",
     company: "PlayStation",
-    involvement: ["fireside chat", "mentor"],
+    involvement: ["keynote", "mentor"],
     palette: 0,
     photo: "/guest_speakers/owen_wolf.jpeg",
   },
