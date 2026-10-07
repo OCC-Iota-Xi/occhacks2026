@@ -72,12 +72,14 @@ const VIEWS: Record<ApplicantStage, View> = {
     qr: true,
     body: "Your waivers are reviewed and your spot is confirmed. You're in, see you there.",
   },
-  // Once, for the whole event: nothing left to scan, so the code comes down.
+  // The code stays up: each day is its own check-in, so it's scanned again on
+  // the second morning.
   checked_in: {
     label: "checked in",
     accent: true,
     details: true,
-    body: "You're checked in. Welcome to OCC Hacks.",
+    qr: true,
+    body: "You're checked in. Welcome to OCC Hacks. Hold on to your code, we scan it at the door each morning.",
   },
 };
 
@@ -124,15 +126,17 @@ interface Decision {
   attendance: string;
   waivers_sent_at?: string | null;
   checked_in_at?: string | null;
+  checked_in_day2_at?: string | null;
 }
 
 /** Stands in for the caller's id when a preview is drawn without a session. */
 const PREVIEW_USER_ID = "00000000-0000-4000-8000-000000000000";
 
 /**
- * `waivers_sent_at` arrives with migration 0024. Against a database that hasn't
- * had it yet, read the decision without it rather than losing the whole row —
- * an accepted applicant would otherwise be told they're still under review.
+ * `waivers_sent_at` arrives with migration 0024 and `checked_in_day2_at` with
+ * 0027. Against a database that hasn't had one yet, read the decision without
+ * it rather than losing the whole row — an accepted applicant would otherwise
+ * be told they're still under review.
  */
 async function readDecision(
   supabase: Awaited<ReturnType<typeof createClient>>,
@@ -145,8 +149,14 @@ async function readDecision(
       .eq("user_id", userId)
       .maybeSingle<Decision>();
 
-  const first = await read("status, attendance, checked_in_at, waivers_sent_at");
-  if (first.error?.code !== "42703") return first.data;
+  const columns = [
+    "status, attendance, checked_in_at, waivers_sent_at, checked_in_day2_at",
+    "status, attendance, checked_in_at, waivers_sent_at",
+  ];
+  for (const list of columns) {
+    const result = await read(list);
+    if (result.error?.code !== "42703") return result.data;
+  }
   return (await read("status, attendance, checked_in_at")).data;
 }
 
@@ -182,7 +192,7 @@ export default async function StatusPage({
     status: decision?.status,
     attendance: decision?.attendance,
     waiversSent: !!decision?.waivers_sent_at,
-    checkedIn: !!decision?.checked_in_at,
+    checkedIn: !!(decision?.checked_in_at || decision?.checked_in_day2_at),
   });
   const view: View =
     preview?.view ??

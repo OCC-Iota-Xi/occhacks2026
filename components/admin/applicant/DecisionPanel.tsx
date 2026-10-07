@@ -18,6 +18,7 @@ import {
 } from "@/lib/admin/actions";
 import { displayName, formatDateTime } from "@/lib/admin/format";
 import { APPLICANT_STAGE_LABEL, applicantStage } from "@/lib/applicant-stage";
+import { EVENT_DAYS, checkedInOn } from "@/lib/checkin";
 import {
   ATTENDANCE,
   ATTENDANCE_LABEL,
@@ -248,28 +249,31 @@ export default function DecisionPanel({
           </Row>
         )}
 
-        <Row label="Check-in">
-          <button
-            type="button"
-            disabled={pending}
-            onClick={() =>
-              run(
-                () => setCheckedIn([applicant.id], !applicant.checked_in),
-                applicant.checked_in ? "Check-in undone" : "Checked in"
-              )
-            }
-            className={cn(
-              "rounded-md border px-1.5 py-0.5 transition-colors",
-              applicant.checked_in
-                ? "border-emerald-400/30 bg-emerald-400/10 text-emerald-200"
-                : "border-border text-muted-foreground hover:text-foreground"
-            )}
-          >
-            {applicant.checked_in
-              ? `Checked in ${formatDateTime(applicant.checked_in_at)}`
-              : "Not checked in"}
-          </button>
-        </Row>
+        {EVENT_DAYS.map((day) => {
+          const at = checkedInOn(applicant, day);
+          return (
+            <Row key={day} label={`Check-in, day ${day}`}>
+              <button
+                type="button"
+                disabled={pending}
+                onClick={() =>
+                  run(
+                    () => setCheckedIn([applicant.id], !at, day),
+                    at ? `Day ${day} check-in undone` : `Checked in for day ${day}`
+                  )
+                }
+                className={cn(
+                  "rounded-md border px-1.5 py-0.5 transition-colors",
+                  at
+                    ? "border-emerald-400/30 bg-emerald-400/10 text-emerald-200"
+                    : "border-border text-muted-foreground hover:text-foreground"
+                )}
+              >
+                {at ? `Checked in ${formatDateTime(at)}` : "Not checked in"}
+              </button>
+            </Row>
+          );
+        })}
 
         <Row label="Reviewer">
           <ActionMenu

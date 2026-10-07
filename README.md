@@ -72,7 +72,7 @@ welcome email to the address the account signed in with, once.
 **Auth** — `/signin`, and `/auth/callback`, which handles both the PKCE
 `?code=` flow and the `?token_hash=` template flow.
 
-**Organizer** — `/admin`, plus Applicants, Analysis, Check-in,
+**Organizer** — `/admin`, plus Applicants, Check-in,
 Volunteers & mentors, Emails and Settings under it. `/admin/export`
 streams the roster as CSV, taking the applicant list's own query string so
 "export what I'm looking at" needs no second filter implementation. Who can open it is one list in

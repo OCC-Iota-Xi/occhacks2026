@@ -1,4 +1,5 @@
 import type { Applicant } from "@/lib/admin/types";
+import { checkedInOn } from "@/lib/checkin";
 
 /**
  * CSV export.
@@ -36,6 +37,8 @@ const COLUMNS: Column[] = [
   { header: "status", value: (r) => r.status },
   { header: "attendance", value: (r) => r.attendance },
   { header: "checked_in_at", value: (r) => r.checked_in_at },
+  { header: "attendance_day_1", value: (r) => (checkedInOn(r, 1) ? "yes" : "no") },
+  { header: "attendance_day_2", value: (r) => (checkedInOn(r, 2) ? "yes" : "no") },
   { header: "average_score", value: (r) => r.avg_score },
   { header: "review_count", value: (r) => r.review_count },
   { header: "assigned_reviewer", value: (r) => r.assigned_name ?? r.assigned_email },

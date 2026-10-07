@@ -31,18 +31,13 @@ export default async function ApplicantProfile({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ back?: string; from?: string }>;
+  searchParams: Promise<{ back?: string }>;
 }) {
   const ctx = await adminContext();
   if (!ctx.ready) return <SetupNotice />;
 
   const { id } = await params;
-  const { back, from } = await searchParams;
-  // The analysis tab opens profiles too, and its back link returns there.
-  const list =
-    from === "analysis"
-      ? { href: "/admin/analysis", label: "analysis" }
-      : { href: "/admin/applicants", label: "applicants" };
+  const { back } = await searchParams;
 
   const [detail, tags, admins] = await Promise.all([
     fetchApplicantDetail(ctx, id),
@@ -64,11 +59,11 @@ export default async function ApplicantProfile({
   return (
     <div className="space-y-4">
       <Link
-        href={`${list.href}${back ? `?${decodeURIComponent(back)}` : ""}`}
+        href={`/admin/applicants${back ? `?${decodeURIComponent(back)}` : ""}`}
         className="inline-flex items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
       >
         <ArrowLeft className="size-3.5" />
-        Back to {list.label}
+        Back to applicants
       </Link>
 
       <Panel className="px-4 py-4">

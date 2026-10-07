@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { assertAdmin } from "@/lib/admin/auth";
 import { MOVES, type Move } from "@/lib/admin/stage";
+import { checkedInOn, currentEventDay, type EventDay } from "@/lib/checkin";
 import {
   ATTENDANCE,
   DECISION_STATUSES,
@@ -114,23 +115,44 @@ export async function setAttendance(
   return { ok: true, count: targets.length };
 }
 
+/**
+ * Where each day's check-in is stored. Day one's column predates the second
+ * day and kept its name (migration 0027).
+ */
+const CHECK_IN_COLUMN: Record<EventDay, string> = {
+  1: "checked_in_at",
+  2: "checked_in_day2_at",
+};
+
+/** Postgres and PostgREST's ways of saying a column isn't there. */
+function missingColumn(error: { code?: string }) {
+  return error.code === "42703" || error.code === "PGRST204";
+}
+
+const NEEDS_0027 =
+  "Day 2 check-in isn't set up on this database yet. Run migration 0027 in Supabase.";
+
+/** Sets or clears one day's check-in, from the profile or the desk's undo. */
 export async function setCheckedIn(
   ids: string[],
-  checkedIn: boolean
+  checkedIn: boolean,
+  day: EventDay
 ): Promise<ActionResult> {
   const { supabase } = await assertAdmin();
   const targets = validIds(ids);
   if (!targets.length) return { ok: false, message: "No applicants selected." };
+  if (day !== 1 && day !== 2) return { ok: false, message: "Unknown event day." };
 
-  const rows = targets.map((user_id) => ({
-    user_id,
-    checked_in_at: checkedIn ? new Date().toISOString() : null,
-  }));
+  const at = checkedIn ? new Date().toISOString() : null;
+  const rows = targets.map((user_id) => ({ user_id, [CHECK_IN_COLUMN[day]]: at }));
 
   const { error } = await supabase
     .from("application_status")
     .upsert(rows, { onConflict: "user_id" });
-  if (error) return fail(error, "Could not update check-in.");
+  if (error) {
+    if (missingColumn(error)) return { ok: false, message: NEEDS_0027 };
+    return fail(error, "Could not update check-in.");
+  }
 
   refresh();
   return { ok: true, count: targets.length };
@@ -290,10 +312,10 @@ export interface CheckInPerson {
 }
 
 export type CheckInResult =
-  /** Checked in by this call. */
-  | { outcome: "checked_in"; person: CheckInPerson; at: string }
-  /** Was already checked in; nothing changed, `at` is the original time. */
-  | { outcome: "already"; person: CheckInPerson; at: string }
+  /** Checked in for `day` by this call. */
+  | { outcome: "checked_in"; person: CheckInPerson; at: string; day: EventDay }
+  /** Was already checked in for `day`; nothing changed, `at` is the original time. */
+  | { outcome: "already"; person: CheckInPerson; at: string; day: EventDay }
   /** A real applicant who isn't accepted and confirmed. Nothing changed. */
   | { outcome: "not_confirmed"; person: CheckInPerson }
   /** The code isn't an applicant's. */
@@ -302,9 +324,14 @@ export type CheckInResult =
   | { outcome: "error"; message: string };
 
 /**
- * Checks one person in from a scanned code, a typed code, or the list. Once
- * covers the whole event: someone checked in on Saturday is checked in, and
- * their code scanned again on Sunday reads "already checked in".
+ * Checks one person in for one day of the event, from a scanned code, a typed
+ * code, or the list. Each day is its own check-in: someone in on Saturday is
+ * checked in again on Sunday, and their code scanned twice on the same day
+ * reads "already checked in".
+ *
+ * `day` is the desk's choice and is sent with the call rather than read off the
+ * clock here, so a check-in the desk kept through a dead connection still lands
+ * on the day it was made. Without one it's whichever day today is.
  *
  * Unlike the other actions this one reports rather than throws, and it is safe
  * to repeat: the desk retries it over bad wifi, and two organizers can scan the
@@ -317,8 +344,12 @@ export type CheckInResult =
  */
 export async function checkIn(
   id: string,
-  options: { force?: boolean } = {}
+  options: { force?: boolean; day?: EventDay } = {}
 ): Promise<CheckInResult> {
+  const day: EventDay =
+    options.day === 1 || options.day === 2 ? options.day : currentEventDay();
+  const column = CHECK_IN_COLUMN[day];
+
   let supabase: Awaited<ReturnType<typeof assertAdmin>>["supabase"];
   try {
     ({ supabase } = await assertAdmin());
@@ -327,21 +358,21 @@ export async function checkIn(
   }
   if (typeof id !== "string" || !UUID.test(id)) return { outcome: "not_found" };
 
+  // Every column rather than a list of them: the per-day times aren't in the
+  // view until migration 0027, and naming one that's missing fails the read.
   const read = () =>
-    supabase
-      .from("admin_applicants")
-      .select("id, full_name, email, shirt, needs, status, attendance, checked_in_at")
-      .eq("id", id)
-      .maybeSingle<{
-        id: string;
-        full_name: string | null;
-        email: string | null;
-        shirt: string | null;
-        needs: string | null;
-        status: Status;
-        attendance: Attendance;
-        checked_in_at: string | null;
-      }>();
+    supabase.from("admin_applicants").select("*").eq("id", id).maybeSingle<{
+      id: string;
+      full_name: string | null;
+      email: string | null;
+      shirt: string | null;
+      needs: string | null;
+      status: Status;
+      attendance: Attendance;
+      checked_in_at: string | null;
+      checked_in_day1_at?: string | null;
+      checked_in_day2_at?: string | null;
+    }>();
 
   const found = await read();
   if (found.error) return { outcome: "error", message: found.error.message };
@@ -358,7 +389,8 @@ export async function checkIn(
     attendance: row.attendance,
   };
 
-  if (row.checked_in_at) return { outcome: "already", person, at: row.checked_in_at };
+  const before = checkedInOn(row, day);
+  if (before) return { outcome: "already", person, at: before, day };
 
   const expected = row.status === "accepted" && row.attendance === "confirmed";
   if (!expected && !options.force) return { outcome: "not_confirmed", person };
@@ -366,28 +398,32 @@ export async function checkIn(
   const at = new Date().toISOString();
   const updated = await supabase
     .from("application_status")
-    .update({ checked_in_at: at })
+    .update({ [column]: at })
     .eq("user_id", id)
-    .is("checked_in_at", null)
+    .is(column, null)
     .select("user_id");
-  if (updated.error) return { outcome: "error", message: updated.error.message };
+  if (updated.error) {
+    return {
+      outcome: "error",
+      message: missingColumn(updated.error) ? NEEDS_0027 : updated.error.message,
+    };
+  }
 
   if (!updated.data?.length) {
     // Nothing matched: either someone else checked them in between the read and
     // the write, or (only with `force`) they have no decision row to update yet.
     const again = await read();
     if (again.error) return { outcome: "error", message: again.error.message };
-    if (again.data?.checked_in_at) {
-      return { outcome: "already", person, at: again.data.checked_in_at };
-    }
+    const since = again.data && checkedInOn(again.data, day);
+    if (since) return { outcome: "already", person, at: since, day };
     const inserted = await supabase
       .from("application_status")
-      .upsert({ user_id: id, checked_in_at: at }, { onConflict: "user_id" });
+      .upsert({ user_id: id, [column]: at }, { onConflict: "user_id" });
     if (inserted.error) return { outcome: "error", message: inserted.error.message };
   }
 
   refresh();
-  return { outcome: "checked_in", person, at };
+  return { outcome: "checked_in", person, at, day };
 }
 
 /** `reviewerId` of null unassigns. */

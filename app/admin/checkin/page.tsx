@@ -5,15 +5,16 @@ import { PageHeader, StatCard } from "@/components/admin/ui";
 import { displayName, formatNumber, formatPercent } from "@/lib/admin/format";
 import { adminContext } from "@/lib/admin/queries";
 import type { Applicant } from "@/lib/admin/types";
-import { parseCheckInCode } from "@/lib/checkin";
+import { checkedInOn, currentEventDay, parseCheckInCode } from "@/lib/checkin";
 
 /**
  * Event-day check-in. The list is everyone who has confirmed they're coming,
  * plus anyone already checked in — including someone who turned up despite an
  * unanswered confirmation, so the desk can still let them in.
  *
- * The desk is open both mornings, but a person checks in once and that covers
- * the whole event: whoever came on Saturday is already in on Sunday.
+ * The desk is open both mornings and each one is its own check-in: whoever came
+ * on Saturday is checked in again on Sunday, with the same code. The board
+ * opens on today's day and counts each separately.
  *
  * `?code=` is what an attendee's QR links to. A phone's own camera opens this
  * page with it, and the page then leads with that one person. Opening the link
@@ -45,7 +46,9 @@ export default async function CheckInPage({
   const expected = accepted.filter(
     (applicant) => applicant.attendance === "confirmed" || applicant.checked_in
   );
-  const checkedIn = expected.filter((applicant) => applicant.checked_in).length;
+  const today = currentEventDay();
+  const day1 = expected.filter((applicant) => checkedInOn(applicant, 1)).length;
+  const day2 = expected.filter((applicant) => checkedInOn(applicant, 2)).length;
 
   let arrival: Arrival | undefined;
   if (arrivalId) {
@@ -71,11 +74,14 @@ export default async function CheckInPage({
         status: found.status,
         attendance: found.attendance,
       },
-      checkedInAt: found?.checked_in_at ?? null,
+      checkedIn: {
+        1: found ? checkedInOn(found, 1) : null,
+        2: found ? checkedInOn(found, 2) : null,
+      },
     };
   } else if (rawCode) {
     // A `code` that isn't one of ours: say so rather than ignoring it.
-    arrival = { id: "", person: null, checkedInAt: null };
+    arrival = { id: "", person: null, checkedIn: { 1: null, 2: null } };
   }
 
   return (
@@ -84,17 +90,23 @@ export default async function CheckInPage({
       <AutoRefresh />
       <PageHeader
         title="Check-in"
-        subtitle="Confirmed attendees. Scan their QR or search, then check them in."
+        subtitle="Confirmed attendees. Scan their QR or search, then check them in for the day."
       />
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        <StatCard label="Checked in" value={formatNumber(checkedIn)} emphasis />
-        <StatCard label="Expected" value={formatNumber(expected.length)} />
         <StatCard
-          label="Turnout"
-          value={formatPercent(checkedIn, expected.length, 0)}
-          hint="of confirmed attendees"
+          label="Checked in, day 1"
+          value={formatNumber(day1)}
+          hint={`${formatPercent(day1, expected.length, 0)} of expected`}
+          emphasis={today === 1}
         />
+        <StatCard
+          label="Checked in, day 2"
+          value={formatNumber(day2)}
+          hint={`${formatPercent(day2, expected.length, 0)} of expected`}
+          emphasis={today === 2}
+        />
+        <StatCard label="Expected" value={formatNumber(expected.length)} />
         <StatCard
           label="Accepted, unconfirmed"
           value={formatNumber(accepted.length - expected.length)}
@@ -103,7 +115,12 @@ export default async function CheckInPage({
       </div>
 
       {/* Keyed so following a second code's link leads with the new person. */}
-      <CheckInBoard key={arrivalId ?? "desk"} expected={expected} arrival={arrival} />
+      <CheckInBoard
+        key={arrivalId ?? "desk"}
+        expected={expected}
+        arrival={arrival}
+        today={today}
+      />
     </div>
   );
 }

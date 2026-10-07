@@ -2,8 +2,19 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { AlertTriangle, ArrowDown, ArrowUp, Check, ChevronDown } from "lucide-react";
+import {
+  AlertTriangle,
+  ArrowDown,
+  ArrowUp,
+  Check,
+  ChevronDown,
+  EyeOff,
+  Filter,
+} from "lucide-react";
+import { Popover } from "radix-ui";
 import { COLUMNS, rowFlags, type ColumnDef } from "@/components/admin/applicants/columns";
+import ControlBody from "@/components/admin/applicants/ControlBody";
+import { activeCount, type Control } from "@/components/admin/applicants/controls";
 import { ActionMenu, MenuItem, MenuLabel } from "@/components/admin/Menu";
 import {
   AttendanceBadge,
@@ -28,6 +39,7 @@ import {
   type Stage,
 } from "@/lib/admin/stage";
 import type { Applicant } from "@/lib/admin/types";
+import { checkedInOn } from "@/lib/checkin";
 import { cn } from "@/lib/utils";
 
 /**
@@ -49,6 +61,10 @@ import { cn } from "@/lib/utils";
  * `border-separate` rather than `border-collapse`: with collapsed borders a
  * browser may decline to paint a background on a sticky header cell, which is
  * how a "transparent" header showing the row beneath it happens.
+ *
+ * Every column header is a menu (`HeaderCell`): the two sort orders, that
+ * column's filter, and Hide column. What the column is doing shows on the
+ * header itself, so a narrowed list says where it is narrowed.
  */
 export default function ApplicantTable({
   rows,
@@ -58,6 +74,11 @@ export default function ApplicantTable({
   onToggleRow,
   onToggleAll,
   onSort,
+  controlFor,
+  onFilter,
+  onRange,
+  onClearFilter,
+  onHide,
   onMove,
   moving,
   backQuery,
@@ -68,7 +89,13 @@ export default function ApplicantTable({
   selected: Set<string>;
   onToggleRow: (id: string, shiftKey: boolean, index: number) => void;
   onToggleAll: () => void;
-  onSort: (column: ColumnDef) => void;
+  onSort: (column: ColumnDef, dir: "asc" | "desc") => void;
+  /** The filter a column's header menu offers, if it has one. */
+  controlFor: (column: string) => Control | undefined;
+  onFilter: (control: Extract<Control, { kind: "options" }>, value: string) => void;
+  onRange: (param: string, value: string) => void;
+  onClearFilter: (control: Control) => void;
+  onHide: (column: string) => void;
   /** Moves one applicant to a stage, straight from their row. */
   onMove: (applicant: Applicant, move: Move) => void;
   /** True while a move is in flight, so a second click can't stack on it. */
@@ -77,6 +104,7 @@ export default function ApplicantTable({
 }) {
   const router = useRouter();
   const columns = COLUMNS.filter((column) => visible.includes(column.key));
+  const emailColumn = visible.includes("email");
   const allSelected = rows.length > 0 && rows.every((row) => selected.has(row.id));
 
   return (
@@ -98,31 +126,18 @@ export default function ApplicantTable({
               </button>
             </th>
             {columns.map((column) => (
-              <th
+              <HeaderCell
                 key={column.key}
-                className={cn(
-                  "sticky top-0 z-20 border-b border-border bg-background px-3 py-2 text-left font-normal whitespace-nowrap",
-                  column.align === "right" && "text-right"
-                )}
-              >
-                {column.sort ? (
-                  <button
-                    type="button"
-                    onClick={() => onSort(column)}
-                    className="inline-flex items-center gap-1 transition-colors hover:text-foreground"
-                  >
-                    {column.label}
-                    {filters.sort === column.sort &&
-                      (filters.dir === "asc" ? (
-                        <ArrowUp className="size-3 text-[var(--ring)]" />
-                      ) : (
-                        <ArrowDown className="size-3 text-[var(--ring)]" />
-                      ))}
-                  </button>
-                ) : (
-                  column.label
-                )}
-              </th>
+                column={column}
+                filters={filters}
+                control={controlFor(column.key)}
+                onSort={onSort}
+                onFilter={onFilter}
+                onRange={onRange}
+                onClearFilter={onClearFilter}
+                // The applicant is the row: without it there is nothing to open.
+                onHide={column.key === "applicant" ? undefined : () => onHide(column.key)}
+              />
             ))}
           </tr>
         </thead>
@@ -173,7 +188,7 @@ export default function ApplicantTable({
                   <td
                     key={column.key}
                     className={cn(
-                      "border-b border-border/60 px-3 py-2 align-middle",
+                      "border-b border-border/60 px-3 py-2 align-middle whitespace-nowrap",
                       column.align === "right" && "text-right"
                     )}
                     // The stage cell is a control, not part of the row's link.
@@ -186,7 +201,12 @@ export default function ApplicantTable({
                     {column.key === "stage" ? (
                       <StageCell applicant={applicant} onMove={onMove} moving={moving} />
                     ) : (
-                      <Cell column={column.key} applicant={applicant} flags={flags} />
+                      <Cell
+                        column={column.key}
+                        applicant={applicant}
+                        flags={flags}
+                        emailColumn={emailColumn}
+                      />
                     )}
                   </td>
                 ))}
@@ -196,6 +216,131 @@ export default function ApplicantTable({
         </tbody>
       </table>
     </div>
+  );
+}
+
+const SORT_LABEL = {
+  text: { asc: "A to Z", desc: "Z to A" },
+  number: { asc: "Lowest first", desc: "Highest first" },
+  date: { asc: "Oldest first", desc: "Newest first" },
+} as const;
+
+/**
+ * One column header: the label, what the column is currently doing, and the
+ * menu that changes it. Nothing in the menu closes it — a second filter value
+ * or the other sort order is usually the next thing wanted.
+ */
+function HeaderCell({
+  column,
+  filters,
+  control,
+  onSort,
+  onFilter,
+  onRange,
+  onClearFilter,
+  onHide,
+}: {
+  column: ColumnDef;
+  filters: ApplicantFilters;
+  control: Control | undefined;
+  onSort: (column: ColumnDef, dir: "asc" | "desc") => void;
+  onFilter: (control: Extract<Control, { kind: "options" }>, value: string) => void;
+  onRange: (param: string, value: string) => void;
+  onClearFilter: (control: Control) => void;
+  onHide?: () => void;
+}) {
+  const sorted = column.sort && filters.sort === column.sort ? filters.dir : null;
+  const filtered = control ? activeCount(control) : 0;
+  const labels = SORT_LABEL[column.kind ?? "text"];
+  const row =
+    "flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-xs transition-colors hover:bg-accent/50";
+
+  return (
+    <th
+      aria-sort={sorted ? (sorted === "asc" ? "ascending" : "descending") : undefined}
+      className="sticky top-0 z-20 border-b border-border bg-background p-0 text-left font-normal whitespace-nowrap"
+    >
+      <Popover.Root>
+        <Popover.Trigger
+          className={cn(
+            "group/head flex w-full items-center gap-1.5 px-3 py-2 transition-colors outline-none hover:bg-accent/40 hover:text-foreground focus-visible:bg-accent/40 data-[state=open]:bg-accent/40 data-[state=open]:text-foreground",
+            column.align === "right" && "justify-end",
+            (sorted || filtered > 0) && "text-foreground"
+          )}
+        >
+          {column.label}
+          {filtered > 0 && <Filter className="size-3 shrink-0 text-[var(--ring)]" />}
+          {sorted === "asc" && <ArrowUp className="size-3 shrink-0 text-[var(--ring)]" />}
+          {sorted === "desc" && <ArrowDown className="size-3 shrink-0 text-[var(--ring)]" />}
+          {/* Only on hover: a chevron on every column at rest would crowd the labels. */}
+          {!sorted && !filtered && (
+            <ChevronDown className="size-3 shrink-0 opacity-0 transition-opacity group-hover/head:opacity-70 group-data-[state=open]/head:opacity-70" />
+          )}
+        </Popover.Trigger>
+
+        <Popover.Portal>
+          <Popover.Content
+            align={column.align === "right" ? "end" : "start"}
+            sideOffset={4}
+            className="z-100 w-60 overflow-hidden rounded-lg border border-border bg-popover py-1 text-foreground shadow-xl"
+          >
+            {column.sort && (
+              <>
+                <MenuLabel>Sort</MenuLabel>
+                {(["asc", "desc"] as const).map((dir) => (
+                  <button
+                    key={dir}
+                    type="button"
+                    onClick={() => onSort(column, dir)}
+                    className={row}
+                  >
+                    {dir === "asc" ? (
+                      <ArrowUp className="size-3.5 shrink-0 text-muted-foreground" />
+                    ) : (
+                      <ArrowDown className="size-3.5 shrink-0 text-muted-foreground" />
+                    )}
+                    <span className="flex-1">{labels[dir]}</span>
+                    {sorted === dir && <Check className="size-3.5 shrink-0 text-[var(--ring)]" />}
+                  </button>
+                ))}
+              </>
+            )}
+
+            {control && (
+              <>
+                {column.sort && <div className="my-1 border-t border-border" />}
+                <div className="flex items-center justify-between pr-2.5">
+                  <MenuLabel>
+                    {/* Named when it isn't simply the column's own value. */}
+                    {control.label === column.label ? "Filter" : `Filter: ${control.label}`}
+                  </MenuLabel>
+                  {filtered > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => onClearFilter(control)}
+                      className="pt-1 text-[10px] text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
+                <ControlBody control={control} onToggle={onFilter} onRange={onRange} />
+              </>
+            )}
+
+            {onHide && (
+              <>
+                {(column.sort || control) && <div className="my-1 border-t border-border" />}
+                <button type="button" onClick={onHide} className={row}>
+                  <EyeOff className="size-3.5 shrink-0 text-muted-foreground" />
+                  Hide column
+                </button>
+              </>
+            )}
+          </Popover.Content>
+        </Popover.Portal>
+      </Popover.Root>
+    </th>
   );
 }
 
@@ -311,10 +456,13 @@ function Cell({
   column,
   applicant,
   flags,
+  emailColumn,
 }: {
   column: string;
   applicant: Applicant;
   flags: string[];
+  /** True when the email has a column of its own, so the name doesn't repeat it. */
+  emailColumn: boolean;
 }) {
   const muted = "text-xs text-muted-foreground";
 
@@ -341,14 +489,26 @@ function Cell({
               )}
             </div>
             {/* Under the name unless it is the name, or has its own column. */}
-            {applicant.full_name?.trim() && applicant.email && (
+            {applicant.full_name?.trim() && applicant.email && !emailColumn && (
               <div className="truncate text-xs text-muted-foreground">{applicant.email}</div>
             )}
           </div>
         </div>
       );
+    case "id":
+      return <span className={cn(muted, "font-mono")}>{applicant.id}</span>;
     case "email":
       return <span className={cn(muted, "truncate")}>{applicant.email ?? "—"}</span>;
+    case "phone":
+      return <span className="text-xs tabular-nums">{applicant.phone ?? "—"}</span>;
+    case "occ_id":
+      return <span className="text-xs tabular-nums">{applicant.occ_id ?? "—"}</span>;
+    case "iota_xi":
+      return (
+        <span className="text-xs">
+          {applicant.iota_xi == null ? "—" : applicant.iota_xi ? "Yes" : "No"}
+        </span>
+      );
     case "school":
       return <span className="truncate text-xs">{applicant.school ?? "—"}</span>;
     case "major":
@@ -388,13 +548,21 @@ function Cell({
       return <span className="text-xs tabular-nums">{applicant.age ?? "—"}</span>;
     case "classes":
       return (
-        <span className={cn(muted, "truncate")}>
+        <span
+          title={applicant.classes?.join(", ") || undefined}
+          className={cn(muted, "block max-w-[240px] truncate")}
+        >
           {applicant.classes?.length ? applicant.classes.join(", ") : "—"}
         </span>
       );
     case "needs":
       return (
-        <span className={cn(muted, "line-clamp-1 max-w-[240px]")}>{applicant.needs ?? "—"}</span>
+        <span
+          title={applicant.needs ?? undefined}
+          className={cn(muted, "block max-w-[240px] truncate")}
+        >
+          {applicant.needs ?? "—"}
+        </span>
       );
     case "checked_in":
       return applicant.checked_in ? (
@@ -402,6 +570,15 @@ function Cell({
       ) : (
         <span className={muted}>—</span>
       );
+    case "day1":
+    case "day2": {
+      const at = checkedInOn(applicant, column === "day1" ? 1 : 2);
+      return at ? (
+        <span className="text-xs whitespace-nowrap text-emerald-300">{formatDateTime(at)}</span>
+      ) : (
+        <span className={muted}>—</span>
+      );
+    }
     case "submitted":
       return (
         <span className={cn(muted, "whitespace-nowrap")}>

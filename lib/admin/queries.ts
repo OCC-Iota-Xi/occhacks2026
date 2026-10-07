@@ -81,6 +81,9 @@ function sanitize(term: string) {
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+/** The columns the search box looks in. */
+const SEARCHED = ["full_name", "email", "school", "major", "occ_id", "phone"];
+
 /**
  * Translates the URL's filters into one PostgREST query. Filtering, sorting and
  * paging all happen in Postgres — the browser never sees a row it isn't showing.
@@ -93,21 +96,17 @@ function applyFilters<Q>(query: Q, f: ApplicantFilters, viewerId: string): Q {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let q = query as any;
 
-  const needle = sanitize(f.q);
-  if (needle) {
-    if (UUID.test(f.q.trim())) {
-      q = q.eq("id", f.q.trim());
-    } else {
-      const like = `%${needle}%`;
-      q = q.or(
-        [
-          `full_name.ilike.${like}`,
-          `email.ilike.${like}`,
-          `school.ilike.${like}`,
-          `major.ilike.${like}`,
-          `occ_id.ilike.${like}`,
-        ].join(",")
-      );
+  // Each word has to match somewhere, but not all in the same field or in the
+  // order typed: "angelo manzano" finds Angelo Iyce Manzano, and "manzano santa
+  // ana" finds him by name and school together. Every `or` is ANDed with the
+  // rest of the query, so one per word is exactly that.
+  const words = sanitize(f.q).split(/\s+/).filter(Boolean).slice(0, 6);
+  if (UUID.test(f.q.trim())) {
+    q = q.eq("id", f.q.trim());
+  } else {
+    for (const word of words) {
+      const like = `%${word}%`;
+      q = q.or(SEARCHED.map((column) => `${column}.ilike.${like}`).join(","));
     }
   }
 
@@ -132,6 +131,24 @@ function applyFilters<Q>(query: Q, f: ApplicantFilters, viewerId: string): Q {
 
   if (f.checkedIn === "yes") q = q.not("checked_in_at", "is", null);
   if (f.checkedIn === "no") q = q.is("checked_in_at", null);
+
+  // Per-day check-in (migration 0027).
+  if (f.day1 === "yes") q = q.not("checked_in_day1_at", "is", null);
+  if (f.day1 === "no") q = q.is("checked_in_day1_at", null);
+  if (f.day2 === "yes") q = q.not("checked_in_day2_at", "is", null);
+  if (f.day2 === "no") q = q.is("checked_in_day2_at", null);
+
+  // A blank answer is stored as null by the form but an organizer's edit can
+  // leave an empty string, so "has one" has to rule out both.
+  if (f.needs === "yes") q = q.not("needs", "is", null).neq("needs", "");
+  if (f.needs === "no") q = q.or("needs.is.null,needs.eq.");
+  if (f.occ === "yes") q = q.not("occ_id", "is", null).neq("occ_id", "");
+  if (f.occ === "no") q = q.or("occ_id.is.null,occ_id.eq.");
+
+  const youngest = Number(f.ageMin);
+  if (f.ageMin && Number.isFinite(youngest)) q = q.gte("age", youngest);
+  const oldest = Number(f.ageMax);
+  if (f.ageMax && Number.isFinite(oldest)) q = q.lte("age", oldest);
 
   if (f.reviewed === "yes") q = q.gt("review_count", 0);
   if (f.reviewed === "no") q = q.eq("review_count", 0);
@@ -207,10 +224,11 @@ export async function fetchApplicants(
 
   let { data, error, count } = await run(filters.sort);
 
-  // `timeline_at` arrives with migration 0023. Against a database that hasn't
-  // had it yet, fall back to the old order — drafts last — rather than showing
-  // an error where the list should be.
-  if (error?.code === "42703" && filters.sort === "timeline_at") {
+  // Some sort columns arrive with a migration (`timeline_at` with 0023, the
+  // per-day check-in times with 0027). Against a database that hasn't had it
+  // yet, fall back to the old order — drafts last — rather than showing an
+  // error where the list should be.
+  if (error?.code === "42703" && filters.sort !== "completed_at") {
     ({ data, error, count } = await run("completed_at"));
   }
 

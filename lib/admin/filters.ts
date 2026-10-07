@@ -18,10 +18,17 @@ export const SORTABLE = [
   "full_name",
   "email",
   "school",
+  "major",
   "status",
+  "attendance",
+  "age",
+  "shirt",
+  "first_choice_track",
   "avg_score",
   "review_count",
   "checked_in_at",
+  "checked_in_day1_at",
+  "checked_in_day2_at",
 ] as const;
 export type SortKey = (typeof SORTABLE)[number];
 
@@ -62,6 +69,15 @@ export interface ApplicantFilters {
   klass: string[];
   iota: string;
   checkedIn: string;
+  /** Checked in on that day of the event: "yes" or "no". */
+  day1: string;
+  day2: string;
+  /** Wrote something under accessibility or dietary needs. */
+  needs: string;
+  /** Gave an OCC student ID. */
+  occ: string;
+  ageMin: string;
+  ageMax: string;
   reviewer: string;
   reviewed: string;
   scoreMin: string;
@@ -91,6 +107,12 @@ const MULTI = [
 const SINGLE = [
   ["iota", "iota"],
   ["checked_in", "checkedIn"],
+  ["day1", "day1"],
+  ["day2", "day2"],
+  ["needs", "needs"],
+  ["occ", "occ"],
+  ["age_min", "ageMin"],
+  ["age_max", "ageMax"],
   ["reviewer", "reviewer"],
   ["reviewed", "reviewed"],
   ["score_min", "scoreMin"],
@@ -131,6 +153,12 @@ export function parseFilters(input: URLSearchParams): ApplicantFilters {
     klass: [],
     iota: "",
     checkedIn: "",
+    day1: "",
+    day2: "",
+    needs: "",
+    occ: "",
+    ageMin: "",
+    ageMax: "",
     reviewer: "",
     reviewed: "",
     scoreMin: "",
@@ -190,6 +218,12 @@ export function hasActiveFilters(f: ApplicantFilters): boolean {
       f.flag.length ||
       f.iota ||
       f.checkedIn ||
+      f.day1 ||
+      f.day2 ||
+      f.needs ||
+      f.occ ||
+      f.ageMin ||
+      f.ageMax ||
       f.reviewer ||
       f.reviewed ||
       f.scoreMin ||
@@ -207,6 +241,7 @@ export interface Chip {
 }
 
 const YES_NO: Record<string, string> = { yes: "Yes", no: "No" };
+const CHECKED_IN: Record<string, string> = { yes: "checked in", no: "not checked in" };
 
 /** The removable chips above the table: one per active narrowing. */
 export function activeChips(
@@ -232,6 +267,12 @@ export function activeChips(
   if (f.iota) chips.push({ param: "iota", label: `Iota Xi member: ${YES_NO[f.iota] ?? f.iota}` });
   if (f.checkedIn)
     chips.push({ param: "checked_in", label: `Checked in: ${YES_NO[f.checkedIn] ?? f.checkedIn}` });
+  if (f.day1) chips.push({ param: "day1", label: `Day 1: ${CHECKED_IN[f.day1] ?? f.day1}` });
+  if (f.day2) chips.push({ param: "day2", label: `Day 2: ${CHECKED_IN[f.day2] ?? f.day2}` });
+  if (f.needs) chips.push({ param: "needs", label: `Has needs: ${YES_NO[f.needs] ?? f.needs}` });
+  if (f.occ) chips.push({ param: "occ", label: `OCC student ID: ${YES_NO[f.occ] ?? f.occ}` });
+  if (f.ageMin) chips.push({ param: "age_min", label: `Age ≥ ${f.ageMin}` });
+  if (f.ageMax) chips.push({ param: "age_max", label: `Age ≤ ${f.ageMax}` });
   if (f.reviewed)
     chips.push({ param: "reviewed", label: `Reviewed: ${YES_NO[f.reviewed] ?? f.reviewed}` });
   if (f.reviewer) {

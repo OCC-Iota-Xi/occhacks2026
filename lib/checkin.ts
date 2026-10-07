@@ -8,12 +8,47 @@
  * the desk falls back to if the in-page scanner won't start. Opening the link
  * does nothing by itself, and `/admin` turns away anyone who isn't an organizer.
  *
- * A code is read once. The event runs two days, but checking in on either one
- * covers both, so there's no day in here and nothing to scan a second time.
+ * The event runs two days and each morning is its own check-in, but the code
+ * is the same on both: there's no day in it. The desk knows which morning it
+ * is, so the same screenshot scans on Saturday and again on Sunday.
  *
  * Shared by the server (which draws the QR) and the browser (which reads it),
  * so nothing here may import server-only code.
  */
+
+import { eventDay, shiftDay } from "@/lib/admin/time";
+import { EVENT_START } from "@/lib/eligibility";
+
+export const EVENT_DAYS = [1, 2] as const;
+export type EventDay = (typeof EVENT_DAYS)[number];
+
+/**
+ * The day the desk is checking people in for: day one until the second
+ * morning, day two from then on. Before the event that's day one, which is
+ * also where a test check-in lands.
+ */
+export function currentEventDay(now: Date = new Date()): EventDay {
+  return eventDay(now) >= shiftDay(EVENT_START, 1) ? 2 : 1;
+}
+
+/**
+ * When someone checked in on a given day, from a row of `admin_applicants`.
+ *
+ * The per-day columns arrive with migration 0027. A database that hasn't had it
+ * yet has one check-in time, and it is day one's.
+ */
+export function checkedInOn(
+  row: {
+    checked_in_at?: string | null;
+    checked_in_day1_at?: string | null;
+    checked_in_day2_at?: string | null;
+  },
+  day: EventDay
+): string | null {
+  if (day === 2) return row.checked_in_day2_at ?? null;
+  if (row.checked_in_day1_at !== undefined) return row.checked_in_day1_at;
+  return row.checked_in_at ?? null;
+}
 
 const CHECKIN_URL = "https://occhacks.com/admin/checkin";
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
@@ -8,14 +8,15 @@ import {
   ChevronDown,
   ChevronLeft,
   ChevronRight,
+  Columns3,
   Download,
+  Filter,
   Mail,
   Search,
-  SlidersHorizontal,
   Trash2,
   X,
 } from "lucide-react";
-import { Dialog } from "radix-ui";
+import { Dialog, Popover } from "radix-ui";
 import ApplicantTable from "@/components/admin/applicants/Table";
 import {
   COLUMNS,
@@ -23,8 +24,23 @@ import {
   DEFAULT_COLUMNS,
   type ColumnDef,
 } from "@/components/admin/applicants/columns";
+import ControlBody from "@/components/admin/applicants/ControlBody";
+import {
+  COLUMN_CONTROL,
+  activeCount,
+  buildControls,
+  clearControl,
+  toggleControl,
+  type Control,
+} from "@/components/admin/applicants/controls";
 import ConfirmDialog from "@/components/admin/ConfirmDialog";
-import { ActionMenu, FilterMenu, MenuItem, MenuLabel } from "@/components/admin/Menu";
+import {
+  ActionMenu,
+  FilterMenu,
+  MenuItem,
+  MenuLabel,
+  OptionList,
+} from "@/components/admin/Menu";
 import { useToast } from "@/components/admin/Toast";
 import { Empty, Panel } from "@/components/admin/ui";
 import { Button } from "@/components/ui/button";
@@ -43,14 +59,12 @@ import { draftCampaignForApplicants } from "@/lib/admin/email-actions";
 import {
   activeChips,
   clearFilters,
-  FLAGS,
-  FLAG_LABEL,
   hasActiveFilters,
   PAGE_SIZES,
+  parseFilters,
   queryString,
   removeChip,
   setParam,
-  toggleParam,
   type ApplicantFilters,
 } from "@/lib/admin/filters";
 import { displayName, formatNumber } from "@/lib/admin/format";
@@ -61,12 +75,11 @@ import {
   MOVE_EFFECT,
   MOVE_LABEL,
   STAGES,
-  STAGE_LABEL,
   type Move,
   type Stage,
 } from "@/lib/admin/stage";
 import type { AdminUser, Applicant, SavedView, Tag } from "@/lib/admin/types";
-import { OCC_CLASSES, SHIRT_SIZES, TRACKS } from "@/lib/form-options";
+import { EVENT_DAYS } from "@/lib/checkin";
 import { cn } from "@/lib/utils";
 
 /**
@@ -76,8 +89,11 @@ import { cn } from "@/lib/utils";
  * us, and what — so the tabs are the stages of the pipeline with a count on
  * each, and every row carries its own stage control. Selecting rows is for
  * doing the same thing to many people; changing one person never needs it.
- * The filters that slice by anything else (school, shirt, class…) are a click
- * away behind Filters rather than on screen all the time.
+ *
+ * Everything else the list can be narrowed by is one set of filters
+ * (`controls.ts`) shown in two places: on the header of the column it belongs
+ * to, and all together behind Filters, which is where a hidden column's filter
+ * is still found.
  *
  * The one piece of state that isn't in the URL is the selection — checkboxes
  * are about what you're doing right now, not about what you're looking at, and
@@ -99,7 +115,7 @@ const STAGE_TABS: { name: string; stages: Stage[] }[] = [
 export default function ApplicantsWorkspace({
   rows,
   total,
-  filters,
+  filters: served,
   facets,
   tags,
   admins,
@@ -122,12 +138,31 @@ export default function ApplicantsWorkspace({
 }) {
   const router = useRouter();
   const pathname = usePathname();
-  const params = useSearchParams();
+  const urlParams = useSearchParams();
   const { toast } = useToast();
   const [pending, startTransition] = useTransition();
 
+  // The query string last asked for, while the page for it is still on its way.
+  // Until it lands, the next change builds on this rather than on the address
+  // bar — ticking three schools in a row would otherwise send three requests
+  // that each knew about one school, and the last to land would win. The
+  // filters are parsed from it here as well, so a tick shows as a tick now and
+  // not when the rows arrive.
+  const [intended, setIntended] = useState<string | null>(null);
+  if (!pending && intended != null) setIntended(null);
+  const params = useMemo(
+    () => (intended != null ? new URLSearchParams(intended) : urlParams),
+    [intended, urlParams]
+  );
+  const filters = useMemo(
+    () => (intended != null ? parseFilters(params) : served),
+    [intended, params, served]
+  );
+
   const [term, setTerm] = useState(filters.q);
-  const [showMore, setShowMore] = useState(false);
+  // Which sections of the Filters panel are unfolded. Absent means "open if it
+  // is narrowing the list", so the panel opens on what is already in play.
+  const [sections, setSections] = useState<Record<string, boolean>>({});
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [visible, setVisible] = useState<string[]>(DEFAULT_COLUMNS);
   const [confirm, setConfirm] = useState<{
@@ -173,12 +208,27 @@ export default function ApplicantsWorkspace({
     }
   };
 
+  // The applicant column stays: it is the row's name and the way into it.
+  const toggleColumn = (key: string) =>
+    setColumns(
+      visible.includes(key)
+        ? visible.filter((column) => column !== key || column === "applicant")
+        : [...visible, key]
+    );
+
   const push = useCallback(
     (next: URLSearchParams) => {
+      setIntended(next.toString());
       startTransition(() => router.push(`${pathname}${queryString(next)}`));
     },
     [pathname, router]
   );
+
+  // For the one caller that runs later than the render it was created in.
+  const latest = useRef(params);
+  useEffect(() => {
+    latest.current = params;
+  });
 
   // The query the search box itself last sent to the URL, until it lands.
   const [sent, setSent] = useState<string | null>(null);
@@ -189,11 +239,11 @@ export default function ApplicantsWorkspace({
     const timer = setTimeout(() => {
       const q = term.trim();
       setSent(q);
-      push(setParam(params, "q", q));
+      // Whatever the filters are by now, not what they were when typing began.
+      push(setParam(latest.current, "q", q));
     }, 300);
     return () => clearTimeout(timer);
-    // `params` changes identity on every navigation; depending on it here would
-    // re-arm the timer mid-typing.
+    // Only typing re-arms the timer; a filter changing mid-word must not.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [term]);
 
@@ -211,7 +261,8 @@ export default function ApplicantsWorkspace({
     if (filters.q !== sent) setTerm(filters.q);
   }
 
-  const paramsKey = params.toString();
+  // The address bar, not `params`: the selection belongs to the rows on screen.
+  const paramsKey = urlParams.toString();
   const [lastParams, setLastParams] = useState(paramsKey);
   if (lastParams !== paramsKey) {
     setLastParams(paramsKey);
@@ -219,7 +270,16 @@ export default function ApplicantsWorkspace({
     setAnchor(null);
   }
 
-  const toggle = (key: string, value: string) => push(toggleParam(params, key, value));
+  const controls = useMemo(
+    () => buildControls({ filters, facets, tags, admins, viewerId }),
+    [filters, facets, tags, admins, viewerId]
+  );
+  const controlFor = (column: string) =>
+    controls.find((control) => control.key === COLUMN_CONTROL[column]);
+  const filterBy = (control: Extract<Control, { kind: "options" }>, value: string) =>
+    push(toggleControl(params, control, value));
+  const filterRange = (param: string, value: string) => push(setParam(params, param, value));
+  const clearFilter = (control: Control) => push(clearControl(params, control));
 
   const toggleRow = (id: string, shiftKey: boolean, index: number) => {
     setSelected((current) => {
@@ -335,20 +395,10 @@ export default function ApplicantsWorkspace({
       ? `/admin/export?ids=${ids.join(",")}`
       : `/admin/export${queryString(params)}`;
 
-  const reviewerOptions = [
-    { value: "unassigned", label: "Unassigned" },
-    { value: "me", label: "Me" },
-    ...admins
-      .filter((admin) => admin.user_id && admin.user_id !== viewerId)
-      .map((admin) => ({
-        value: admin.user_id!,
-        label: admin.display_name ?? admin.email,
-      })),
-  ];
-
   const currentQuery = params.toString();
-  // What Filters is hiding: every narrowing except the search box and the tabs.
+  // What Filters is holding: every narrowing except the search box and the tabs.
   const otherFilters = chips.filter((chip) => chip.param !== "q" && chip.param !== "stage").length;
+  const hidden = COLUMNS.filter((column) => !visible.includes(column.key)).length;
 
   return (
     <div className="space-y-3">
@@ -406,6 +456,15 @@ export default function ApplicantsWorkspace({
             {view.name}
           </Link>
         ))}
+
+        <button
+          type="button"
+          onClick={() => setSaveOpen(true)}
+          className="flex items-center gap-1 rounded-lg border border-dashed border-border px-2.5 py-1.5 text-xs whitespace-nowrap text-muted-foreground transition-colors hover:text-foreground"
+        >
+          <Bookmark className="size-3" />
+          Save this view
+        </button>
       </div>
 
       {/* Search, and the door to everything else */}
@@ -425,23 +484,130 @@ export default function ApplicantsWorkspace({
           )}
         </div>
 
-        <button
-          type="button"
-          onClick={() => setShowMore((value) => !value)}
-          aria-expanded={showMore}
-          className={cn(
-            "flex h-9 items-center gap-1.5 rounded-lg border px-3 text-xs transition-colors",
-            showMore || otherFilters > 0
-              ? "border-[var(--ring)]/40 text-foreground"
-              : "border-border text-muted-foreground hover:text-foreground"
-          )}
-        >
-          <SlidersHorizontal className="size-3.5" />
-          Filters
-          {otherFilters > 0 && (
-            <span className="tabular-nums text-[var(--ring)]">{otherFilters}</span>
-          )}
-        </button>
+        <Popover.Root>
+          <Popover.Trigger
+            className={cn(
+              "flex h-9 items-center gap-1.5 rounded-lg border px-3 text-xs transition-colors data-[state=open]:text-foreground",
+              otherFilters > 0
+                ? "border-[var(--ring)]/40 text-foreground"
+                : "border-border text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <Filter className="size-3.5" />
+            Filters
+            {otherFilters > 0 && (
+              <span className="tabular-nums text-[var(--ring)]">{otherFilters}</span>
+            )}
+          </Popover.Trigger>
+          <Popover.Portal>
+            <Popover.Content
+              align="end"
+              sideOffset={6}
+              className="z-100 flex max-h-[70vh] w-80 flex-col overflow-hidden rounded-lg border border-border bg-popover shadow-xl"
+            >
+              <div className="scroll-soft min-h-0 flex-1 overflow-y-auto">
+                {controls.map((control) => {
+                  const count = activeCount(control);
+                  const open = sections[control.key] ?? count > 0;
+                  return (
+                    <section key={control.key} className="border-b border-border/60 last:border-b-0">
+                      <button
+                        type="button"
+                        aria-expanded={open}
+                        onClick={() =>
+                          setSections((current) => ({ ...current, [control.key]: !open }))
+                        }
+                        className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs transition-colors hover:bg-accent/40"
+                      >
+                        <span className={cn("flex-1", !count && "text-muted-foreground")}>
+                          {control.label}
+                        </span>
+                        {count > 0 && (
+                          <span className="tabular-nums text-[var(--ring)]">{count}</span>
+                        )}
+                        <ChevronDown
+                          className={cn(
+                            "size-3 text-muted-foreground transition-transform",
+                            open && "rotate-180"
+                          )}
+                        />
+                      </button>
+                      {open && (
+                        <div className="pb-1">
+                          <ControlBody
+                            control={control}
+                            onToggle={filterBy}
+                            onRange={filterRange}
+                          />
+                          {count > 0 && (
+                            <button
+                              type="button"
+                              onClick={() => clearFilter(control)}
+                              className="px-3 pb-1 text-[10px] text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+                            >
+                              Clear
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </section>
+                  );
+                })}
+              </div>
+
+              <div className="flex shrink-0 items-center justify-between border-t border-border px-3 py-2 text-xs text-muted-foreground">
+                <button
+                  type="button"
+                  disabled={!hasActiveFilters(filters)}
+                  onClick={() => push(clearFilters(params))}
+                  className="underline-offset-2 transition-colors hover:text-foreground hover:underline disabled:opacity-40 disabled:hover:no-underline"
+                >
+                  Clear all
+                </button>
+                <span>
+                  {pending ? "Updating…" : `${formatNumber(total)} ${total === 1 ? "match" : "matches"}`}
+                </span>
+              </div>
+            </Popover.Content>
+          </Popover.Portal>
+        </Popover.Root>
+
+        <Popover.Root>
+          <Popover.Trigger className="flex h-9 items-center gap-1.5 rounded-lg border border-border px-3 text-xs text-muted-foreground transition-colors hover:text-foreground data-[state=open]:text-foreground">
+            <Columns3 className="size-3.5" />
+            Columns
+            {hidden > 0 && <span className="tabular-nums opacity-70">{hidden} hidden</span>}
+          </Popover.Trigger>
+          <Popover.Portal>
+            <Popover.Content
+              align="end"
+              sideOffset={6}
+              className="z-100 w-56 overflow-hidden rounded-lg border border-border bg-popover shadow-xl"
+            >
+              <OptionList
+                options={COLUMNS.map((column) => ({ value: column.key, label: column.label }))}
+                selected={visible}
+                onToggle={toggleColumn}
+              />
+              <div className="flex items-center justify-between border-t border-border px-2.5 py-1.5 text-xs text-muted-foreground">
+                <button
+                  type="button"
+                  onClick={() => setColumns(COLUMNS.map((column) => column.key))}
+                  className="underline-offset-2 hover:text-foreground hover:underline"
+                >
+                  Show all
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setColumns(DEFAULT_COLUMNS)}
+                  className="underline-offset-2 hover:text-foreground hover:underline"
+                >
+                  Reset
+                </button>
+              </div>
+            </Popover.Content>
+          </Popover.Portal>
+        </Popover.Root>
 
         <ActionMenu
           trigger={
@@ -470,194 +636,26 @@ export default function ApplicantsWorkspace({
         </ActionMenu>
       </div>
 
-      {showMore && (
-        <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-card/30 p-2">
-          <FilterMenu
-            label="Stage"
-            options={STAGES.map((stage) => ({ value: stage, label: STAGE_LABEL[stage] }))}
-            selected={filters.stage}
-            onToggle={(value) => toggle("stage", value)}
-            onClear={() => push(setParam(params, "stage", ""))}
-          />
-          <FilterMenu
-            label="School"
-            searchable
-            options={facets.schools.map((school) => ({ value: school, label: school }))}
-            selected={filters.school}
-            onToggle={(value) => toggle("school", value)}
-            onClear={() => push(setParam(params, "school", ""))}
-          />
-          <FilterMenu
-            label="Major"
-            searchable
-            options={facets.majors.map((major) => ({ value: major, label: major }))}
-            selected={filters.major}
-            onToggle={(value) => toggle("major", value)}
-            onClear={() => push(setParam(params, "major", ""))}
-          />
-          <FilterMenu
-            label="Track"
-            options={TRACKS.map((track) => ({ value: track.key, label: track.label }))}
-            selected={filters.track}
-            onToggle={(value) => toggle("track", value)}
-            onClear={() => push(setParam(params, "track", ""))}
-          />
-          <FilterMenu
-            label="Shirt"
-            options={SHIRT_SIZES.map((size) => ({ value: size, label: size.toUpperCase() }))}
-            selected={filters.shirt}
-            onToggle={(value) => toggle("shirt", value)}
-            onClear={() => push(setParam(params, "shirt", ""))}
-          />
-          <FilterMenu
-            label="Extra credit"
-            width="w-72"
-            options={OCC_CLASSES.map((course) => ({ value: course, label: course }))}
-            selected={filters.klass}
-            onToggle={(value) => toggle("class", value)}
-            onClear={() => push(setParam(params, "class", ""))}
-          />
-          <FilterMenu
-            label="Iota Xi"
-            options={[
-              { value: "yes", label: "Member" },
-              { value: "no", label: "Not a member" },
-            ]}
-            selected={filters.iota ? [filters.iota] : []}
-            onToggle={(value) =>
-              push(setParam(params, "iota", filters.iota === value ? "" : value))
-            }
-          />
-          <FilterMenu
-            label="Checked in"
-            options={[
-              { value: "yes", label: "Checked in" },
-              { value: "no", label: "Not checked in" },
-            ]}
-            selected={filters.checkedIn ? [filters.checkedIn] : []}
-            onToggle={(value) =>
-              push(setParam(params, "checked_in", filters.checkedIn === value ? "" : value))
-            }
-          />
-          <FilterMenu
-            label="Problems"
-            width="w-72"
-            options={FLAGS.map((flag) => ({ value: flag, label: FLAG_LABEL[flag] }))}
-            selected={filters.flag}
-            onToggle={(value) => toggle("flag", value)}
-            onClear={() => push(setParam(params, "flag", ""))}
-          />
-          <FilterMenu
-            label="Reviewer"
-            options={reviewerOptions}
-            selected={filters.reviewer ? [filters.reviewer] : []}
-            onToggle={(value) =>
-              push(setParam(params, "reviewer", filters.reviewer === value ? "" : value))
-            }
-            onClear={() => push(setParam(params, "reviewer", ""))}
-          />
-          <FilterMenu
-            label="Reviewed"
-            options={[
-              { value: "yes", label: "Has a review" },
-              { value: "no", label: "Not reviewed" },
-            ]}
-            selected={filters.reviewed ? [filters.reviewed] : []}
-            onToggle={(value) =>
-              push(setParam(params, "reviewed", filters.reviewed === value ? "" : value))
-            }
-          />
-          {tags.length > 0 && (
-            <FilterMenu
-              label="Tags"
-              options={tags.map((tag) => ({ value: tag.name, label: tag.name }))}
-              selected={filters.tag}
-              onToggle={(value) => toggle("tag", value)}
-              onClear={() => push(setParam(params, "tag", ""))}
-            />
-          )}
-
-          <label className="flex h-8 items-center gap-1.5 rounded-lg border border-border px-2.5 text-xs text-muted-foreground">
-            Score
-            <input
-              type="number"
-              min={1}
-              max={5}
-              step="0.1"
-              defaultValue={filters.scoreMin}
-              onBlur={(event) => push(setParam(params, "score_min", event.target.value))}
-              className="w-12 bg-transparent text-foreground outline-none"
-              placeholder="min"
-            />
-            –
-            <input
-              type="number"
-              min={1}
-              max={5}
-              step="0.1"
-              defaultValue={filters.scoreMax}
-              onBlur={(event) => push(setParam(params, "score_max", event.target.value))}
-              className="w-12 bg-transparent text-foreground outline-none"
-              placeholder="max"
-            />
-          </label>
-
-          <label className="flex h-8 items-center gap-1.5 rounded-lg border border-border px-2.5 text-xs text-muted-foreground">
-            Submitted
-            <input
-              type="date"
-              defaultValue={filters.from}
-              onChange={(event) => push(setParam(params, "from", event.target.value))}
-              className="bg-transparent text-foreground outline-none"
-            />
-            →
-            <input
-              type="date"
-              defaultValue={filters.to}
-              onChange={(event) => push(setParam(params, "to", event.target.value))}
-              className="bg-transparent text-foreground outline-none"
-            />
-          </label>
-
-          <div className="ml-auto flex items-center gap-2">
-            <FilterMenu
-              label="Columns"
-              align="end"
-              options={COLUMNS.map((column) => ({ value: column.key, label: column.label }))}
-              selected={visible}
-              onToggle={(value) =>
-                setColumns(
-                  visible.includes(value)
-                    ? visible.filter((key) => key !== value || key === "applicant")
-                    : [...visible, value]
-                )
-              }
-            />
-            <button
-              type="button"
-              onClick={() => setSaveOpen(true)}
-              className="flex h-8 items-center gap-1 rounded-lg border border-dashed border-border px-2.5 text-xs whitespace-nowrap text-muted-foreground transition-colors hover:text-foreground"
-            >
-              <Bookmark className="size-3" />
-              Save this view
-            </button>
-          </div>
-        </div>
-      )}
-
-      {chips.length > 0 && (
-        <div className="flex flex-wrap items-center gap-1.5">
-          {chips.map((chip) => (
-            <button
-              key={`${chip.param}-${chip.value ?? ""}`}
-              type="button"
-              onClick={() => push(removeChip(params, chip))}
-              className="flex items-center gap-1 rounded-md border border-border bg-muted/50 px-1.5 py-0.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
-            >
-              {chip.label}
-              <X className="size-3" />
-            </button>
-          ))}
+      {/* Always a row, filtered or not: appearing with the first filter would
+          push the table down under a menu someone is still clicking in. */}
+      <div className="flex min-h-6 flex-wrap items-center gap-1.5">
+        {chips.length === 0 && (
+          <span className="text-xs text-muted-foreground">
+            Click a column header to sort or filter by it.
+          </span>
+        )}
+        {chips.map((chip) => (
+          <button
+            key={`${chip.param}-${chip.value ?? ""}`}
+            type="button"
+            onClick={() => push(removeChip(params, chip))}
+            className="flex items-center gap-1 rounded-md border border-border bg-muted/50 px-1.5 py-0.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
+          >
+            {chip.label}
+            <X className="size-3" />
+          </button>
+        ))}
+        {chips.length > 0 && (
           <button
             type="button"
             onClick={() => push(clearFilters(params))}
@@ -665,8 +663,8 @@ export default function ApplicantsWorkspace({
           >
             Clear all
           </button>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Bulk actions */}
       {ids.length > 0 && (
@@ -721,16 +719,24 @@ export default function ApplicantsWorkspace({
               }
             >
               <MenuLabel>Check-in</MenuLabel>
-              <MenuItem
-                onSelect={() => run(() => setCheckedIn(ids, true), "Checked in {n} applicants")}
-              >
-                Check in
-              </MenuItem>
-              <MenuItem
-                onSelect={() => run(() => setCheckedIn(ids, false), "Undid check-in for {n}")}
-              >
-                Undo check-in
-              </MenuItem>
+              {EVENT_DAYS.flatMap((day) => [
+                <MenuItem
+                  key={`in-${day}`}
+                  onSelect={() =>
+                    run(() => setCheckedIn(ids, true, day), `Checked in {n} applicants for day ${day}`)
+                  }
+                >
+                  Check in, day {day}
+                </MenuItem>,
+                <MenuItem
+                  key={`out-${day}`}
+                  onSelect={() =>
+                    run(() => setCheckedIn(ids, false, day), `Undid day ${day} check-in for {n}`)
+                  }
+                >
+                  Undo day {day} check-in
+                </MenuItem>,
+              ])}
 
               <MenuLabel>Assign reviewer</MenuLabel>
               {admins
@@ -814,17 +820,19 @@ export default function ApplicantsWorkspace({
               onToggleAll={toggleAll}
               onMove={moveOne}
               moving={pending}
-              onSort={(column: ColumnDef) => {
+              onSort={(column: ColumnDef, dir) => {
                 if (!column.sort) return;
                 const next = new URLSearchParams(params);
                 next.set("sort", column.sort);
-                next.set(
-                  "dir",
-                  filters.sort === column.sort && filters.dir === "desc" ? "asc" : "desc"
-                );
+                next.set("dir", dir);
                 next.delete("page");
                 push(next);
               }}
+              controlFor={controlFor}
+              onFilter={filterBy}
+              onRange={filterRange}
+              onClearFilter={clearFilter}
+              onHide={toggleColumn}
               backQuery={backQuery}
             />
 
@@ -879,7 +887,7 @@ export default function ApplicantsWorkspace({
             title={hasActiveFilters(filters) ? "No applicants match these filters" : "No applications yet"}
             hint={
               hasActiveFilters(filters)
-                ? "Try removing a filter chip above."
+                ? "Remove a filter chip above, or clear them all."
                 : "Rows appear the moment someone starts the registration form."
             }
             action={

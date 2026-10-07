@@ -104,8 +104,13 @@ export interface Applicant {
   assigned_email: string | null;
   decided_at: string | null;
   confirmed_at: string | null;
+  /** Their first check-in, on either day. */
   checked_in_at: string | null;
+  /** Checked in on at least one day. */
   checked_in: boolean;
+  /** Each day's own check-in (migration 0027; absent from the view before it). */
+  checked_in_day1_at?: string | null;
+  checked_in_day2_at?: string | null;
   /** When the applicant said they emailed their signed waivers (migration 0024). */
   waivers_sent_at: string | null;
   review_count: number;

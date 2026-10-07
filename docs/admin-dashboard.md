@@ -44,6 +44,11 @@ overwritten and adds a trigger that keeps the original from then on. Without it
 the Date submitted column and the list's default order follow the applicant's
 last edit, the same as Last edited.
 
+`0027_checkin_days.sql` adds `application_status.checked_in_day2_at` and the
+`checked_in_day1_at` / `checked_in_day2_at` columns on `admin_applicants`, so
+each day of the event has its own check-in. Without it day 1 check-in works as
+before and a day 2 check-in fails with a message naming this migration.
+
 `0025_welcome_email_guard.sql` isn't an admin migration, but it has to run with
 the rest: it moves the welcome-email claim into `claim_welcome_email()` and
 blocks direct writes to `welcome_email_sent_at`. Without it sign-ups still save
@@ -91,25 +96,37 @@ already accepted (so it cannot unconfirm them), Confirm skips anyone not
 accepted, and Back to waivers due (unconfirm, or return a bad
 packet; it clears `waivers_sent_at`) only applies to accepted applicants.
 
-Filters for anything other than stage (school, shirt, class, problems, reviewer,
-score, dates), the column picker and Save this view are behind the Filters
-button.
+### Filtering and sorting
 
-## Analysis (`/admin/analysis`)
+Every filter is described once, in `components/admin/applicants/controls.ts`,
+and shown in two places:
 
-The applicants list as it was before the stage tabs, kept as its own page for
-slicing the roster rather than working the pipeline. Saved views run across the
-top, starting with the built-in ones (Needs review, Accepted, Waitlisted,
-Missing confirmation, Data problems and the rest). Status, Attendance, School,
-Tags, Reviewer and Data quality are menus on the filter bar itself, with the
-remaining filters under More. A selection gets Accept, Waitlist and Reject as
-buttons, which set `status` through `setStatus` behind a dialog and email
-nobody.
+- **On the column header.** Each header is a menu: the two sort orders, that
+  column's filter, and Hide column. `COLUMN_CONTROL` maps a column to its
+  filter. A funnel or an arrow on the header says the column is filtered or
+  sorted.
+- **Behind Filters.** The same filters as one folding list, which is how a
+  hidden column's filter is still reached. Sections that are narrowing the list
+  open by themselves.
 
-It reads the same rows, the same URL filters and the same export as
-`/admin/applicants`, so a saved view or a pasted link opens in either. Its
-column choices are remembered separately (`ANALYSIS_COLUMN_STORAGE_KEY`), and a
-profile opened from it links back to it (`?from=analysis`).
+Filters: stage, status, attendance, day 1 and day 2 check-in, checked in on
+either day, school, major, has an OCC student ID, age range, Iota Xi, shirt,
+has needs, extra-credit class, track, problems, date submitted, reviewer,
+reviewed, score range and tags. All of them are query parameters
+(`lib/admin/filters.ts`) applied in Postgres (`applyFilters` in
+`lib/admin/queries.ts`), so a filtered list is a link, a saved view, and what
+the export downloads. The day 1 / day 2 filters and sorts need migration 0027.
+
+The search box matches each word separately against name, email, school, major,
+student ID and phone, so "angelo manzano" finds Angelo Iyce Manzano.
+
+A change is applied on top of the last one asked for, not the last one that
+arrived (`intended` in `Workspace.tsx`), so ticking several values quickly keeps
+all of them, and the ticks show before the rows do.
+
+Columns (in the toolbar) chooses which columns show; the choice is per browser.
+Save this view, at the end of the stage tabs, saves the filters and sort for
+every organizer.
 
 ## Waivers
 
@@ -120,7 +137,7 @@ An accepted applicant's `/status` page walks three steps:
 | accepted, with the packet and where to email it | `status = accepted`, `waivers_sent_at` null | organizer accepts |
 | waivers sent | `waivers_sent_at` set | applicant presses "i've sent my waivers" |
 | confirmed, with their check-in QR | `attendance = confirmed` | organizer confirms them |
-| checked in | `checked_in_at` set | organizer scans or checks them in |
+| checked in, QR still shown | `checked_in_at` or `checked_in_day2_at` set | organizer scans or checks them in |
 
 To confirm someone, open the Waivers to review tab on the applicant list and
 press Confirm on their row, or select several and use Move to. Mark reviewed, on
@@ -142,10 +159,23 @@ as "under review" on `/status`.
 
 ## Check-in (`/admin/checkin`)
 
-The desk is open both days, October 10 and 11, but a person checks in once and
-that covers the whole event: `checked_in_at` is the one record. Someone checked
-in on Saturday shows as already checked in if their code is scanned on Sunday,
-and once checked in their status page drops the QR.
+The desk is open both days, October 10 and 11, and each day is its own
+check-in. On `application_status`, `checked_in_at` is day 1 (the column predates
+the second day and kept its name) and `checked_in_day2_at` is day 2. Someone
+checked in on Saturday is checked in again on Sunday with the same code, so
+their status page keeps the QR after the first scan.
+
+The board opens on today's day (`currentEventDay()` in `lib/checkin.ts`: day 1
+until October 11 in event time, day 2 from then on) and has a Day 1 / Day 2
+switch for looking at the other one or fixing a missed check-in. The count, the
+list's Check in / Undo buttons and what a scan records all follow the switch.
+
+On the `admin_applicants` view, `checked_in_at` and `checked_in` mean "on either
+day" (first arrival), which is what the overview stats, the Checked in filter
+and the checked-in email audience read. `checked_in_day1_at` and
+`checked_in_day2_at` are the per-day times, shown as the Day 1 and Day 2 columns
+on the applicant list and exported as `attendance_day_1` / `attendance_day_2`
+(yes/no).
 
 A confirmed applicant's `/status` page shows a QR, drawn on the server
 (`components/CheckInQr.tsx`). It encodes `https://occhacks.com/admin/checkin?code=<user id>`
@@ -162,15 +192,16 @@ Ways to check someone in, each a fallback for the one before:
 3. **Search** by name, email, school, student ID, or backup code. The list is
    already on the page, so this needs no network.
 
-All three end in the `checkIn` action, which is safe to repeat: a second scan
-reports "already checked in" and leaves the original time alone. Anyone who
+All three end in the `checkIn` action, which takes the day and is safe to
+repeat: a second scan on the same day reports "already checked in" and leaves
+the original time alone. Anyone who
 isn't accepted and confirmed is refused, with a Check in anyway override for a
 waiver handed over at the desk.
 
 If a check-in gets no answer within 10 seconds it is saved in that browser's
 localStorage (`occhacks:checkin-queue`) and retried every 5 seconds until it
 lands. Only people the loaded list shows as confirmed, or an explicit override,
-are queued. The queue lives on the device that scanned: keep that page open
+are queued, each with the day it was made for. The queue lives on the device that scanned: keep that page open
 until the banner clears.
 
 The camera only opens on https (or localhost) and needs camera permission for
