@@ -92,6 +92,15 @@ const PEOPLE: Person[] = [
     photo: "/guest_speakers/kevin_doan.jpeg",
   },
   {
+    id: "ryan",
+    name: "Ryan Yang",
+    title: "Member of Technical Staff",
+    company: "P-1 AI",
+    involvement: ["mentor"],
+    palette: 1,
+    photo: "/guest_speakers/ryan_yang.jpeg",
+  },
+  {
     id: "ashwin",
     name: "Ashwin Colaco",
     title: "PhD Researcher",
