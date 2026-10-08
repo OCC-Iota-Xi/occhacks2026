@@ -22,7 +22,6 @@ const DAYS: { id: string; label: string; events: ScheduleEvent[] }[] = [
       { time: "12:30 pm", name: "lunch" },
       { time: "1:30 pm", name: "keynote 1", speakers: "Zhen & Mike" },
       { time: "3:30 pm", name: "keynote 2", speakers: "Owen" },
-      { time: "4:30 pm", name: "fireside chat" },
       { time: "6:00 pm", name: "dinner" },
       { time: "8:00 pm", name: "end of day" },
     ],

@@ -25,11 +25,11 @@ import { MEDICAL_NOTE, REPLY_NOTE_HTML, REPLY_NOTE_TEXT } from "./waivers";
  * Like the acceptance letter, whatever sends this passes `WAIVER_ATTACHMENT`
  * and `WAIVER_REPLY_TO` along. `confirmBy` is the day their forms are due
  * ("Thursday, October 8th"); it is later than the first waves' deadline, which
- * has passed by the time the waitlist moves.
+ * has passed by the time the waitlist moves. The copy says "tonight", so it
+ * goes out on that day.
  */
 export function waitlistAcceptedEmail(fullName: string, confirmBy: string): WelcomeEmail {
   const name = esc(firstName(fullName));
-  const due = `${confirmBy}, at 11:59 PM`;
 
   const body = [
     paragraph(
@@ -43,7 +43,7 @@ export function waitlistAcceptedEmail(fullName: string, confirmBy: string): Welc
       { label: "Parking", value: PARKING_HTML },
     ]),
     paragraph(
-      `To claim your spot, sign the attached waiver forms and reply to this email with your signed copy by tonight, at ${bright(esc(due))}. Once we have your forms, your spot is officially confirmed.`
+      `To claim your spot, sign the attached waiver forms and reply to this email with your signed copy by ${bright("11:59 PM tonight")} (${esc(confirmBy)}). Once we have your forms, your spot is officially confirmed.`
     ),
     paragraph(
       `The event is close, so this deadline is a short one. A spot that isn't claimed by then goes to the next person on the waitlist.`
@@ -72,7 +72,7 @@ Check-in  ${CHECK_IN_WINDOW}
 Kickoff   ${EVENT.ceremony}
 Parking   ${EVENT.parking}
 
-To claim your spot, sign the attached waiver forms and reply to this email with your signed copy by ${due}. Once we have your forms, your spot is officially confirmed.
+To claim your spot, sign the attached waiver forms and reply to this email with your signed copy by 11:59 PM tonight (${confirmBy}). Once we have your forms, your spot is officially confirmed.
 
 The event is close, so this deadline is a short one. A spot that isn't claimed by then goes to the next person on the waitlist.
 

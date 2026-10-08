@@ -271,6 +271,64 @@ export async function fetchFilteredIds(
   return (data ?? []).map((row) => (row as { id: string }).id);
 }
 
+export interface Neighbor {
+  id: string;
+  /** Where they sit in the view, zero-based, for their own link to carry. */
+  index: number;
+}
+
+export interface Neighbors {
+  prev: Neighbor | null;
+  next: Neighbor | null;
+  /** One-based place in the view, or null for someone who is no longer in it. */
+  position: number | null;
+  total: number;
+}
+
+/**
+ * The applications either side of one, in the list the organizer came from:
+ * the same filters and the same order, so "next" on a profile is the next row
+ * of that list.
+ *
+ * Acting on someone can take them out of the view they were opened from —
+ * confirming a row of "waivers to review" does. `hint` is the place they held,
+ * carried in the URL, so the profile still knows what comes next: whoever has
+ * moved up into that place.
+ */
+export async function fetchNeighbors(
+  ctx: AdminContext,
+  filters: ApplicantFilters,
+  id: string,
+  hint: number | null
+): Promise<Neighbors> {
+  const run = (sort: string) =>
+    applyFilters(ctx.supabase.from("admin_applicants").select("id"), filters, ctx.userId)
+      .order(sort, { ascending: filters.dir === "asc", nullsFirst: false })
+      .order("id", { ascending: true })
+      .limit(5000);
+
+  let { data, error } = await run(filters.sort);
+  // The same fallback as the list, so the order here is the order there.
+  if (error?.code === "42703" && filters.sort !== "completed_at") {
+    ({ data, error } = await run("completed_at"));
+  }
+
+  const ids = error ? [] : (data ?? []).map((row) => (row as { id: string }).id);
+  const found = ids.indexOf(id);
+  const at = found >= 0 ? found : hint == null ? null : Math.min(hint, ids.length);
+  if (at == null) return { prev: null, next: null, position: null, total: ids.length };
+
+  const neighbor = (index: number): Neighbor | null =>
+    index >= 0 && index < ids.length ? { id: ids[index], index } : null;
+
+  return {
+    prev: neighbor(at - 1),
+    next: neighbor(found >= 0 ? at + 1 : at),
+    position: found >= 0 ? found + 1 : null,
+    total: ids.length,
+  };
+}
+
 export interface ApplicantDetail {
   applicant: Applicant;
   reviews: Review[];

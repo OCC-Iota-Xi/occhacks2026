@@ -13,10 +13,12 @@ import {
   deleteApplicants,
   setAttendance,
   setCheckedIn,
+  setStage,
   setStatus,
   type ActionResult,
 } from "@/lib/admin/actions";
 import { displayName, formatDateTime } from "@/lib/admin/format";
+import { MOVE_DONE, MOVE_LABEL } from "@/lib/admin/stage";
 import { APPLICANT_STAGE_LABEL, applicantStage } from "@/lib/applicant-stage";
 import { EVENT_DAYS, checkedInOn } from "@/lib/checkin";
 import {
@@ -37,8 +39,9 @@ import { cn } from "@/lib/utils";
  *
  * Application status and attendance sit next to each other but never merge:
  * accepting someone doesn't confirm them, and un-confirming someone doesn't
- * un-accept them. The three headline decisions get their own buttons; the
- * quieter transitions live in the overflow, where they can't be hit by accident.
+ * un-accept them. The headline decisions and Confirm get their own buttons;
+ * the quieter transitions live in the overflow, where they can't be hit by
+ * accident.
  */
 export default function DecisionPanel({
   applicant,
@@ -116,6 +119,7 @@ export default function DecisionPanel({
       run: () => clearWaiversSent(applicant.id),
     });
 
+  const confirmed = applicant.status === "accepted" && applicant.attendance === "confirmed";
   const assignee = admins.find((admin) => admin.user_id === applicant.assigned_to);
   const stage = applicantStage({
     completed: Boolean(applicant.completed_at),
@@ -135,6 +139,23 @@ export default function DecisionPanel({
         >
           {applicant.status === "accepted" && <Check className="size-3.5" />}
           Accept
+        </Button>
+        {/* One click and no dialog, the same as the Confirm button on a row of the list. */}
+        <Button
+          size="sm"
+          variant={confirmed ? "default" : "outline"}
+          disabled={pending || applicant.status !== "accepted"}
+          title={applicant.status !== "accepted" ? "Accept them first" : undefined}
+          onClick={() => {
+            if (confirmed) return;
+            run(
+              () => setStage([applicant.id], "confirmed"),
+              `${displayName(applicant)}: ${MOVE_DONE.confirmed}`
+            );
+          }}
+        >
+          {confirmed && <Check className="size-3.5" />}
+          {MOVE_LABEL.confirmed}
         </Button>
         <Button
           size="sm"

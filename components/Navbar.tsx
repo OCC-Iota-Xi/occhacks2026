@@ -13,6 +13,7 @@ const LINKS = [
   { label: "Tracks", href: "/#tracks" },
   { label: "Mentors", href: "/#mentors" },
   { label: "Sponsors", href: "/#sponsors" },
+  { label: "Schedule", href: "/#schedule" },
   { label: "FAQs", href: "/#faq" },
 ];
 
@@ -149,7 +150,7 @@ export default function Navbar({ closed: initialClosed }: { closed: boolean }) {
         {/* Links and CTA grouped on the right */}
         <div className="mr-2 flex items-center gap-8 md:mr-0">
           {/* Nav Links */}
-          <div className="hidden md:flex items-center gap-8">
+          <div className="hidden md:flex items-center gap-6 lg:gap-8">
             {LINKS.map((link, i) => (
               <Link
                 key={link.label}

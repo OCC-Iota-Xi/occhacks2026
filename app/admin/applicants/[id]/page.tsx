@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Mail, Phone } from "lucide-react";
+import { ArrowLeft, ChevronLeft, ChevronRight, Phone } from "lucide-react";
+import CopyEmail from "@/components/admin/applicant/CopyEmail";
 import DecisionPanel from "@/components/admin/applicant/DecisionPanel";
 import EditApplicant from "@/components/admin/applicant/EditApplicant";
 import NotesPanel from "@/components/admin/applicant/NotesPanel";
@@ -16,14 +17,24 @@ import {
   Score,
   StatusBadge,
 } from "@/components/admin/ui";
+import { Button } from "@/components/ui/button";
+import { parseFilters } from "@/lib/admin/filters";
 import {
   displayName,
   formatDate,
   formatDateTime,
+  formatNumber,
   initials,
   relativeTime,
 } from "@/lib/admin/format";
-import { adminContext, fetchAdmins, fetchApplicantDetail, fetchTags } from "@/lib/admin/queries";
+import {
+  adminContext,
+  fetchAdmins,
+  fetchApplicantDetail,
+  fetchNeighbors,
+  fetchTags,
+  type Neighbor,
+} from "@/lib/admin/queries";
 import { TRACKS } from "@/lib/form-options";
 
 export default async function ApplicantProfile({
@@ -31,22 +42,32 @@ export default async function ApplicantProfile({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ back?: string }>;
+  searchParams: Promise<{ back?: string; i?: string }>;
 }) {
   const ctx = await adminContext();
   if (!ctx.ready) return <SetupNotice />;
 
   const { id } = await params;
-  const { back } = await searchParams;
+  const { back, i } = await searchParams;
+  const place = i && /^\d+$/.test(i) ? Number(i) : null;
 
-  const [detail, tags, admins] = await Promise.all([
+  const [detail, tags, admins, neighbors] = await Promise.all([
     fetchApplicantDetail(ctx, id),
     fetchTags(ctx),
     fetchAdmins(ctx),
+    fetchNeighbors(ctx, parseFilters(new URLSearchParams(back ?? "")), id, place),
   ]);
 
   if (!detail) notFound();
   const { applicant, reviews, notes, activity, ownReview } = detail;
+
+  // A neighbour's profile keeps the list it was reached from, and its place in it.
+  const stepHref = (neighbor: Neighbor) => {
+    const query = new URLSearchParams();
+    if (back) query.set("back", back);
+    query.set("i", String(neighbor.index));
+    return `/admin/applicants/${neighbor.id}?${query}`;
+  };
 
   // The three tracks in the order this applicant ranked them.
   const ranked = TRACKS.map((track) => ({
@@ -58,13 +79,30 @@ export default async function ApplicantProfile({
 
   return (
     <div className="space-y-4">
-      <Link
-        href={`/admin/applicants${back ? `?${decodeURIComponent(back)}` : ""}`}
-        className="inline-flex items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
-      >
-        <ArrowLeft className="size-3.5" />
-        Back to applicants
-      </Link>
+      <div className="flex items-center justify-between gap-3">
+        <Link
+          href={`/admin/applicants${back ? `?${decodeURIComponent(back)}` : ""}`}
+          className="inline-flex items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
+        >
+          <ArrowLeft className="size-3.5" />
+          Back to applicants
+        </Link>
+
+        {/* Steps through the list they came from, in its order. */}
+        <div className="flex items-center gap-1 text-xs text-muted-foreground">
+          {neighbors.position != null && (
+            <span className="mr-1 tabular-nums">
+              {formatNumber(neighbors.position)} of {formatNumber(neighbors.total)}
+            </span>
+          )}
+          <Step neighbor={neighbors.prev} href={stepHref} label="Previous application">
+            <ChevronLeft />
+          </Step>
+          <Step neighbor={neighbors.next} href={stepHref} label="Next application">
+            <ChevronRight />
+          </Step>
+        </div>
+      </div>
 
       <Panel className="px-4 py-4">
         <div className="flex flex-wrap items-start gap-4">
@@ -75,15 +113,7 @@ export default async function ApplicantProfile({
           <div className="min-w-0 flex-1">
             <h1 className="text-lg tracking-tight">{displayName(applicant)}</h1>
             <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
-              {applicant.email && (
-                <a
-                  href={`mailto:${applicant.email}`}
-                  className="inline-flex items-center gap-1 hover:text-foreground"
-                >
-                  <Mail className="size-3" />
-                  {applicant.email}
-                </a>
-              )}
+              {applicant.email && <CopyEmail email={applicant.email} />}
               {applicant.phone && (
                 <span className="inline-flex items-center gap-1">
                   <Phone className="size-3" />
@@ -252,5 +282,33 @@ export default async function ApplicantProfile({
         </div>
       </div>
     </div>
+  );
+}
+
+/** A step to the application before or after this one; inert at either end of the list. */
+function Step({
+  neighbor,
+  href,
+  label,
+  children,
+}: {
+  neighbor: Neighbor | null;
+  href: (neighbor: Neighbor) => string;
+  label: string;
+  children: React.ReactNode;
+}) {
+  if (!neighbor) {
+    return (
+      <Button size="icon-sm" variant="outline" disabled aria-label={label}>
+        {children}
+      </Button>
+    );
+  }
+  return (
+    <Button size="icon-sm" variant="outline" asChild>
+      <Link href={href(neighbor)} aria-label={label} title={label}>
+        {children}
+      </Link>
+    </Button>
   );
 }

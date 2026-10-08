@@ -155,7 +155,12 @@ export default function ApplicantTable({
                     window.open(`/admin/applicants/${applicant.id}`, "_blank");
                     return;
                   }
-                  router.push(`/admin/applicants/${applicant.id}${backQuery}`);
+                  // Their place in the whole view, so the profile can step to
+                  // the next one even after this one has been moved out of it.
+                  const place = (filters.page - 1) * filters.per + index;
+                  router.push(
+                    `/admin/applicants/${applicant.id}${backQuery ? `${backQuery}&` : "?"}i=${place}`
+                  );
                 }}
                 className={cn(
                   "cursor-pointer transition-colors",
