@@ -15,7 +15,7 @@ import {
 import { MEDICAL_NOTE, REPLY_NOTE_HTML, REPLY_NOTE_TEXT } from "./waivers";
 
 /** Check-in has a closing time too, which only the accepted need to know. */
-const CHECK_IN_WINDOW = "8:00–8:40 AM Saturday";
+export const CHECK_IN_WINDOW = "8:00–8:40 AM Saturday";
 
 /**
  * Tells an applicant they're in and what confirms the spot: the signed waiver

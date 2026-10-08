@@ -13,4 +13,5 @@ export { MEDICAL_NOTE, WAIVER_ATTACHMENT, WAIVER_DUE_DAY, WAIVER_REPLY_TO } from
 export { acceptanceEmail } from "./acceptance";
 export { acceptanceReminderEmail } from "./acceptance-reminder";
 export { waitlistEmail } from "./waitlist";
+export { waitlistAcceptedEmail } from "./waitlist-accepted";
 export { broadcastEmail, type BroadcastArgs } from "./broadcast";

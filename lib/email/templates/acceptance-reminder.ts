@@ -23,6 +23,9 @@ const STATUS_URL = `${SITE}/status`;
  * The nudge for accepted applicants whose signed waivers may not be back yet.
  * Names the day the forms are due (`WAIVER_DUE_DAY`) rather than "today"
  * or "tonight", so it reads correctly whichever day before then it goes out.
+ * `when: "tonight"` is the last call, for sending on the due day itself: it
+ * says tonight where the other says the day, and still names the day once in
+ * the body for whoever opens it the next morning.
  *
  * Kept to what someone needs to act on: the deadline, the packet (attached
  * again, same as `acceptanceEmail`, so nobody has to dig for the first one),
@@ -30,9 +33,17 @@ const STATUS_URL = `${SITE}/status`;
  * whose forms are already in, which is why its second paragraph tells them
  * they're set.
  */
-export function acceptanceReminderEmail(fullName: string): WelcomeEmail {
+export function acceptanceReminderEmail(
+  fullName: string,
+  when: "day" | "tonight" = "day"
+): WelcomeEmail {
   const name = esc(firstName(fullName));
-  const due = `${WAIVER_DUE_DAY} at 11:59 PM`;
+  const tonight = when === "tonight";
+  const due = tonight
+    ? `tonight, ${WAIVER_DUE_DAY}, at 11:59 PM`
+    : `${WAIVER_DUE_DAY} at 11:59 PM`;
+  /** For the subject and headline, where the full date doesn't fit. */
+  const dueShort = tonight ? "tonight" : WAIVER_DUE_DAY_SHORT;
 
   const body = [
     paragraph(
@@ -48,7 +59,7 @@ export function acceptanceReminderEmail(fullName: string): WelcomeEmail {
     buttons([{ label: "Check your status", href: STATUS_URL, primary: true }]),
   ].join("\n");
 
-  const subject = `Reminder — confirm your OCC Hacks spot by ${WAIVER_DUE_DAY_SHORT}`;
+  const subject = `${tonight ? "Last reminder" : "Reminder"} — confirm your OCC Hacks spot by ${dueShort}`;
 
   const text = `${subject}
 
@@ -67,8 +78,10 @@ ${FOOTER_TEXT}`;
   return {
     subject,
     html: shell({
-      preheader: `Reply with your signed waiver forms by ${due} to keep your spot.`,
-      heading: `Confirm your spot by ${WAIVER_DUE_DAY_SHORT}`,
+      preheader: tonight
+        ? "Reply with your signed waiver forms by 11:59 PM tonight to keep your spot."
+        : `Reply with your signed waiver forms by ${due} to keep your spot.`,
+      heading: `Confirm your spot by ${dueShort}`,
       body,
     }),
     text,

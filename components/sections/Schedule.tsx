@@ -4,7 +4,14 @@ import { motion, useReducedMotion } from "motion/react";
 import SectionHeading from "@/components/SectionHeading";
 import { fadeIn, fadeUp, viewportOnce } from "@/lib/motion";
 
-const DAYS = [
+interface ScheduleEvent {
+  time: string;
+  name: string;
+  /** Who is on stage, first names only — the same rule the roster follows. */
+  speakers?: string;
+}
+
+const DAYS: { id: string; label: string; events: ScheduleEvent[] }[] = [
   {
     id: "day-1",
     label: "Day 1 (Oct 10th)",
@@ -13,8 +20,8 @@ const DAYS = [
       { time: "9:00 am", name: "opening ceremony" },
       { time: "9:15 am", name: "competition start" },
       { time: "12:30 pm", name: "lunch" },
-      { time: "1:30 pm", name: "keynote 1" },
-      { time: "3:30 pm", name: "keynote 2" },
+      { time: "1:30 pm", name: "keynote 1", speakers: "Zhen & Mike" },
+      { time: "3:30 pm", name: "keynote 2", speakers: "Owen" },
       { time: "4:30 pm", name: "fireside chat" },
       { time: "6:00 pm", name: "dinner" },
       { time: "8:00 pm", name: "end of day" },
@@ -77,6 +84,11 @@ export default function Schedule() {
                         </span>
                         <span className="text-sm text-[var(--text-primary)] sm:text-base">
                           {event.name}
+                          {event.speakers && (
+                            <span className="block text-xs text-muted-foreground sm:text-sm">
+                              {event.speakers}
+                            </span>
+                          )}
                         </span>
                       </li>
                     ))}
