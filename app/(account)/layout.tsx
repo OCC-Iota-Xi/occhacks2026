@@ -1,8 +1,9 @@
 import { Suspense } from "react";
 import AccountBackdrop from "@/components/AccountBackdrop";
 import AccountIdentity from "@/components/AccountIdentity";
-import AccountSidebar, { HandbookNavItem } from "@/components/AccountSidebar";
+import AccountSidebar, { HandbookNavItem, RegisterAlert } from "@/components/AccountSidebar";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { needsClassSection } from "@/lib/extra-credit";
 import { HELPER_TABLE } from "@/lib/helper-roles";
 import { canReadHandbook } from "@/lib/read-applicant-stage";
 import { createClient, getSessionUser } from "@/lib/supabase/server";
@@ -37,14 +38,24 @@ async function HandbookNav() {
   return (await canReadHandbook(user)) ? <HandbookNavItem /> : null;
 }
 
+/** The reminder on the registration entry, while a class is missing its section. */
+async function RegisterReminder() {
+  const supabase = await createClient();
+  const user = await getSessionUser(supabase);
+  if (!user) return null;
+
+  return (await needsClassSection(supabase, user)) ? <RegisterAlert /> : null;
+}
+
 /**
  * The frame every signed-in page sits in: sidebar, mobile header and the space
  * backdrop. It lives here rather than in each page so moving between pages
  * swaps only the content — the sidebar keeps its state and the particle field
  * isn't torn down and redrawn.
  *
- * Nothing here waits on data. The reads, the name in the sidebar's footer and
- * whether to list the handbook, are each behind their own Suspense boundary: a
+ * Nothing here waits on data. The reads, the name in the sidebar's footer,
+ * whether to list the handbook and whether registration needs a reminder, are
+ * each behind their own Suspense boundary: a
  * layout that awaits holds up the whole navigation, and `loading.tsx` can't
  * cover for it.
  */
@@ -61,6 +72,11 @@ export default function AccountLayout({ children }: { children: React.ReactNode 
         extraNav={
           <Suspense fallback={null}>
             <HandbookNav />
+          </Suspense>
+        }
+        registerAlert={
+          <Suspense fallback={null}>
+            <RegisterReminder />
           </Suspense>
         }
       />

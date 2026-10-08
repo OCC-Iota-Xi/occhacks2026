@@ -16,7 +16,3 @@ export const HANDBOOK_SECTIONS = [
 ] as const;
 
 export type HandbookSectionId = (typeof HANDBOOK_SECTIONS)[number]["id"];
-
-/** Remembers a reader's light or dark sheet. Read on the server, so it's a cookie. */
-export const HANDBOOK_THEME_COOKIE = "handbook-theme";
-export type HandbookTheme = "dark" | "light";

@@ -22,6 +22,7 @@ import {
   SidebarGroupContent,
   SidebarHeader,
   SidebarMenu,
+  SidebarMenuBadge,
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarMenuSub,
@@ -42,7 +43,17 @@ const NAV = [
   },
 ] as const;
 
-function NavItem({ href, label, icon: Icon }: { href: string; label: string; icon: LucideIcon }) {
+function NavItem({
+  href,
+  label,
+  icon: Icon,
+  badge,
+}: {
+  href: string;
+  label: string;
+  icon: LucideIcon;
+  badge?: React.ReactNode;
+}) {
   const pathname = usePathname();
 
   return (
@@ -53,7 +64,22 @@ function NavItem({ href, label, icon: Icon }: { href: string; label: string; ico
           <span>{label}</span>
         </Link>
       </SidebarMenuButton>
+      {badge}
     </SidebarMenuItem>
+  );
+}
+
+/**
+ * The "!" beside the registration entry, for a hacker who picked a class for
+ * extra credit and hasn't yet said which section. The layout puts it in
+ * `registerAlert` for those it applies to.
+ */
+export function RegisterAlert() {
+  return (
+    <SidebarMenuBadge className="rounded-full border border-amber-500/70 text-amber-500">
+      <span aria-hidden="true">!</span>
+      <span className="sr-only">Add your class section for extra credit</span>
+    </SidebarMenuBadge>
   );
 }
 
@@ -127,16 +153,20 @@ export function HandbookNavItem() {
  * sign-ups and the organizer dashboard are reachable by URL but deliberately
  * unlisted, so on those pages nothing here is marked active.
  *
- * `identity` is the reader's own row in the footer, and `extraNav` is any entry
- * that depends on who's reading. They're slots rather than props because the
- * layout streams them in after the rest has rendered.
+ * `identity` is the reader's own row in the footer, `extraNav` is any entry
+ * that depends on who's reading, and `registerAlert` is a marker on the
+ * registration entry when there's something there for them to do. They're
+ * slots rather than props because the layout streams them in after the rest
+ * has rendered.
  */
 export default function AccountSidebar({
   identity,
   extraNav,
+  registerAlert,
 }: {
   identity?: React.ReactNode;
   extraNav?: React.ReactNode;
+  registerAlert?: React.ReactNode;
 }) {
   const handleSignOut = async () => {
     posthog.reset();
@@ -161,7 +191,13 @@ export default function AccountSidebar({
           <SidebarGroupContent>
             <SidebarMenu>
               {NAV.map((item) => (
-                <NavItem key={item.key} href={item.href} label={item.label} icon={item.icon} />
+                <NavItem
+                  key={item.key}
+                  href={item.href}
+                  label={item.label}
+                  icon={item.icon}
+                  badge={item.key === "register" ? registerAlert : undefined}
+                />
               ))}
               {extraNav}
             </SidebarMenu>

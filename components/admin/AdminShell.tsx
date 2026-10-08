@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   ArrowUpRight,
+  BookOpen,
   Check,
   ChevronDown,
   ChevronsLeft,
@@ -72,6 +73,7 @@ const NAV_GROUPS: { title?: string; items: NavItem[] }[] = [
     items: [
       { href: "/admin/checkin", label: "Check-in", icon: QrCode },
       { href: "/admin/emails", label: "Emails", icon: Mail },
+      { href: "/admin/handbook", label: "Hacker handbook", icon: BookOpen },
     ],
   },
 ];

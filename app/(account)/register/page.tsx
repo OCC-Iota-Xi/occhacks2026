@@ -170,7 +170,7 @@ export default async function RegisterPage() {
                     which section you&apos;re in, so your attendance reaches the right
                     instructor. Extra credit counts toward one class only.
                   </p>
-                  <ExtraCreditForm {...extraCredit} />
+                  <ExtraCreditForm course={extraCredit.course} section={extraCredit.section} />
                 </div>
               )}
             </div>
