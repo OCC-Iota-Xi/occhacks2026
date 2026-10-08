@@ -5,6 +5,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import HandbookReader from "@/components/HandbookReader";
 import { EVENT } from "@/lib/email/templates";
+import { OCC_CLASSES } from "@/lib/form-options";
 import {
   HANDBOOK_SECTIONS,
   HANDBOOK_THEME_COOKIE,
@@ -198,6 +199,34 @@ const BODIES: Record<HandbookSectionId, React.ReactNode> = {
         <li>Best Project in Each Track (3 winners) - $500 each</li>
         <li>LeetCode Champion (3 winners) - 1st Place $150, 2nd Place $75, 3rd Place $25</li>
       </ul>
+    </>
+  ),
+  "extra-credit": (
+    <>
+      <p>
+        Some OCC instructors are giving extra credit for attending OCCHacks. You can get it if
+        you&apos;re currently taking one of these classes:
+      </p>
+      <ul className={LIST}>
+        {OCC_CLASSES.map((name) => (
+          <li key={name}>{name}</li>
+        ))}
+      </ul>
+      <p>
+        Extra credit counts toward one class only, so pick one. We send each instructor the
+        list of their students who attended, which is why we need your section as well as your
+        class.
+      </p>
+      <p>
+        <Link href="/register#extra-credit" className={LINK}>
+          Add your class and section on the registration page
+        </Link>
+        .
+      </p>
+      <p>
+        Attendance is taken from check-in, so make sure your code is scanned at the door each
+        morning.
+      </p>
     </>
   ),
   logistics: (

@@ -83,6 +83,11 @@ export interface Applicant {
   shirt: string | null;
   needs: string | null;
   classes: string[];
+  /**
+   * Which section of that class, added on the registration page. Missing altogether
+   * until migration 0028 has been run.
+   */
+  class_section?: string | null;
   iota_xi: boolean | null;
   rank_entertainment: number | null;
   rank_education: number | null;

@@ -9,6 +9,7 @@ export const HANDBOOK_SECTIONS = [
   { id: "schedule", title: "Schedule" },
   { id: "rules", title: "Rules & Guidelines" },
   { id: "prizes", title: "Prizes" },
+  { id: "extra-credit", title: "Extra Credit" },
   { id: "logistics", title: "Logistics & Facilities" },
   { id: "judging", title: "Judging Criteria" },
   { id: "help", title: "Getting Help & Updates" },

@@ -19,6 +19,7 @@ const LIGHT = {
   "--muted-foreground": "#000000",
   "--border": "#e7e5e4",
   "--ring": "#000000",
+  colorScheme: "light",
 } as React.CSSProperties;
 
 /**

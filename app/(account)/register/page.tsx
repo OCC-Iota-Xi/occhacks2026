@@ -1,10 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import ExtraCreditForm from "@/components/ExtraCreditForm";
 import FloatingVideo from "@/components/FloatingVideo";
 import RegisterForm, { type RegistrationDefaults } from "@/components/RegisterForm";
 import { applicationsClosed, WALK_IN_POLICY } from "@/lib/deadline";
+import { readExtraCredit } from "@/lib/extra-credit";
 import { TRACKS } from "@/lib/form-options";
+import { canReadHandbook } from "@/lib/read-applicant-stage";
 import { createClient, getSessionUser } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
@@ -27,7 +30,14 @@ function formatDob(dob: string) {
  * close. Shows the stored row only: nothing here can be changed, so there's no
  * browser-side draft to overlay.
  */
-function SavedAnswers({ answers }: { answers: Partial<RegistrationDefaults> }) {
+function SavedAnswers({
+  answers,
+  withClasses,
+}: {
+  answers: Partial<RegistrationDefaults>;
+  /** Off when the extra credit form below is showing the class instead. */
+  withClasses: boolean;
+}) {
   const ranked = TRACKS.filter((t) => answers.ranks?.[t.key])
     .sort((a, b) => Number(answers.ranks?.[a.key]) - Number(answers.ranks?.[b.key]))
     .map((t) => `${answers.ranks?.[t.key]}. ${t.label}`);
@@ -46,10 +56,11 @@ function SavedAnswers({ answers }: { answers: Partial<RegistrationDefaults> }) {
     ["OCC classes", answers.classes?.join(", ")],
     ["track ranking", ranked.join(", ")],
   ];
+  const shown = withClasses ? rows : rows.filter(([label]) => label !== "OCC classes");
 
   return (
     <dl className="grid gap-x-6 gap-y-3 border-t border-border pt-6 text-sm sm:grid-cols-[auto_1fr]">
-      {rows.map(([label, value]) => (
+      {shown.map(([label, value]) => (
         <div key={label} className="contents">
           <dt className="text-muted-foreground">{label}</dt>
           <dd className="break-words">{value || "—"}</dd>
@@ -79,6 +90,13 @@ export default async function RegisterPage() {
   // saved application or draft gets it back read-only. `submitRegistration`
   // and the autosave enforce the same freeze.
   const closed = applicationsClosed();
+
+  // The one answer that can still change after that: which class a confirmed
+  // hacker wants extra credit for, and which section of it they're in.
+  const extraCredit =
+    closed && user && existing?.completed_at && (await canReadHandbook(user))
+      ? await readExtraCredit(supabase, user.id)
+      : null;
 
   const rank = (value: number | null | undefined) => (value == null ? "" : String(value));
 
@@ -122,7 +140,8 @@ export default async function RegisterPage() {
                 <>
                   <p>
                     Your application is in. You can still see it below, but it can no longer be
-                    edited. Your decision will show up on your status page.
+                    edited{extraCredit ? ", apart from your extra credit class at the bottom" : ""}.
+                    Your decision will show up on your status page.
                   </p>
                   <Link
                     href="/status"
@@ -142,7 +161,18 @@ export default async function RegisterPage() {
               ) : (
                 <p>{WALK_IN_POLICY}</p>
               )}
-              {existing && <SavedAnswers answers={defaults} />}
+              {existing && <SavedAnswers answers={defaults} withClasses={!extraCredit} />}
+              {extraCredit && (
+                <div id="extra-credit" className="scroll-mt-20 space-y-4 border-t border-border pt-6">
+                  <h2 className="font-display text-xl tracking-tight">extra credit</h2>
+                  <p>
+                    If you&apos;re taking one of these classes at OCC, tell us which one and
+                    which section you&apos;re in, so your attendance reaches the right
+                    instructor. Extra credit counts toward one class only.
+                  </p>
+                  <ExtraCreditForm {...extraCredit} />
+                </div>
+              )}
             </div>
           ) : (
             // A draft row isn't an update — only a finished registration is.

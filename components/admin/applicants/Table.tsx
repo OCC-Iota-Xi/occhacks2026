@@ -25,7 +25,13 @@ import {
   TagPill,
 } from "@/components/admin/ui";
 import { Button } from "@/components/ui/button";
-import { displayName, formatDate, formatDateTime, initials } from "@/lib/admin/format";
+import {
+  displayName,
+  formatDate,
+  formatDateTime,
+  formatExtraCredit,
+  initials,
+} from "@/lib/admin/format";
 import type { ApplicantFilters } from "@/lib/admin/filters";
 import {
   EXITS,
@@ -554,10 +560,10 @@ function Cell({
     case "classes":
       return (
         <span
-          title={applicant.classes?.join(", ") || undefined}
+          title={formatExtraCredit(applicant) ?? undefined}
           className={cn(muted, "block max-w-[240px] truncate")}
         >
-          {applicant.classes?.length ? applicant.classes.join(", ") : "—"}
+          {formatExtraCredit(applicant) ?? "—"}
         </span>
       );
     case "needs":
