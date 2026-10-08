@@ -1,9 +1,10 @@
 import { Suspense } from "react";
 import AccountBackdrop from "@/components/AccountBackdrop";
 import AccountIdentity from "@/components/AccountIdentity";
-import AccountSidebar from "@/components/AccountSidebar";
+import AccountSidebar, { HandbookNavItem } from "@/components/AccountSidebar";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { HELPER_TABLE } from "@/lib/helper-roles";
+import { canReadHandbook } from "@/lib/read-applicant-stage";
 import { createClient, getSessionUser } from "@/lib/supabase/server";
 
 /**
@@ -26,27 +27,47 @@ async function Identity() {
   return <AccountIdentity userId={user.id} email={user.email} name={name} />;
 }
 
+/** The handbook's sidebar entry, for the readers `/handbook` itself lets in. */
+async function HandbookNav() {
+  const supabase = await createClient();
+  const user = await getSessionUser(supabase);
+  // Dev-only: listed without a session, as the page can be viewed without one.
+  if (!user) return process.env.NODE_ENV === "development" ? <HandbookNavItem /> : null;
+
+  return (await canReadHandbook(user)) ? <HandbookNavItem /> : null;
+}
+
 /**
  * The frame every signed-in page sits in: sidebar, mobile header and the space
  * backdrop. It lives here rather than in each page so moving between pages
  * swaps only the content — the sidebar keeps its state and the particle field
  * isn't torn down and redrawn.
  *
- * Nothing here waits on data. The one read, the name in the sidebar's footer,
- * is behind its own Suspense boundary: a layout that awaits holds up the whole
- * navigation, and `loading.tsx` can't cover for it.
+ * Nothing here waits on data. The reads, the name in the sidebar's footer and
+ * whether to list the handbook, are each behind their own Suspense boundary: a
+ * layout that awaits holds up the whole navigation, and `loading.tsx` can't
+ * cover for it.
  */
 export default function AccountLayout({ children }: { children: React.ReactNode }) {
   return (
-    <SidebarProvider>
+    // A touch wider than the default 16rem, so the longest label isn't cut off.
+    <SidebarProvider style={{ "--sidebar-width": "18rem" } as React.CSSProperties}>
       <AccountSidebar
         identity={
           <Suspense fallback={null}>
             <Identity />
           </Suspense>
         }
+        extraNav={
+          <Suspense fallback={null}>
+            <HandbookNav />
+          </Suspense>
+        }
       />
-      <SidebarInset className="relative min-h-screen overflow-hidden">
+      {/* `clip`, not `hidden`: it cuts off the backdrop the same way without
+          making this a scroll container, which would stop anything inside it
+          from sticking to the viewport. */}
+      <SidebarInset className="relative min-h-screen overflow-clip">
         <header className="sticky top-0 z-50 flex items-center border-b border-border bg-background/80 px-4 py-3 backdrop-blur-md md:hidden">
           <SidebarTrigger />
         </header>

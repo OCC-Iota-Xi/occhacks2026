@@ -5,7 +5,7 @@ export default function robots(): MetadataRoute.Robots {
     rules: {
       userAgent: "*",
       allow: "/",
-      disallow: ["/admin", "/auth", "/signin", "/status"],
+      disallow: ["/admin", "/auth", "/signin", "/status", "/handbook"],
     },
     sitemap: "https://occhacks.com/sitemap.xml",
   };
