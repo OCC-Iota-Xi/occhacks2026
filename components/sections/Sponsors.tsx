@@ -2,6 +2,7 @@ import Image from "next/image";
 import SectionHeading from "@/components/SectionHeading";
 import Reveal from "@/components/motion/Reveal";
 import { Button } from "@/components/ui/button";
+import { PRESENTING_SPONSOR } from "@/lib/sponsors";
 
 /** Full-color logos wherever we have them; white only as a fallback. */
 const SPONSORS: {
@@ -40,14 +41,6 @@ const SPONSORS: {
     href: "https://orangecoastcollege.edu/academics/honor-societies/societies/mu-alpha-theta/index.html",
   },
   {
-    name: "National Technical Honor Society",
-    logo: "/sponsors/nths.png",
-    width: 515,
-    height: 1000,
-    subtleHover: true,
-    href: "https://orangecoastcollege.edu/academics/honor-societies/societies/nths.html",
-  },
-  {
     name: "Phi Theta Kappa",
     logo: "/sponsors/PTK Logo white.svg",
     width: 85,
@@ -60,33 +53,59 @@ export default function Sponsors() {
   return (
     <section id="sponsors" className="scroll-mt-24 px-6 py-16 md:py-24">
       <SectionHeading plain="Sponsors" accent="" className="mb-6" />
-      <Reveal className="mx-auto mt-14 max-w-5xl" delay={0.1}>
-        <div className="flex flex-wrap justify-center gap-x-8 gap-y-12">
-          {SPONSORS.map((sponsor) => (
-            <a
-              key={sponsor.name}
-              href={sponsor.href}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="group flex w-[calc(50%-1rem)] flex-col items-center justify-center gap-4 px-4 text-center sm:w-[calc(33.333%-1.334rem)]"
-            >
-              <Image
-                src={sponsor.logo}
-                alt={`${sponsor.name} logo`}
-                width={sponsor.width}
-                height={sponsor.height}
-                unoptimized={sponsor.logo.endsWith(".svg")}
-                className={`object-contain transition duration-300 ease-out group-hover:scale-110 ${
-                  sponsor.wide ? "h-auto w-full max-w-[18rem]" : "h-32 w-auto sm:h-40"
-                } ${sponsor.subtleHover ? "group-hover:brightness-110" : "group-hover:brightness-150"}`}
-              />
-              <span className="text-sm text-muted-foreground/70 transition-colors duration-300 group-hover:text-foreground">
-                {sponsor.name}
+      {/* Presenting sponsor on the left, everyone else on the right; stacked on small screens */}
+      <div className="mx-auto mt-14 grid max-w-6xl items-center gap-12 md:grid-cols-[2fr_3fr] md:gap-10 lg:gap-16">
+        <Reveal className="flex justify-center" delay={0.05}>
+          <a
+            href={PRESENTING_SPONSOR.href}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="group flex flex-col items-center gap-5 px-4 text-center"
+          >
+            <Image
+              src={PRESENTING_SPONSOR.logo}
+              alt={`${PRESENTING_SPONSOR.name} logo`}
+              width={PRESENTING_SPONSOR.width}
+              height={PRESENTING_SPONSOR.height}
+              className="h-52 w-auto object-contain transition duration-300 ease-out group-hover:scale-105 group-hover:brightness-110 sm:h-64 lg:h-72"
+            />
+            <span className="flex flex-col items-center gap-1">
+              <span className="font-display text-xl text-balance text-foreground sm:text-2xl">
+                {PRESENTING_SPONSOR.name}
               </span>
-            </a>
-          ))}
-        </div>
-      </Reveal>
+              <span className="text-sm text-ring">Presenting sponsor</span>
+            </span>
+          </a>
+        </Reveal>
+
+        <Reveal delay={0.1}>
+          <div className="grid grid-cols-2 gap-x-8 gap-y-12">
+            {SPONSORS.map((sponsor) => (
+              <a
+                key={sponsor.name}
+                href={sponsor.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group flex flex-col items-center justify-center gap-4 px-4 text-center"
+              >
+                <Image
+                  src={sponsor.logo}
+                  alt={`${sponsor.name} logo`}
+                  width={sponsor.width}
+                  height={sponsor.height}
+                  unoptimized={sponsor.logo.endsWith(".svg")}
+                  className={`object-contain transition duration-300 ease-out group-hover:scale-110 ${
+                    sponsor.wide ? "h-auto w-full max-w-[18rem]" : "h-32 w-auto sm:h-40"
+                  } ${sponsor.subtleHover ? "group-hover:brightness-110" : "group-hover:brightness-150"}`}
+                />
+                <span className="text-sm text-muted-foreground/70 transition-colors duration-300 group-hover:text-foreground">
+                  {sponsor.name}
+                </span>
+              </a>
+            ))}
+          </div>
+        </Reveal>
+      </div>
 
       <Reveal className="mt-14 text-center" delay={0.15}>
         <Button

@@ -1,10 +1,12 @@
 "use client";
 
+import Image from "next/image";
 import { motion, useReducedMotion } from "motion/react";
 import { AnimatedGradientText } from "@/components/ui/animated-gradient-text";
 import CtaButtons from "@/components/CtaButtons";
 import Countdown from "@/components/Countdown";
 import HeroAstronaut from "@/components/HeroAstronaut";
+import { PRESENTING_SPONSOR } from "@/lib/sponsors";
 import { useApplicationsClosed } from "@/lib/use-applications-closed";
 
 /**
@@ -45,9 +47,15 @@ export default function Hero({ closed: initialClosed }: { closed: boolean }) {
             >Hacks</AnimatedGradientText>
           </h1>
 
-          {/* Event Details */}
-          <div className="mb-6 md:mb-8 text-left">
-            <p className="flex flex-col gap-1 pl-1 sm:flex-row sm:items-center sm:gap-3 sm:whitespace-nowrap font-body text-base sm:text-lg md:text-xl tracking-wide text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.5)]">
+          {/* Event details, with the presenting sponsor alongside once the row fits */}
+          <div
+            className={`mb-6 flex flex-col gap-2 pl-1 text-left font-body text-base tracking-wide text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.5)] sm:text-lg md:mb-8 md:text-xl ${
+              closed
+                ? "xl:flex-row xl:items-center xl:gap-3 xl:whitespace-nowrap"
+                : "2xl:flex-row 2xl:items-center 2xl:gap-3 2xl:whitespace-nowrap"
+            }`}
+          >
+            <p className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-3 sm:whitespace-nowrap">
               <span>
                 October 10-11th, 2026 @{" "}
                 <a
@@ -66,6 +74,26 @@ export default function Hero({ closed: initialClosed }: { closed: boolean }) {
                 </>
               )}
             </p>
+            <span aria-hidden className={`hidden text-white/40 ${closed ? "xl:inline" : "2xl:inline"}`}>|</span>
+            <a
+              href={PRESENTING_SPONSOR.href}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group flex flex-wrap items-center gap-x-2 gap-y-1"
+            >
+              <span>Presented by</span>
+              <span className="flex items-center gap-2 whitespace-nowrap">
+                <Image
+                  src={PRESENTING_SPONSOR.logo}
+                  alt=""
+                  width={PRESENTING_SPONSOR.width}
+                  height={PRESENTING_SPONSOR.height}
+                  loading="eager"
+                  className="h-9 w-auto object-contain md:h-10"
+                />
+                <span className="underline-offset-2 group-hover:underline">{PRESENTING_SPONSOR.name}</span>
+              </span>
+            </a>
           </div>
 
           {/* Application deadline countdown, then the closed notice in its place */}
