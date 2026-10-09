@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, ChevronLeft, ChevronRight, Phone } from "lucide-react";
-import CopyEmail from "@/components/admin/applicant/CopyEmail";
+import { ArrowLeft, ChevronLeft, ChevronRight, Mail, Phone } from "lucide-react";
+import CopyText from "@/components/admin/applicant/CopyText";
 import DecisionPanel from "@/components/admin/applicant/DecisionPanel";
 import EditApplicant from "@/components/admin/applicant/EditApplicant";
 import NotesPanel from "@/components/admin/applicant/NotesPanel";
@@ -112,9 +112,13 @@ export default async function ApplicantProfile({
           </span>
 
           <div className="min-w-0 flex-1">
-            <h1 className="text-lg tracking-tight">{displayName(applicant)}</h1>
+            <h1 className="text-lg tracking-tight">
+              <CopyText value={displayName(applicant)} label="name" />
+            </h1>
             <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
-              {applicant.email && <CopyEmail email={applicant.email} />}
+              {applicant.email && (
+                <CopyText value={applicant.email} label="email" icon={<Mail className="size-3" />} />
+              )}
               {applicant.phone && (
                 <span className="inline-flex items-center gap-1">
                   <Phone className="size-3" />
