@@ -53,7 +53,7 @@ export default function Sponsors() {
   return (
     <>
       <section id="sponsors" className="scroll-mt-24 px-6 py-16 md:py-24">
-        <SectionHeading plain="Title Sponsor" accent="" className="mb-6" />
+        <SectionHeading plain="Presenting Sponsor" accent="" className="mb-6" />
         <Reveal className="mt-14 flex justify-center" delay={0.05}>
           {/* Logo and name scale together on hover */}
           <a
