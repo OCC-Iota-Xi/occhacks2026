@@ -1,11 +1,12 @@
 import { Suspense } from "react";
 import AccountBackdrop from "@/components/AccountBackdrop";
 import AccountIdentity from "@/components/AccountIdentity";
-import AccountSidebar, { HandbookNavItem, RegisterAlert } from "@/components/AccountSidebar";
+import AccountSidebar from "@/components/AccountSidebar";
+// import { HandbookNavItem, RegisterAlert } from "@/components/AccountSidebar";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
-import { needsClassSection } from "@/lib/extra-credit";
+// import { needsClassSection } from "@/lib/extra-credit";
 import { HELPER_TABLE } from "@/lib/helper-roles";
-import { canReadHandbook } from "@/lib/read-applicant-stage";
+// import { canReadHandbook } from "@/lib/read-applicant-stage";
 import { createClient, getSessionUser } from "@/lib/supabase/server";
 
 /**
@@ -28,24 +29,25 @@ async function Identity() {
   return <AccountIdentity userId={user.id} email={user.email} name={name} />;
 }
 
-/** The handbook's sidebar entry, for the readers `/handbook` itself lets in. */
-async function HandbookNav() {
-  const supabase = await createClient();
-  const user = await getSessionUser(supabase);
-  // Dev-only: listed without a session, as the page can be viewed without one.
-  if (!user) return process.env.NODE_ENV === "development" ? <HandbookNavItem /> : null;
-
-  return (await canReadHandbook(user)) ? <HandbookNavItem /> : null;
-}
-
-/** The reminder on the registration entry, while a class is missing its section. */
-async function RegisterReminder() {
-  const supabase = await createClient();
-  const user = await getSessionUser(supabase);
-  if (!user) return null;
-
-  return (await needsClassSection(supabase, user)) ? <RegisterAlert /> : null;
-}
+// Off for now: the handbook's sidebar entry and the extra credit reminder.
+// /** The handbook's sidebar entry, for the readers `/handbook` itself lets in. */
+// async function HandbookNav() {
+//   const supabase = await createClient();
+//   const user = await getSessionUser(supabase);
+//   // Dev-only: listed without a session, as the page can be viewed without one.
+//   if (!user) return process.env.NODE_ENV === "development" ? <HandbookNavItem /> : null;
+//
+//   return (await canReadHandbook(user)) ? <HandbookNavItem /> : null;
+// }
+//
+// /** The reminder on the registration entry, while a class is missing its section. */
+// async function RegisterReminder() {
+//   const supabase = await createClient();
+//   const user = await getSessionUser(supabase);
+//   if (!user) return null;
+//
+//   return (await needsClassSection(supabase, user)) ? <RegisterAlert /> : null;
+// }
 
 /**
  * The frame every signed-in page sits in: sidebar, mobile header and the space
@@ -69,16 +71,16 @@ export default function AccountLayout({ children }: { children: React.ReactNode 
             <Identity />
           </Suspense>
         }
-        extraNav={
-          <Suspense fallback={null}>
-            <HandbookNav />
-          </Suspense>
-        }
-        registerAlert={
-          <Suspense fallback={null}>
-            <RegisterReminder />
-          </Suspense>
-        }
+        // extraNav={
+        //   <Suspense fallback={null}>
+        //     <HandbookNav />
+        //   </Suspense>
+        // }
+        // registerAlert={
+        //   <Suspense fallback={null}>
+        //     <RegisterReminder />
+        //   </Suspense>
+        // }
       />
       {/* `clip`, not `hidden`: it cuts off the backdrop the same way without
           making this a scroll container, which would stop anything inside it
