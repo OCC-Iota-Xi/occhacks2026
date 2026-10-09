@@ -7,6 +7,8 @@ import { sendHackerWelcome, sendHelperWelcome } from "@/lib/email/welcome";
 import { HELPER_TABLE, type HelperRole, type HelperTable } from "@/lib/helper-roles";
 import { applicationsClosed } from "@/lib/deadline";
 import { isOldEnough, UNDER_18_MESSAGE } from "@/lib/eligibility";
+import { OCC_CLASSES } from "@/lib/form-options";
+import { canReadHandbook } from "@/lib/read-applicant-stage";
 import { createClient } from "@/lib/supabase/server";
 
 export interface RegistrationState {
@@ -249,6 +251,80 @@ export async function submitRegistration(
   after(() => sendHackerWelcome(supabase, email, fullName));
 
   return { ok: true, message: "" };
+}
+
+export interface ExtraCreditState {
+  ok: boolean;
+  message: string;
+}
+
+const SECTION_MAX = 20;
+
+/**
+ * Saves which class a hacker wants extra credit for, and which section of it
+ * they're in.
+ *
+ * The exception to the freeze above: the form asked for the class but never
+ * the section, and the roster sent to each instructor needs both. It's for
+ * hackers with a confirmed spot, the same people the handbook that sends them
+ * here is for, and it writes those two columns of the caller's own row and
+ * nothing else, so it can't be used to edit the rest of a closed application.
+ */
+export async function saveExtraCredit(
+  _prev: ExtraCreditState,
+  formData: FormData
+): Promise<ExtraCreditState> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, message: "Your session ended. Sign in again and retry." };
+  // The same check the page makes before showing the form. A server action is
+  // a public endpoint, so not being shown it isn't what keeps someone out.
+  if (!(await canReadHandbook({ id: user.id, email: user.email ?? null }))) {
+    return { ok: false, message: "This opens once your spot is confirmed." };
+  }
+
+  const course = String(formData.get("course") ?? "").trim();
+  const section = String(formData.get("section") ?? "").trim();
+  if (course && !OCC_CLASSES.includes(course)) {
+    return { ok: false, message: "Pick one of the classes listed." };
+  }
+  if (course && !section) {
+    return { ok: false, message: "Add the section number for your class." };
+  }
+  if (section.length > SECTION_MAX) {
+    return { ok: false, message: `A section number is at most ${SECTION_MAX} characters.` };
+  }
+
+  const { data, error } = await supabase
+    .from("hackers")
+    .update({
+      // One class per hacker, as on the form. No class, no section.
+      classes: course ? [course] : [],
+      class_section: course ? section : null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("user_id", user.id)
+    .select("user_id");
+
+  if (error) {
+    // Most likely `class_section` isn't there yet: migration 0028 is run by hand.
+    console.error("extra credit save failed:", error);
+    return {
+      ok: false,
+      message: "We couldn't save that. Try again, or message an organizer on Discord.",
+    };
+  }
+  if (!data?.length) {
+    return { ok: false, message: "We couldn't find a hacker application on this account." };
+  }
+
+  revalidatePath("/register");
+  return {
+    ok: true,
+    message: course ? "Saved. You're down for extra credit." : "Saved. No extra credit class.",
+  };
 }
 
 /**

@@ -2,6 +2,7 @@ import Image from "next/image";
 import SectionHeading from "@/components/SectionHeading";
 import Reveal from "@/components/motion/Reveal";
 import { Button } from "@/components/ui/button";
+import { PRESENTING_SPONSOR } from "@/lib/sponsors";
 
 /** Full-color logos wherever we have them; white only as a fallback. */
 const SPONSORS: {
@@ -40,14 +41,6 @@ const SPONSORS: {
     href: "https://orangecoastcollege.edu/academics/honor-societies/societies/mu-alpha-theta/index.html",
   },
   {
-    name: "National Technical Honor Society",
-    logo: "/sponsors/nths.png",
-    width: 515,
-    height: 1000,
-    subtleHover: true,
-    href: "https://orangecoastcollege.edu/academics/honor-societies/societies/nths.html",
-  },
-  {
     name: "Phi Theta Kappa",
     logo: "/sponsors/PTK Logo white.svg",
     width: 85,
@@ -58,44 +51,73 @@ const SPONSORS: {
 
 export default function Sponsors() {
   return (
-    <section id="sponsors" className="scroll-mt-24 px-6 py-16 md:py-24">
-      <SectionHeading plain="Sponsors" accent="" className="mb-6" />
-      <Reveal className="mx-auto mt-14 max-w-5xl" delay={0.1}>
-        <div className="flex flex-wrap justify-center gap-x-8 gap-y-12">
-          {SPONSORS.map((sponsor) => (
-            <a
-              key={sponsor.name}
-              href={sponsor.href}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="group flex w-[calc(50%-1rem)] flex-col items-center justify-center gap-4 px-4 text-center sm:w-[calc(33.333%-1.334rem)]"
-            >
-              <Image
-                src={sponsor.logo}
-                alt={`${sponsor.name} logo`}
-                width={sponsor.width}
-                height={sponsor.height}
-                unoptimized={sponsor.logo.endsWith(".svg")}
-                className={`object-contain transition duration-300 ease-out group-hover:scale-110 ${
-                  sponsor.wide ? "h-auto w-full max-w-[18rem]" : "h-32 w-auto sm:h-40"
-                } ${sponsor.subtleHover ? "group-hover:brightness-110" : "group-hover:brightness-150"}`}
-              />
-              <span className="text-sm text-muted-foreground/70 transition-colors duration-300 group-hover:text-foreground">
-                {sponsor.name}
-              </span>
-            </a>
-          ))}
-        </div>
-      </Reveal>
+    <>
+      <section id="sponsors" className="scroll-mt-24 px-6 py-16 md:py-24">
+        <SectionHeading plain="Title Sponsor" accent="" className="mb-6" />
+        <Reveal className="mt-14 flex justify-center" delay={0.05}>
+          {/* Logo and name scale together on hover */}
+          <a
+            href={PRESENTING_SPONSOR.href}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="group flex flex-col items-center gap-6 text-center transition-transform duration-300 ease-out hover:scale-105"
+          >
+            <Image
+              src={PRESENTING_SPONSOR.logo}
+              alt={`${PRESENTING_SPONSOR.name} logo`}
+              width={PRESENTING_SPONSOR.width}
+              height={PRESENTING_SPONSOR.height}
+              className="h-64 w-auto object-contain transition duration-300 ease-out group-hover:brightness-110 sm:h-80 lg:h-96"
+            />
+            <span className="font-display text-2xl text-balance text-foreground sm:text-3xl lg:text-4xl">
+              {PRESENTING_SPONSOR.name}
+            </span>
+          </a>
+        </Reveal>
+      </section>
 
-      <Reveal className="mt-14 text-center" delay={0.15}>
-        <Button
-          asChild
-          className="h-auto rounded-full bg-foreground px-8 py-3 text-sm text-background hover:bg-foreground/85"
-        >
-          <a href="mailto:lnguyen1509@student.cccd.edu?subject=Sponsoring%20OCC%20Hacks%202026">sponsor us</a>
-        </Button>
-      </Reveal>
-    </section>
+      <section className="px-6 py-16 md:py-24">
+        <SectionHeading plain="Sponsors" accent="" className="mb-6" />
+        {/* One row on desktop, two-up on small screens; names line up under fixed-height logo slots */}
+        <Reveal className="mx-auto mt-14 max-w-6xl" delay={0.05}>
+          <div className="grid grid-cols-2 gap-x-8 gap-y-12 md:grid-cols-4">
+            {SPONSORS.map((sponsor) => (
+              <a
+                key={sponsor.name}
+                href={sponsor.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group flex flex-col items-center gap-4 text-center"
+              >
+                <span className="flex h-32 w-full items-center justify-center sm:h-40">
+                  <Image
+                    src={sponsor.logo}
+                    alt={`${sponsor.name} logo`}
+                    width={sponsor.width}
+                    height={sponsor.height}
+                    unoptimized={sponsor.logo.endsWith(".svg")}
+                    className={`object-contain transition duration-300 ease-out group-hover:scale-110 ${
+                      sponsor.wide ? "h-auto w-full max-w-[18rem]" : "h-full w-auto"
+                    } ${sponsor.subtleHover ? "group-hover:brightness-110" : "group-hover:brightness-150"}`}
+                  />
+                </span>
+                <span className="text-sm text-muted-foreground/70 transition-colors duration-300 group-hover:text-foreground">
+                  {sponsor.name}
+                </span>
+              </a>
+            ))}
+          </div>
+        </Reveal>
+
+        <Reveal className="mt-14 text-center" delay={0.1}>
+          <Button
+            asChild
+            className="h-auto rounded-full bg-foreground px-8 py-3 text-sm text-background hover:bg-foreground/85"
+          >
+            <a href="mailto:lnguyen1509@student.cccd.edu?subject=Sponsoring%20OCC%20Hacks%202026">sponsor us</a>
+          </Button>
+        </Reveal>
+      </section>
+    </>
   );
 }

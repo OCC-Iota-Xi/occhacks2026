@@ -23,6 +23,7 @@ import {
   displayName,
   formatDate,
   formatDateTime,
+  formatExtraCredit,
   formatNumber,
   initials,
   relativeTime,
@@ -166,7 +167,7 @@ export default async function ApplicantProfile({
                 {applicant.iota_xi == null ? null : applicant.iota_xi ? "Yes" : "No"}
               </Field>
               <Field label="Extra-credit classes" wide>
-                {applicant.classes?.length ? applicant.classes.join(", ") : null}
+                {formatExtraCredit(applicant)}
               </Field>
             </dl>
           </Panel>

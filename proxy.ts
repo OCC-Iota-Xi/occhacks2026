@@ -77,5 +77,13 @@ export async function proxy(request: NextRequest) {
 export const config = {
   // Both entries are needed for the admin area: `/admin/:path*` matches the
   // pages under it but not /admin itself.
-  matcher: ["/register", "/status", "/volunteer", "/mentor", "/admin", "/admin/:path*"],
+  matcher: [
+    "/register",
+    "/status",
+    "/handbook",
+    "/volunteer",
+    "/mentor",
+    "/admin",
+    "/admin/:path*",
+  ],
 };

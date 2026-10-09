@@ -30,6 +30,7 @@ const COLUMNS: Column[] = [
   { header: "shirt_size", value: (r) => r.shirt },
   { header: "accessibility_or_dietary_needs", value: (r) => r.needs },
   { header: "extra_credit_classes", value: (r) => r.classes?.join("; ") },
+  { header: "extra_credit_section", value: (r) => r.class_section },
   { header: "first_choice_track", value: (r) => r.first_choice_track },
   { header: "rank_entertainment", value: (r) => r.rank_entertainment },
   { header: "rank_education", value: (r) => r.rank_education },

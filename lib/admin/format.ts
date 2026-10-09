@@ -133,3 +133,16 @@ export function safeUrl(value: string | null | undefined): string | null {
     return null;
   }
 }
+
+/**
+ * The class someone wants extra credit for, with its section once they've
+ * added one on the registration page. Null when they picked no class.
+ */
+export function formatExtraCredit(applicant: {
+  classes?: string[] | null;
+  class_section?: string | null;
+}) {
+  if (!applicant.classes?.length) return null;
+  const classes = applicant.classes.join(", ");
+  return applicant.class_section ? `${classes} · section ${applicant.class_section}` : classes;
+}

@@ -5,13 +5,14 @@ import { Download } from "lucide-react";
 import AutoRefresh from "@/components/AutoRefresh";
 import CheckInQr from "@/components/CheckInQr";
 import WaiversSentButton from "@/components/WaiversSentButton";
-import { applicantStage, type ApplicantStage } from "@/lib/applicant-stage";
+import type { ApplicantStage } from "@/lib/applicant-stage";
 import { applicationsClosed, WALK_IN_POLICY } from "@/lib/deadline";
 import { EVENT, MEDICAL_NOTE, WAIVER_DUE_DAY, WAIVER_REPLY_TO } from "@/lib/email/templates";
+import { readApplicantStage } from "@/lib/read-applicant-stage";
 import { createClient, getSessionUser } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
-  title: "application status — OCC Hacks 2026",
+  title: "application status and check-in — OCC Hacks 2026",
   description: "Check the status of your OCC Hacks 2026 hacker application.",
 };
 
@@ -71,6 +72,7 @@ const VIEWS: Record<ApplicantStage, View> = {
     details: true,
     qr: true,
     body: "Your waivers are reviewed and your spot is confirmed. You're in, see you there.",
+    link: { href: "/handbook", label: "read the hacker handbook" },
   },
   // The code stays up: each day is its own check-in, so it's scanned again on
   // the second morning.
@@ -80,6 +82,7 @@ const VIEWS: Record<ApplicantStage, View> = {
     details: true,
     qr: true,
     body: "You're checked in. Welcome to OCC Hacks. Hold on to your code, we scan it at the door each morning.",
+    link: { href: "/handbook", label: "read the hacker handbook" },
   },
 };
 
@@ -121,44 +124,8 @@ const PREVIEWS = [
   },
 ] as const;
 
-interface Decision {
-  status: string;
-  attendance: string;
-  waivers_sent_at?: string | null;
-  checked_in_at?: string | null;
-  checked_in_day2_at?: string | null;
-}
-
 /** Stands in for the caller's id when a preview is drawn without a session. */
 const PREVIEW_USER_ID = "00000000-0000-4000-8000-000000000000";
-
-/**
- * `waivers_sent_at` arrives with migration 0024 and `checked_in_day2_at` with
- * 0027. Against a database that hasn't had one yet, read the decision without
- * it rather than losing the whole row — an accepted applicant would otherwise
- * be told they're still under review.
- */
-async function readDecision(
-  supabase: Awaited<ReturnType<typeof createClient>>,
-  userId: string
-): Promise<Decision | null> {
-  const read = (columns: string) =>
-    supabase
-      .from("application_status")
-      .select(columns)
-      .eq("user_id", userId)
-      .maybeSingle<Decision>();
-
-  const columns = [
-    "status, attendance, checked_in_at, waivers_sent_at, checked_in_day2_at",
-    "status, attendance, checked_in_at, waivers_sent_at",
-  ];
-  for (const list of columns) {
-    const result = await read(list);
-    if (result.error?.code !== "42703") return result.data;
-  }
-  return (await read("status, attendance, checked_in_at")).data;
-}
 
 export default async function StatusPage({
   searchParams,
@@ -174,26 +141,7 @@ export default async function StatusPage({
   // Dev-only: allow viewing the page without a session.
   if (!user && process.env.NODE_ENV !== "development") redirect("/signin");
 
-  // Both reads are scoped to the caller by RLS: applicants can read their own
-  // `hackers` row and their own `application_status` row (migration 0018).
-  const [{ data: hacker }, decision] = user
-    ? await Promise.all([
-        supabase
-          .from("hackers")
-          .select("completed_at")
-          .eq("user_id", user.id)
-          .maybeSingle(),
-        readDecision(supabase, user.id),
-      ])
-    : [{ data: null }, null];
-
-  const stage = applicantStage({
-    completed: !!hacker?.completed_at,
-    status: decision?.status,
-    attendance: decision?.attendance,
-    waiversSent: !!decision?.waivers_sent_at,
-    checkedIn: !!(decision?.checked_in_at || decision?.checked_in_day2_at),
-  });
+  const stage = user ? await readApplicantStage(user.id) : "not_submitted";
   const view: View =
     preview?.view ??
     (stage === "not_submitted" && applicationsClosed() ? CLOSED_VIEW : VIEWS[stage]);

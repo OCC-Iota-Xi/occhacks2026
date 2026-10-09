@@ -3,42 +3,7 @@
 import { motion, useReducedMotion } from "motion/react";
 import SectionHeading from "@/components/SectionHeading";
 import { fadeIn, fadeUp, viewportOnce } from "@/lib/motion";
-
-interface ScheduleEvent {
-  time: string;
-  name: string;
-  /** Who is on stage, first names only — the same rule the roster follows. */
-  speakers?: string;
-}
-
-const DAYS: { id: string; label: string; events: ScheduleEvent[] }[] = [
-  {
-    id: "day-1",
-    label: "Day 1 (Oct 10th)",
-    events: [
-      { time: "8:00 am", name: "registration opens" },
-      { time: "9:00 am", name: "opening ceremony" },
-      { time: "9:15 am", name: "competition start" },
-      { time: "12:30 pm", name: "lunch" },
-      { time: "1:30 pm", name: "keynote 1", speakers: "Zhen & Mike" },
-      { time: "3:30 pm", name: "keynote 2", speakers: "Owen" },
-      { time: "6:00 pm", name: "dinner" },
-      { time: "8:00 pm", name: "end of day" },
-    ],
-  },
-  {
-    id: "day-2",
-    label: "Day 2 (Oct 11th)",
-    events: [
-      { time: "9:00 am", name: "competition start" },
-      { time: "11:00 am", name: "leetcode challenge" },
-      { time: "12:00 pm", name: "lunch" },
-      { time: "3:30 pm", name: "submission deadline" },
-      { time: "3:45 pm", name: "judging" },
-      { time: "5:15 pm", name: "closing ceremony & awards" },
-    ],
-  },
-];
+import { SCHEDULE_DAYS } from "@/lib/schedule";
 
 /**
  * The run of show: the heading on the left, and the two days side by side on
@@ -58,7 +23,7 @@ export default function Schedule() {
 
         <div>
           <div className="grid gap-5 sm:grid-cols-2">
-            {DAYS.map((day, i) => (
+            {SCHEDULE_DAYS.map((day, i) => (
               <motion.div
                 key={day.id}
                 className="h-full"
@@ -81,10 +46,12 @@ export default function Schedule() {
                         <span className="w-20 shrink-0 text-xs tabular-nums text-muted-foreground">
                           {event.time}
                         </span>
-                        <span className="text-sm text-[var(--text-primary)] sm:text-base">
+                        {/* The shared schedule is written in sentence case;
+                            this section sets everything but names in lowercase. */}
+                        <span className="text-sm lowercase text-[var(--text-primary)] sm:text-base">
                           {event.name}
                           {event.speakers && (
-                            <span className="block text-xs text-muted-foreground sm:text-sm">
+                            <span className="block text-xs normal-case text-muted-foreground sm:text-sm">
                               {event.speakers}
                             </span>
                           )}
