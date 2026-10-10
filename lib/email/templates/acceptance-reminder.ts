@@ -5,6 +5,7 @@ import {
   buttons,
   esc,
   firstName,
+  goldLink,
   paragraph,
   shell,
   type WelcomeEmail,
@@ -14,6 +15,7 @@ import {
   REPLY_NOTE_TEXT,
   WAIVER_DUE_DAY,
   WAIVER_DUE_DAY_SHORT,
+  WAIVER_REPLY_TO,
 } from "./waivers";
 
 /** Where an applicant reads their decision — app/(account)/status/page.tsx. */
@@ -82,6 +84,70 @@ ${FOOTER_TEXT}`;
         ? "Reply with your signed waiver forms by 11:59 PM tonight to keep your spot."
         : `Reply with your signed waiver forms by ${due} to keep your spot.`,
       heading: `Confirm your spot by ${dueShort}`,
+      body,
+    }),
+    text,
+  };
+}
+
+/**
+ * The last word, for after `WAIVER_DUE_DAY` has passed: unconfirmed spots are
+ * already going to the waitlist, so it names no deadline and asks for the forms
+ * now. The wording is the organizers' own letter, kept as they wrote it. Same
+ * attachment and reply-to as the reminders before it.
+ */
+export function acceptanceFinalReminderEmail(fullName: string): WelcomeEmail {
+  const name = esc(firstName(fullName));
+
+  const body = [
+    paragraph(`Hi ${name},`),
+    paragraph(
+      `We are currently in the process of reallocating unconfirmed spots for OCCHacks 2026 to participants on our waitlist. If you still plan to attend, please reply with your signed waiver forms as soon as possible to lock in your entry.`
+    ),
+    paragraph(bright(`How to confirm your spot:`)),
+    paragraph(
+      `1. Attach your completed waiver packet to a reply to this email. (Note: The Medical Consent Form is only required for OCC students.)`
+    ),
+    paragraph(
+      `2. Ensure both organizers: ${WAIVER_REPLY_TO.map((to) => goldLink(to, `mailto:${to}`)).join(" and ")} are included on your reply thread.`
+    ),
+    paragraph(
+      `Once we receive your forms, your registration is fully secured. Hope to see you there!`
+    ),
+    paragraph(`Best,<br />The OCCHacks Team`),
+    paragraph(
+      `P.S. Don't miss out, our guest speaker lineup includes the Director of Applied Science at Blizzard and the former Director of Amazon Game Studios!`
+    ),
+  ].join("\n");
+
+  const subject = `OCC Hacks 2026 — Urgent action required to secure your spot`;
+
+  const text = `${subject}
+
+Hi ${firstName(fullName)},
+
+We are currently in the process of reallocating unconfirmed spots for OCCHacks 2026 to participants on our waitlist. If you still plan to attend, please reply with your signed waiver forms as soon as possible to lock in your entry.
+
+How to confirm your spot:
+
+1. Attach your completed waiver packet to a reply to this email. (Note: The Medical Consent Form is only required for OCC students.)
+
+2. Ensure both organizers: ${WAIVER_REPLY_TO.join(" and ")} are included on your reply thread.
+
+Once we receive your forms, your registration is fully secured. Hope to see you there!
+
+Best,
+The OCCHacks Team
+
+P.S. Don't miss out, our guest speaker lineup includes the Director of Applied Science at Blizzard and the former Director of Amazon Game Studios!
+
+${FOOTER_TEXT}`;
+
+  return {
+    subject,
+    html: shell({
+      preheader: "We're reallocating unconfirmed spots to the waitlist. Reply with your signed waiver forms to keep yours.",
+      heading: "Urgent action required to secure your spot",
       body,
     }),
     text,
