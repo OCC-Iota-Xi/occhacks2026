@@ -1,3 +1,4 @@
+import { isClassSection } from "@/lib/form-options";
 import { canReadHandbook } from "@/lib/read-applicant-stage";
 import type { createClient } from "@/lib/supabase/server";
 
@@ -34,8 +35,11 @@ export async function readExtraCredit(supabase: Supabase, userId: string) {
 
 /**
  * Whether this hacker still owes us a section: they picked a class for extra
- * credit, haven't said which section of it, and are someone the registration
+ * credit, haven't picked one of its sections, and are someone the registration
  * page will let fix that. What the sidebar's reminder is shown for.
+ *
+ * A section typed in before there was a list to pick from counts only if it
+ * happens to be one of the class's CRNs; anything else is owed again.
  */
 export async function needsClassSection(
   supabase: Supabase,
@@ -43,5 +47,5 @@ export async function needsClassSection(
 ) {
   if (!(await canReadHandbook(user))) return false;
   const { course, section, submitted, ready } = await readExtraCredit(supabase, user.id);
-  return ready && submitted && !!course && !section;
+  return ready && submitted && !!course && !isClassSection(course, section);
 }

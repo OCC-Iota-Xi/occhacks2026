@@ -1,13 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-// import ExtraCreditForm from "@/components/ExtraCreditForm";
+import ExtraCreditForm from "@/components/ExtraCreditForm";
 import FloatingVideo from "@/components/FloatingVideo";
 import RegisterForm, { type RegistrationDefaults } from "@/components/RegisterForm";
 import { applicationsClosed, WALK_IN_POLICY } from "@/lib/deadline";
-// import { readExtraCredit } from "@/lib/extra-credit";
+import { readExtraCredit } from "@/lib/extra-credit";
 import { TRACKS } from "@/lib/form-options";
-// import { canReadHandbook } from "@/lib/read-applicant-stage";
+import { canReadHandbook } from "@/lib/read-applicant-stage";
 import { createClient, getSessionUser } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
@@ -93,11 +93,10 @@ export default async function RegisterPage() {
 
   // The one answer that can still change after that: which class a confirmed
   // hacker wants extra credit for, and which section of it they're in.
-  // Off for now, along with its form at the bottom of the closed view.
-  // const extraCredit =
-  //   closed && user && existing?.completed_at && (await canReadHandbook(user))
-  //     ? await readExtraCredit(supabase, user.id)
-  //     : null;
+  const extraCredit =
+    closed && user && existing?.completed_at && (await canReadHandbook(user))
+      ? await readExtraCredit(supabase, user.id)
+      : null;
 
   const rank = (value: number | null | undefined) => (value == null ? "" : String(value));
 
@@ -141,7 +140,7 @@ export default async function RegisterPage() {
                 <>
                   <p>
                     Your application is in. You can still see it below, but it can no longer be
-                    edited{/* extraCredit ? ", apart from your extra credit class at the bottom" : "" */}.
+                    edited{extraCredit ? ", apart from your extra credit class at the bottom" : ""}.
                     Your decision will show up on your status page.
                   </p>
                   <Link
@@ -162,9 +161,8 @@ export default async function RegisterPage() {
               ) : (
                 <p>{WALK_IN_POLICY}</p>
               )}
-              {/* `withClasses={!extraCredit}` again once the form below is back. */}
-              {existing && <SavedAnswers answers={defaults} withClasses />}
-              {/* {extraCredit && (
+              {existing && <SavedAnswers answers={defaults} withClasses={!extraCredit} />}
+              {extraCredit && (
                 <div id="extra-credit" className="scroll-mt-20 space-y-4 border-t border-border pt-6">
                   <h2 className="font-display text-xl tracking-tight">extra credit</h2>
                   <p>
@@ -174,7 +172,7 @@ export default async function RegisterPage() {
                   </p>
                   <ExtraCreditForm course={extraCredit.course} section={extraCredit.section} />
                 </div>
-              )} */}
+              )}
             </div>
           ) : (
             // A draft row isn't an update — only a finished registration is.

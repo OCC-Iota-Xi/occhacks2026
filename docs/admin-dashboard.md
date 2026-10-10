@@ -238,6 +238,9 @@ export const ADMIN_EMAILS = [
   "envn001@gmail.com",
   "nngo62@student.cccd.edu",
   "swathanasaynee@student.cccd.edu",
+  "lhoang104@student.cccd.edu",
+  "cperez214@student.cccd.edu",
+  "ldang81@student.cccd.edu",
 ];
 ```
 

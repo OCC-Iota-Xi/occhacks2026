@@ -7,7 +7,7 @@ import { sendHackerWelcome, sendHelperWelcome } from "@/lib/email/welcome";
 import { HELPER_TABLE, type HelperRole, type HelperTable } from "@/lib/helper-roles";
 import { applicationsClosed } from "@/lib/deadline";
 import { isOldEnough, UNDER_18_MESSAGE } from "@/lib/eligibility";
-import { OCC_CLASSES } from "@/lib/form-options";
+import { isClassSection, OCC_CLASSES } from "@/lib/form-options";
 import { canReadHandbook } from "@/lib/read-applicant-stage";
 import { createClient } from "@/lib/supabase/server";
 
@@ -258,17 +258,17 @@ export interface ExtraCreditState {
   message: string;
 }
 
-const SECTION_MAX = 20;
-
 /**
  * Saves which class a hacker wants extra credit for, and which section of it
  * they're in.
  *
  * The exception to the freeze above: the form asked for the class but never
- * the section, and the roster sent to each instructor needs both. It's for
- * hackers with a confirmed spot, the same people the handbook that sends them
- * here is for, and it writes those two columns of the caller's own row and
- * nothing else, so it can't be used to edit the rest of a closed application.
+ * the section, and the roster sent to each instructor needs both. The section
+ * is stored as its CRN, and has to be one `CLASS_SECTIONS` lists for the
+ * class. It's for hackers with a confirmed spot, the same people the handbook
+ * that sends them here is for, and it writes those two columns of the caller's
+ * own row and nothing else, so it can't be used to edit the rest of a closed
+ * application.
  */
 export async function saveExtraCredit(
   _prev: ExtraCreditState,
@@ -290,11 +290,8 @@ export async function saveExtraCredit(
   if (course && !OCC_CLASSES.includes(course)) {
     return { ok: false, message: "Pick one of the classes listed." };
   }
-  if (course && !section) {
-    return { ok: false, message: "Add the section number for your class." };
-  }
-  if (section.length > SECTION_MAX) {
-    return { ok: false, message: `A section number is at most ${SECTION_MAX} characters.` };
+  if (course && !isClassSection(course, section)) {
+    return { ok: false, message: "Pick which section of the class you're in." };
   }
 
   const { data, error } = await supabase
