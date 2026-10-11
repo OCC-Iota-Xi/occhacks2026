@@ -317,11 +317,11 @@ export async function saveExtraCredit(
     return { ok: false, message: "We couldn't find a hacker application on this account." };
   }
 
-  revalidatePath("/register");
-  return {
-    ok: true,
-    message: course ? "Saved. You're down for extra credit." : "Saved. No extra credit class.",
-  };
+  // The whole signed-in area, not just this page: the sidebar's reminder that
+  // a section is still owed lives in the account layout, and a page-only
+  // revalidation left it showing after the section was saved.
+  revalidatePath("/", "layout");
+  return { ok: true, message: "Saved." };
 }
 
 /**
