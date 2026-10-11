@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { startTransition, useActionState, useState } from "react";
 import { saveExtraCredit, type ExtraCreditState } from "@/app/(account)/register/actions";
 import { CLASS_SECTIONS, isClassSection, OCC_CLASSES } from "@/lib/form-options";
 
@@ -21,6 +21,11 @@ function startingSection(course: string, section = "") {
  * section of it they're in. The one part of the registration page that still
  * takes an answer once applications have closed.
  *
+ * Saves on its own, like the rest of the registration form: every pick that
+ * makes a complete answer is written as soon as it's made. "None of these" is
+ * complete by itself, a class with one section fills the section in, and a
+ * class with several waits for the section to be picked.
+ *
  * `course` and `section` are what's already on their application: the class
  * they picked when registering, and a section's CRN if they've been here
  * before. A section saved back when it was typed in, and that isn't one the
@@ -34,14 +39,40 @@ export default function ExtraCreditForm({
   section: string;
 }) {
   const [state, formAction, pending] = useActionState(saveExtraCredit, INITIAL);
-  // Held here rather than left to the inputs: a form resets its own fields
-  // once its action finishes, and the answers should stay where they were put.
   const [course, setCourse] = useState(savedCourse);
   const [section, setSection] = useState(() => startingSection(savedCourse, savedSection));
   const sections = CLASS_SECTIONS[course] ?? [];
+  // A class picked but not yet its section: nothing to save until it is.
+  const awaitingSection = !!course && !isClassSection(course, section);
+
+  const save = (nextCourse: string, nextSection: string) => {
+    if (nextCourse && !isClassSection(nextCourse, nextSection)) return;
+    const formData = new FormData();
+    formData.set("course", nextCourse);
+    formData.set("section", nextSection);
+    startTransition(() => formAction(formData));
+  };
+
+  const pickCourse = (option: string) => {
+    const nextSection = startingSection(option);
+    setCourse(option);
+    setSection(nextSection);
+    save(option, nextSection);
+  };
+
+  const pickSection = (crn: string) => {
+    setSection(crn);
+    save(course, crn);
+  };
+
+  const status = pending
+    ? "Saving..."
+    : awaitingSection
+      ? "Pick your section and it'll save."
+      : state.message;
 
   return (
-    <form action={formAction}>
+    <form onSubmit={(event) => event.preventDefault()}>
       <fieldset>
         <legend className="text-foreground">Which class are you taking?</legend>
         <div className="mt-3 space-y-2">
@@ -52,10 +83,7 @@ export default function ExtraCreditForm({
                 name="course"
                 value={option}
                 checked={course === option}
-                onChange={() => {
-                  setCourse(option);
-                  setSection(startingSection(option));
-                }}
+                onChange={() => pickCourse(option)}
                 className="size-4 accent-ring"
               />
               {option || "None of these"}
@@ -78,8 +106,7 @@ export default function ExtraCreditForm({
                   name="section"
                   value={crn}
                   checked={section === crn}
-                  onChange={() => setSection(crn)}
-                  required
+                  onChange={() => pickSection(crn)}
                   className="mt-1 size-4 shrink-0 accent-ring"
                 />
                 <span>
@@ -92,20 +119,14 @@ export default function ExtraCreditForm({
         </fieldset>
       )}
 
-      <div className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-2">
-        <button
-          type="submit"
-          disabled={pending}
-          className="rounded-full border border-ring/60 px-6 py-2 text-sm text-ring transition-colors hover:bg-ring/10 disabled:opacity-60"
+      {status && (
+        <p
+          role={!pending && !awaitingSection && !state.ok ? "alert" : "status"}
+          className="mt-5 text-sm text-muted-foreground"
         >
-          {pending ? "Saving..." : "Save"}
-        </button>
-        {state.message && (
-          <span role={state.ok ? "status" : "alert"} className="text-sm text-muted-foreground">
-            {state.message}
-          </span>
-        )}
-      </div>
+          {status}
+        </p>
+      )}
     </form>
   );
 }
