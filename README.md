@@ -1,24 +1,51 @@
+<div align="center">
+
 # OCC Hacks 2026
 
-The site for OCC Hacks 2026 — a free two-day hackathon at Orange Coast College,
-October 10–11, 2026, run by the Iota Xi (ΙΞ) Society. One Next.js app holds all
-of it: the public landing page, the three sign-up forms (hacker, volunteer,
-mentor), and the organizer dashboard behind `/admin`.
+A free two-day hackathon at Orange Coast College, October 10–11, 2026,
+run by the Iota Xi (ΙΞ) Society.
 
-Production: [occhacks.com](https://occhacks.com)
+[occhacks.com](https://occhacks.com) ·
+[Admin dashboard docs](docs/admin-dashboard.md) ·
+[Design system](docs/design-system.md)
 
-## Stack
+![Next.js 16](https://img.shields.io/badge/Next.js-16-black?logo=nextdotjs)
+![React 19](https://img.shields.io/badge/React-19-149eca?logo=react&logoColor=white)
+![Tailwind CSS v4](https://img.shields.io/badge/Tailwind_CSS-v4-38bdf8?logo=tailwindcss&logoColor=white)
+![Supabase](https://img.shields.io/badge/Supabase-Postgres-3ecf8e?logo=supabase&logoColor=white)
 
-- **Next.js 16** (App Router) with React 19 and TypeScript
-- **Tailwind CSS v4** with shadcn/ui components over Base UI and Radix
-- **Supabase** — OAuth sign-in, Postgres, and the row-level security policies
-  the dashboard reads through. There is no service-role key in this project;
-  every query runs as the signed-in user.
-- **Resend** for transactional and campaign email
-- **PostHog** for analytics and production error tracking
-- **motion** for animation, **ogl** for the space backdrop
+![The OCC Hacks landing page: the OCC Hacks wordmark beside an astronaut floating past an orange planet](docs/screenshots/hero.png)
 
-## Running it locally
+</div>
+
+## What's in here
+
+One Next.js app holds the whole event:
+
+- **The landing page** — hero, about, tracks, mentors, sponsors, schedule and FAQ
+- **Three sign-up forms** — hackers at `/register`, plus `/volunteer` and `/mentor`
+- **An organizer dashboard** at `/admin` — applicants, check-in, volunteers and mentors, email campaigns, CSV export
+
+<table>
+  <tr>
+    <td width="68%"><img src="docs/screenshots/tracks.png" alt="Tracks section: Entertainment, Education, and Productivity and Utility, each with an illustrated planet"></td>
+    <td rowspan="2"><img src="docs/screenshots/mobile.png" alt="The landing page on a phone"></td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/schedule.png" alt="Two-day schedule from registration to the closing ceremony"></td>
+  </tr>
+</table>
+
+## Contents
+
+- [Quick start](#quick-start)
+- [Stack](#stack)
+- [Routes](#routes)
+- [Project layout](#project-layout)
+- [Scripts](#scripts)
+- [Working in this repo](#working-in-this-repo)
+
+## Quick start
 
 ```bash
 npm install
@@ -28,11 +55,13 @@ npm run dev
 
 The site comes up on <http://localhost:3000>.
 
-Without Supabase credentials the app boots but nothing that touches the
-database works. In development the proxy lets you open the sign-up forms
-signed out so you can look at them; saving still requires a session.
+> [!NOTE]
+> Without Supabase credentials the app boots but nothing that touches the
+> database works. In development the proxy lets you open the sign-up forms
+> signed out so you can look at them; saving still requires a session.
 
-### Environment
+<details>
+<summary><strong>Environment variables</strong></summary>
 
 | Variable | What it does |
 | --- | --- |
@@ -44,69 +73,97 @@ signed out so you can look at them; saving still requires a session.
 | `NEXT_PUBLIC_POSTHOG_KEY` | PostHog project token. Missing in development, this throws on purpose, so events are never silently dropped. |
 | `NEXT_PUBLIC_POSTHOG_HOST` | PostHog host |
 
-### Supabase setup
+</details>
 
-Run every file in `supabase/migrations/` in order — Supabase dashboard → SQL
-Editor → New query → paste → Run. Each one is idempotent, so re-running is
-safe. `0018_admin_crm.sql` onward is what `/admin` needs; until those run the
-dashboard shows a setup notice and every count reads zero. See
-[docs/admin-dashboard.md](docs/admin-dashboard.md) for which migration backs
-which page.
+<details>
+<summary><strong>Supabase setup</strong></summary>
 
-Sign-in is OAuth only, Google and GitHub. Enable both providers in
-Authentication → Providers and add `<origin>/auth/callback` to the redirect
-allow-list.
+1. Run every file in `supabase/migrations/` in order — Supabase dashboard →
+   SQL Editor → New query → paste → Run. Each one is idempotent, so
+   re-running is safe.
+2. `0018_admin_crm.sql` onward is what `/admin` needs; until those run the
+   dashboard shows a setup notice and every count reads zero. See
+   [docs/admin-dashboard.md](docs/admin-dashboard.md) for which migration
+   backs which page.
+3. Sign-in is OAuth only, Google and GitHub. Enable both providers in
+   Authentication → Providers and add `<origin>/auth/callback` to the
+   redirect allow-list.
+
+</details>
+
+## Stack
+
+| | |
+| --- | --- |
+| Framework | Next.js 16 (App Router), React 19, TypeScript |
+| Styling | Tailwind CSS v4, shadcn/ui over Base UI and Radix |
+| Data and auth | Supabase — OAuth sign-in, Postgres, and the row-level security policies the dashboard reads through |
+| Email | Resend, for transactional and campaign mail |
+| Analytics | PostHog, including production error tracking |
+| Motion | `motion` for animation, `ogl` for the space backdrop |
+
+There is no service-role key in this project; every query runs as the
+signed-in user.
 
 ## Routes
 
-**Public** — `/` is the landing page (hero, about, tracks, mentors, sponsors,
-schedule, FAQ), with JSON-LD for the event and the FAQ.
+| Route | Who it's for | Notes |
+| --- | --- | --- |
+| `/` | Everyone | Landing page, with JSON-LD for the event and the FAQ |
+| `/register` | Hackers | Multi-step application |
+| `/volunteer`, `/mentor` | People helping run the weekend | Same multi-step form, different questions |
+| `/status` | Hackers | Application status, plus the check-in QR code once accepted |
+| `/handbook` | Confirmed hackers | Everything needed for the weekend |
+| `/signin`, `/auth/callback` | Everyone | OAuth sign-in; the callback handles both the PKCE `?code=` flow and the `?token_hash=` template flow |
+| `/admin` | Organizers | Dashboard, Applicants, Volunteers & mentors, Check-in, Emails, Hacker handbook, Settings |
+| `/admin/export` | Organizers | Streams the roster as CSV |
 
-**Sign-up** — `/register` for hackers, `/volunteer` and `/mentor` for everyone
-helping run the weekend. All three are multi-step forms that autosave a draft
-as you go: partial rows in Postgres, plus a local copy per role. Everyone has
-to be 18 by day one — the rule lives once, in `lib/eligibility.ts`, and both
-the form and the server action read it from there. A finished sign-up sends a
-welcome email to the address the account signed in with, once.
+A few things worth knowing:
 
-**Auth** — `/signin`, and `/auth/callback`, which handles both the PKCE
-`?code=` flow and the `?token_hash=` template flow.
+- **Sign-up forms autosave** a draft as you go — partial rows in Postgres,
+  plus a local copy per role. A finished sign-up sends one welcome email to
+  the address the account signed in with.
+- **Everyone has to be 18 by day one.** The rule lives once, in
+  `lib/eligibility.ts`, and both the form and the server action read it from
+  there.
+- **CSV export reuses the applicant list's query string**, so "export what
+  I'm looking at" needs no second filter implementation.
+- **Admin access is one list** in `lib/admin/access.ts`, checked in three
+  places — the proxy, the admin layout and every server action — and mirrored
+  by `public.admin_users`, which is what the RLS policies are written against.
 
-**Organizer** — `/admin`, plus Applicants, Check-in,
-Volunteers & mentors, Emails and Settings under it. `/admin/export`
-streams the roster as CSV, taking the applicant list's own query string so
-"export what I'm looking at" needs no second filter implementation. Who can open it is one list in
-`lib/admin/access.ts`, checked in three places — the proxy, the admin layout
-and every server action — and mirrored by `public.admin_users`, which is what
-the RLS policies are written against.
-
-## Layout
+## Project layout
 
 ```
-app/            routes: (site), register, volunteer, mentor, signin, auth, admin
+app/            routes: (site), (account), signin, auth, admin
 components/     sections/ for the landing page, admin/ for the dashboard, ui/ for shadcn
 lib/            supabase clients, admin queries and actions, email, form config
 supabase/       SQL migrations, applied by hand in order
-docs/           admin dashboard reference, design notes
+docs/           admin dashboard reference, design notes, screenshots
 assets/         source files for fonts, email art and the Devpost listing
+proxy.ts        middleware (see below)
 ```
 
 `proxy.ts` is this app's middleware — Next.js 16 renamed the file and the
 exported function. It refreshes the Supabase session cookie (a server
-component can't write one, so this is the only place a token gets renewed) and
-guards `/register`, `/volunteer`, `/mentor` and `/admin`.
+component can't write one, so this is the only place a token gets renewed)
+and guards `/register`, `/volunteer`, `/mentor` and `/admin`.
 
 ## Scripts
 
 | Command | |
 | --- | --- |
-| `npm run dev` | dev server on :3000 |
-| `npm run build` | production build |
-| `npm run start` | serve the build |
+| `npm run dev` | Dev server on :3000 |
+| `npm run build` | Production build |
+| `npm run start` | Serve the build |
 | `npm run lint` | ESLint |
 
 ## Working in this repo
 
-This is Next.js 16, which changed enough to trip up anything written against
-an older version — see [AGENTS.md](AGENTS.md). The shipped docs in
-`node_modules/next/dist/docs/` are the version-accurate reference.
+> [!IMPORTANT]
+> This is Next.js 16, which changed enough to trip up anything written
+> against an older version — see [AGENTS.md](AGENTS.md). The shipped docs in
+> `node_modules/next/dist/docs/` are the version-accurate reference.
+
+Screenshots in `docs/screenshots/` were taken from production at
+1440×900 and 390×844.
