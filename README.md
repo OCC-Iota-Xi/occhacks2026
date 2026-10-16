@@ -51,7 +51,7 @@ became a status check.</sub>
 
 ### Applications
 
-| | |
+| Stage | Count |
 | --- | --- |
 | Submitted applications | 216 |
 | Started but never submitted | 27 |
@@ -80,7 +80,7 @@ xychart-beta
 From PostHog, Aug 24 – Oct 16. Visitors with ad blockers aren't counted, so
 these are floors.
 
-| | |
+| Metric | Value |
 | --- | --- |
 | Page views | 12,267 |
 | Unique visitors | about 1,500 |
@@ -134,7 +134,7 @@ The site comes up on <http://localhost:3000>.
 
 ## Stack
 
-| | |
+| Layer | Choice |
 | --- | --- |
 | Framework | Next.js 16 (App Router), React 19, TypeScript |
 | Styling | Tailwind CSS v4, shadcn/ui over Base UI and Radix |
