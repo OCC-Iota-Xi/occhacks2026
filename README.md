@@ -132,22 +132,6 @@ The site comes up on <http://localhost:3000>.
 
 </details>
 
-<details>
-<summary><strong>Supabase setup</strong></summary>
-
-1. Run every file in `supabase/migrations/` in order — Supabase dashboard →
-   SQL Editor → New query → paste → Run. Each one is idempotent, so
-   re-running is safe.
-2. `0018_admin_crm.sql` onward is what `/admin` needs; until those run the
-   dashboard shows a setup notice and every count reads zero. See
-   [docs/admin-dashboard.md](docs/admin-dashboard.md) for which migration
-   backs which page.
-3. Sign-in is OAuth only, Google and GitHub. Enable both providers in
-   Authentication → Providers and add `<origin>/auth/callback` to the
-   redirect allow-list.
-
-</details>
-
 ## Stack
 
 | | |
@@ -195,7 +179,6 @@ A few things worth knowing:
 app/            routes: (site), (account), signin, auth, admin
 components/     sections/ for the landing page, admin/ for the dashboard, ui/ for shadcn
 lib/            supabase clients, admin queries and actions, email, form config
-supabase/       SQL migrations, applied by hand in order
 docs/           admin dashboard reference, design notes, screenshots
 assets/         source files for fonts, email art and the Devpost listing
 proxy.ts        middleware (see below)
