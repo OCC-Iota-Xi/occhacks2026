@@ -36,8 +36,65 @@ One Next.js app holds the whole event:
   </tr>
 </table>
 
+## How it went
+
+OCC Hacks 2026 ran October 10–11 in the OCC Ballroom: two days, three tracks
+(Entertainment, Education, and Productivity and Utility), free for any college
+student 18 or older. Applications opened in late August and closed Monday,
+October 5 at 11:59 PM PT, with no walk-ins.
+
+![The landing page while applications were open, with the countdown to the deadline and the Become a Hacker button](docs/screenshots/applications-open.png)
+
+<sub>The homepage while applications were open. After the deadline the
+countdown became an "Applications are closed" notice and every apply button
+became a status check.</sub>
+
+### Applications
+
+| | |
+| --- | --- |
+| Submitted applications | 216 |
+| Started but never submitted | 27 |
+| Accepted | 211 |
+| Confirmed they were coming | 141 |
+| Application window | Aug 24 – Oct 5, about six weeks |
+
+- The deadline drove the rush. 81 applications, 38% of the total, came in
+  during the final week, and deadline day itself was the busiest of the cycle
+  with 29. The last one landed at 11:57 PM, two minutes before the form closed.
+- First-choice track: Entertainment 86, Productivity and Utility 69,
+  Education 61.
+
+```mermaid
+xychart-beta
+  title "Applications submitted per week"
+  x-axis ["Aug 24", "Aug 31", "Sep 7", "Sep 14", "Sep 21", "Sep 28", "Oct 5*"]
+  y-axis "Applications" 0 --> 60
+  bar [16, 11, 12, 37, 52, 59, 29]
+```
+
+<sub>\*Oct 5 is deadline day only. Aug 24 includes one early test submission.</sub>
+
+### Site traffic
+
+From PostHog, Aug 24 – Oct 16. Visitors with ad blockers aren't counted, so
+these are floors.
+
+| | |
+| --- | --- |
+| Page views | 12,267 |
+| Unique visitors | about 1,500 |
+| Sessions | 3,496 |
+| Desktop / mobile | 57% / 43% |
+| Busiest week | Oct 5, with 604 visitors |
+
+Most people typed the address or followed a shared link (about 1,250
+visitors), then Google search (about 380), then Instagram and the Devpost
+listing (about 30 each).
+
 ## Contents
 
+- [How it went](#how-it-went)
 - [Quick start](#quick-start)
 - [Stack](#stack)
 - [Routes](#routes)
@@ -166,4 +223,5 @@ and guards `/register`, `/volunteer`, `/mentor` and `/admin`.
 > `node_modules/next/dist/docs/` are the version-accurate reference.
 
 Screenshots in `docs/screenshots/` were taken from production at
-1440×900 and 390×844.
+1440×900 and 390×844, except `applications-open.png`, which is commit
+`7c6f4a3` (the last one before applications closed) run locally.
